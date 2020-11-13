@@ -1,10 +1,17 @@
 ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TESTCASE ?= io.managed.services.**
 
+ifdef PROFILE
+	PROFILE_ARGS = "-P$(PROFILE)"
+endif
+
 clean:
 	mvn clean
 
-test:
-	mvn test -Dtest=$(TESTCASE)
+build:
+	mvn test -DskipTests
 
-.PHONY: clean test
+test:
+	mvn test -Dtest=$(TESTCASE) $(PROFILE_ARGS)
+
+.PHONY: clean build test
