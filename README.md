@@ -64,3 +64,7 @@ make PROFILE=ci test
 | LOG_DIR     |  path where test suite stores logs from failed tests etc...      | $(pwd)/target/logs |
 | CONFIG_PATH | path where is stored config.json with env variables and values   | $(pwd)/config.json |
 
+## Maintainers
+* David Kornel <dkornel@redhat.com>
+* Davide Bizzarri <dbizzarr@redhat.com>
+
