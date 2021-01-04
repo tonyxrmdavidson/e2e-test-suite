@@ -7,6 +7,8 @@ import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 public class TestPlanExecutionListener implements TestExecutionListener {
@@ -19,7 +21,12 @@ public class TestPlanExecutionListener implements TestExecutionListener {
         LOGGER.info("=======================================================================");
         LOGGER.info("=======================================================================");
         printSelectedTestClasses(testPlan);
-        Environment.LOG_DIR.toFile().mkdirs();
+        try {
+            Files.createDirectories(Environment.LOG_DIR);
+        } catch (IOException e) {
+            LOGGER.warn("Test suite cannot create log dirs");
+            throw new RuntimeException("Log folders cannot be created: ", e.getCause());
+        }
     }
 
     public void testPlanExecutionFinished(TestPlan testPlan) {
