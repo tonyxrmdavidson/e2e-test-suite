@@ -12,7 +12,6 @@ import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
  */
 public class TestExceptionCallbackListener implements TestExecutionExceptionHandler, LifecycleMethodExecutionExceptionHandler {
     private static final Logger LOGGER = LogManager.getLogger(TestExceptionCallbackListener.class);
-    KubeClusterResource cluster = KubeClusterResource.getInstance();
 
     @Override
     public void handleTestExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
