@@ -32,6 +32,8 @@ public class Environment {
      */
     private static final String LOG_DIR_ENV = "LOG_DIR";
     private static final String CONFIG_FILE_PATH_ENVAR = "CONFIG_PATH";
+    public static final String USER_A_USERNAME_ENV = "USER_A_USERNAME";
+    public static final String USER_A_PASSWORD_ENV = "USER_A_PASSWORD";
 
 
     /*
@@ -40,6 +42,8 @@ public class Environment {
     public static final String SUITE_ROOT = System.getProperty("user.dir");
     public static final Path LOG_DIR = getOrDefault(LOG_DIR_ENV, Paths::get, Paths.get(SUITE_ROOT, "target", "logs")).resolve("test-run-" + DATE_FORMAT.format(LocalDateTime.now()));
 
+    public static final String USER_A_USERNAME = getOrDefault(USER_A_USERNAME_ENV, null);
+    public static final String USER_A_PASSWORD = getOrDefault(USER_A_PASSWORD_ENV, null);
 
     private Environment() {
     }
