@@ -33,9 +33,12 @@ public class MASOAuth {
     static final String CLIENT_ID = "strimzi-ui";
     static final String REDIRECT_URI = "https://qaprodauth.cloud.redhat.com/beta/application-services/openshift-streams";
 
-
     final Vertx vertx;
     final OAuth2Auth oauth2;
+
+    static public String getToken(User user) {
+        return user.get("access_token");
+    }
 
     public MASOAuth(Vertx vertx) {
 
@@ -70,7 +73,7 @@ public class MASOAuth {
                 .flatMap(r -> postUsernamePassword(session, r, username, password))
                 .flatMap(r -> authenticateUser(session, r))
                 .map(u -> {
-                    LOGGER.info("authentication completed; access_token={}", (String) u.get("access_token"));
+                    LOGGER.info("authentication completed; access_token={}", getToken(u));
                     return u;
                 });
     }
