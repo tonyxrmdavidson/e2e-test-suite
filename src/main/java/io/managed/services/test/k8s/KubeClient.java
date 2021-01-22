@@ -2,11 +2,7 @@ package io.managed.services.test.k8s;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.DeletionPropagation;
-import io.fabric8.kubernetes.api.model.Doneable;
-import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Event;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.LabelSelector;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -18,7 +14,6 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceAccount;
 import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DoneableStatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.batch.Job;
 import io.fabric8.kubernetes.api.model.batch.JobList;
@@ -29,11 +24,6 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.VersionInfo;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.PodResource;
-import io.fabric8.kubernetes.client.dsl.Resource;
-import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
-import io.fabric8.kubernetes.client.dsl.base.CustomResourceDefinitionContext;
 import io.fabric8.openshift.api.model.DeploymentConfig;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.internal.readiness.OpenShiftReadiness;
@@ -216,12 +206,6 @@ public class KubeClient {
         return client.pods().inNamespace(getNamespace()).withName(name).get();
     }
 
-    /**
-     * Gets pod
-     */
-    public PodResource<Pod, DoneablePod> getPodResource(String name) {
-        return client.pods().inNamespace(getNamespace()).withName(name);
-    }
 
     /**
      * Gets pod Uid
@@ -265,13 +249,6 @@ public class KubeClient {
      */
     public StatefulSet getStatefulSet(String statefulSetName) {
         return client.apps().statefulSets().inNamespace(getNamespace()).withName(statefulSetName).get();
-    }
-
-    /**
-     * Gets stateful set
-     */
-    public RollableScalableResource<StatefulSet, DoneableStatefulSet> statefulSet(String statefulSetName) {
-        return client.apps().statefulSets().inNamespace(getNamespace()).withName(statefulSetName);
     }
 
     /**
@@ -595,10 +572,6 @@ public class KubeClient {
 
     public List<RoleBinding> listRoleBindings() {
         return client.rbac().roleBindings().list().getItems();
-    }
-
-    public <T extends HasMetadata, L extends KubernetesResourceList<T>, D extends Doneable<T>> MixedOperation<T, L, D, Resource<T, D>> customResources(CustomResourceDefinitionContext crdContext, Class<T> resourceType, Class<L> listClass, Class<D> doneClass) {
-        return client.customResources(crdContext, resourceType, listClass, doneClass); //TODO namespace here
     }
 
     // =========================
