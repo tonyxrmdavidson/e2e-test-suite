@@ -1,10 +1,11 @@
 package io.managed.services.test.smoke;
 
 import io.managed.services.test.Environment;
-import io.managed.services.test.OAuth;
+import io.managed.services.test.MASOAuth;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
+import io.vertx.ext.auth.User;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
@@ -20,15 +21,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
+    User user;
+    MASOAuth auth;
 
     @BeforeAll
-    void login(Vertx vertx, VertxTestContext testContext) {
-        OAuth auth = new OAuth(vertx, Environment.USER_A_USERNAME, Environment.USER_A_PASSWORD);
-        auth.auth().onSuccess(r -> {
-            LOGGER.info(r.bodyAsString());
-            LOGGER.info(r.statusCode());
-            testContext.completeNow();
-        });
+    void login(Vertx vertx, VertxTestContext context) {
+        this.auth = new MASOAuth(vertx);
+
+        auth.login(Environment.USER_A_USERNAME, Environment.USER_A_PASSWORD)
+                .onSuccess(user -> {
+                    this.user = user;
+                    context.completeNow();
+                })
+                .onFailure(context::failNow);
     }
 
     @Test
