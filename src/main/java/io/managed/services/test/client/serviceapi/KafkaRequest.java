@@ -1,4 +1,4 @@
-package io.managed.services.test;
+package io.managed.services.test.client.serviceapi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
