@@ -12,7 +12,6 @@ import io.vertx.ext.web.client.WebClientOptions;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.function.Function;
 
 
 public class ServiceAPI {
@@ -56,35 +55,44 @@ public class ServiceAPI {
         return false;
     }
 
-    Function<HttpResponse<Buffer>, Future<HttpResponse<Buffer>>> assertResponse(Integer statusCode) {
-        return (HttpResponse<Buffer> response) -> {
-            if (response.statusCode() != statusCode) {
+    Future<HttpResponse<Buffer>> assertResponse(HttpResponse<Buffer> response, Integer statusCode) {
+//        return (HttpResponse<Buffer> response) -> {
+        if (response.statusCode() != statusCode) {
 
-                StringBuilder error = new StringBuilder();
-                error.append(String.format("Expected status code %d but got %s", statusCode, response.statusCode()));
-                for (Map.Entry<String, String> e : response.headers().entries()) {
-                    error.append(String.format("\n< %s: %s", e.getKey(), e.getValue()));
-                }
-                error.append(String.format("\n%s", response.bodyAsString()));
-                return Future.failedFuture(error.toString());
+            StringBuilder error = new StringBuilder();
+            error.append(String.format("Expected status code %d but got %s", statusCode, response.statusCode()));
+            for (Map.Entry<String, String> e : response.headers().entries()) {
+                error.append(String.format("\n< %s: %s", e.getKey(), e.getValue()));
             }
-            return Future.succeededFuture(response);
-        };
+            error.append(String.format("\n%s", response.bodyAsString()));
+            return Future.failedFuture(new Exception(error.toString()));
+        }
+        return Future.succeededFuture(response);
+//        };
     }
 
-    public Future<KafkaRequest> createKafka(KafkaRequestPayload payload) {
+    public Future<KafkaResponse> getKafka(String id) {
+        return client.get(String.format("/api/managed-services-api/v1/kafkas/%s", id))
+                .authentication(token)
+                .send()
+                .flatMap(r -> assertResponse(r, 200))
+                .map(response -> response.bodyAsJson(KafkaResponse.class));
+    }
+
+    public Future<KafkaResponse> createKafka(CreateKafkaPayload payload, Boolean async) {
         return client.post("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
+                .addQueryParam("async", async.toString())
                 .sendJson(payload)
-                .flatMap(assertResponse(200))
-                .map(response -> response.bodyAsJson(KafkaRequest.class));
+                .flatMap(r -> assertResponse(r, 202))
+                .map(response -> response.bodyAsJson(KafkaResponse.class));
     }
 
     public Future<Void> deleteKafka(String id) {
         return client.delete(String.format("/api/managed-services-api/v1/kafkas/%s", id))
                 .authentication(token)
                 .send()
-                .flatMap(assertResponse(200))
+                .flatMap(r -> assertResponse(r, 204))
                 .map(response -> response.bodyAsJson(Void.class));
     }
 }

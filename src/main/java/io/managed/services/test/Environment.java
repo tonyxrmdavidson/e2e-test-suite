@@ -41,6 +41,8 @@ public class Environment {
     public static final String SSO_REDHAT_CLIENT_ID_ENV = "SSO_REDHAT_CLIENT_ID";
     public static final String SSO_REDHAT_REDIRECT_URI_ENV = "SSO_REDHAT_REDIRECT_URI";
 
+    public static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
+
 
     /*
      * Setup constants from env variables or set default
@@ -57,6 +59,8 @@ public class Environment {
     public static final String SSO_REDHAT_REALM = getOrDefault(SSO_REDHAT_REALM_ENV, "redhat-external");
     public static final String SSO_REDHAT_CLIENT_ID = getOrDefault(SSO_REDHAT_CLIENT_ID_ENV, "cloud-services");
     public static final String SSO_REDHAT_REDIRECT_URI = getOrDefault(SSO_REDHAT_REDIRECT_URI_ENV, "https://qaprodauth.cloud.redhat.com");
+
+    public static final String SERVICE_API_URI = getOrDefault(SERVICE_API_URI_ENV, "https://api.stage.openshift.com");
 
 
     private Environment() {

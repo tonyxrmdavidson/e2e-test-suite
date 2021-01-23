@@ -2,7 +2,7 @@ package io.managed.services.test.client.serviceapi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class KafkaRequest {
+public class KafkaResponse {
     public String id;
     public String kind;
     public String href;
