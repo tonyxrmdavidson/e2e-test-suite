@@ -31,9 +31,15 @@ public class Environment {
      * Definition of env vars
      */
     private static final String LOG_DIR_ENV = "LOG_DIR";
-    private static final String CONFIG_FILE_PATH_ENVAR = "CONFIG_PATH";
-    public static final String USER_A_USERNAME_ENV = "USER_A_USERNAME";
-    public static final String USER_A_PASSWORD_ENV = "USER_A_PASSWORD";
+    private static final String CONFIG_FILE_PATH_ENV = "CONFIG_PATH";
+
+    public static final String SSO_USERNAME_ENV = "SSO_USERNAME";
+    public static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
+
+    public static final String SSO_REDHAT_KEYCLOAK_URI_ENV = "SSO_REDHAT_KEYCLOAK_URI";
+    public static final String SSO_REDHAT_REALM_ENV = "SSO_REDHAT_REALM";
+    public static final String SSO_REDHAT_CLIENT_ID_ENV = "SSO_REDHAT_CLIENT_ID";
+    public static final String SSO_REDHAT_REDIRECT_URI_ENV = "SSO_REDHAT_REDIRECT_URI";
 
 
     /*
@@ -42,8 +48,16 @@ public class Environment {
     public static final String SUITE_ROOT = System.getProperty("user.dir");
     public static final Path LOG_DIR = getOrDefault(LOG_DIR_ENV, Paths::get, Paths.get(SUITE_ROOT, "target", "logs")).resolve("test-run-" + DATE_FORMAT.format(LocalDateTime.now()));
 
-    public static final String USER_A_USERNAME = getOrDefault(USER_A_USERNAME_ENV, null);
-    public static final String USER_A_PASSWORD = getOrDefault(USER_A_PASSWORD_ENV, null);
+    // main sso.redhat.com user
+    public static final String SSO_USERNAME = getOrDefault(SSO_USERNAME_ENV, null);
+    public static final String SSO_PASSWORD = getOrDefault(SSO_PASSWORD_ENV, null);
+
+    // sso.redhat.com OAuth ENVs
+    public static final String SSO_REDHAT_KEYCLOAK_URI = getOrDefault(SSO_REDHAT_KEYCLOAK_URI_ENV, "https://sso.redhat.com");
+    public static final String SSO_REDHAT_REALM = getOrDefault(SSO_REDHAT_REALM_ENV, "redhat-external");
+    public static final String SSO_REDHAT_CLIENT_ID = getOrDefault(SSO_REDHAT_CLIENT_ID_ENV, "cloud-services");
+    public static final String SSO_REDHAT_REDIRECT_URI = getOrDefault(SSO_REDHAT_REDIRECT_URI_ENV, "https://qaprodauth.cloud.redhat.com");
+
 
     private Environment() {
     }
@@ -96,7 +110,7 @@ public class Environment {
      * @return json object with loaded variables
      */
     private static JsonNode loadConfigurationFile() {
-        config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENVAR,
+        config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
                 Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
         ObjectMapper mapper = new ObjectMapper();
         try {

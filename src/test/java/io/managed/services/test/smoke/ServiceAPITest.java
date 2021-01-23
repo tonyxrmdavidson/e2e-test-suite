@@ -1,10 +1,10 @@
 package io.managed.services.test.smoke;
 
 import io.managed.services.test.Environment;
-import io.managed.services.test.KafkaRequest;
-import io.managed.services.test.KafkaRequestPayload;
-import io.managed.services.test.MASOAuth;
-import io.managed.services.test.ServiceAPI;
+import io.managed.services.test.client.serviceapi.KafkaRequest;
+import io.managed.services.test.client.serviceapi.KafkaRequestPayload;
+import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
@@ -27,19 +27,23 @@ class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
     User user;
-    MASOAuth auth;
+    KeycloakOAuth auth;
     String kafkaID;
     ServiceAPI api;
 
     @BeforeAll
     void login(Vertx vertx, VertxTestContext context) {
-        this.auth = new MASOAuth(vertx);
+        this.auth = new KeycloakOAuth(vertx,
+                Environment.SSO_REDHAT_KEYCLOAK_URI,
+                Environment.SSO_REDHAT_REDIRECT_URI,
+                Environment.SSO_REDHAT_REALM,
+                Environment.SSO_REDHAT_CLIENT_ID);
 
-        Future<User> f = auth.login(Environment.USER_A_USERNAME, Environment.USER_A_PASSWORD);
+        Future<User> f = auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
         f.onSuccess(user -> {
             this.user = user;
-            this.api = new ServiceAPI(vertx, user);
+            this.api = new ServiceAPI(vertx, "https://api.stage.openshift.com", user);
         });
 
         context.assertComplete(f)

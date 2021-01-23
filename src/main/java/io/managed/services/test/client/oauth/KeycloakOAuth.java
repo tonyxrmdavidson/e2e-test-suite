@@ -1,4 +1,4 @@
-package io.managed.services.test;
+package io.managed.services.test.client.oauth;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -24,32 +24,33 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class MASOAuth {
-    private static final Logger LOGGER = LogManager.getLogger(MASOAuth.class);
+public class KeycloakOAuth {
+    private static final Logger LOGGER = LogManager.getLogger(KeycloakOAuth.class);
 
-    static final String KEYCLOAK_HOST = "https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org";
-    static final String AUTH_PATH = "/auth/realms/mas-sso-staging/protocol/openid-connect/auth";
-    static final String TOKEN_PATH = "/auth/realms/mas-sso-staging/protocol/openid-connect/token";
-    static final String CLIENT_ID = "strimzi-ui";
-    static final String REDIRECT_URI = "https://qaprodauth.cloud.redhat.com/beta/application-services/openshift-streams";
+    static final String AUTH_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/auth";
+    static final String TOKEN_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/token";
 
     final Vertx vertx;
     final OAuth2Auth oauth2;
+    final String redirectURI;
 
     static public String getToken(User user) {
         return user.get("access_token");
     }
 
-    public MASOAuth(Vertx vertx) {
+    public KeycloakOAuth(Vertx vertx, String keycloakURI, String redirectURI, String realm, String clientID) {
+
+        String tokenPath = String.format(TOKEN_PATH_FORMAT, realm);
+        String authPath = String.format(AUTH_PATH_FORMAT, realm);
 
         this.oauth2 = OAuth2Auth.create(vertx, new OAuth2Options()
                 .setFlow(OAuth2FlowType.AUTH_CODE)
-                .setClientID(CLIENT_ID)
-                .setSite(KEYCLOAK_HOST)
-                .setTokenPath(TOKEN_PATH)
-                .setAuthorizationPath(AUTH_PATH)
-        );
+                .setClientID(clientID)
+                .setSite(keycloakURI)
+                .setTokenPath(tokenPath)
+                .setAuthorizationPath(authPath));
         this.vertx = vertx;
+        this.redirectURI = redirectURI;
     }
 
     public Future<User> login(String username, String password) {
@@ -67,7 +68,7 @@ public class MASOAuth {
         WebClientSession session = WebClientSession.create(client);
 
         String authURI = oauth2.authorizeURL(new JsonObject()
-                .put("redirect_uri", REDIRECT_URI));
+                .put("redirect_uri", redirectURI));
 
         return startLogin(session, authURI)
                 .flatMap(r -> postUsernamePassword(session, r, username, password))
@@ -111,6 +112,6 @@ public class MASOAuth {
         LOGGER.info("authenticate user; code={}", code);
         return oauth2.authenticate(new JsonObject()
                 .put("code", code)
-                .put("redirect_uri", REDIRECT_URI));
+                .put("redirect_uri", redirectURI));
     }
 }
