@@ -24,13 +24,13 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 /**
  * Test utils contains static help methods
  */
 public class TestUtils {
     private static final Logger LOGGER = LogManager.getLogger(TestUtils.class);
+
 
     /**
      * Wait until the passed async lambda function return true
@@ -39,46 +39,49 @@ public class TestUtils {
      * @param description A description used for logging and errors
      * @param interval    Interval between each call
      * @param timeout     Max time to wait before failing if the async lambda doesn't return true
-     * @param ready       The async lambda that will be call on each interval
+     * @param isReady     The async lambda that will be call on each interval
      * @return A Future that will be completed once the lambda function returns true
      */
-    public static Future<Void> waitFor(
+    public static <T> Future<T> waitFor(
             Vertx vertx,
             String description,
             Duration interval,
             Duration timeout,
-            Supplier<Future<Boolean>> ready) {
+            IsReady<T> isReady) {
 
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
         Exception e = new Exception(String.format("timeout after %s waiting for %s", timeout.toString(), description));
 
         Instant deadline = Instant.now().plus(timeout);
-        return waitFor(vertx, description, interval, deadline, e, ready);
+        return waitFor(vertx, description, interval, deadline, e, isReady);
     }
 
-    static Future<Void> waitFor(
+    static <T> Future<T> waitFor(
             Vertx vertx,
             String description,
             Duration interval,
             Instant deadline,
             Exception timeout,
-            Supplier<Future<Boolean>> ready) {
+            IsReady<T> isReady) {
+
+        boolean last = Instant.now().isAfter(deadline);
 
         LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
-        return ready.get()
+        return isReady.apply(last)
                 .compose(r -> {
-                    if (r) {
-                        return Future.succeededFuture();
+                    if (r.getValue0()) {
+                        return Future.succeededFuture(r.getValue1());
                     }
 
-                    if (Instant.now().isAfter(deadline)) {
+                    // if the last request after the timeout didn't succeed fail with the timeout error
+                    if (last) {
                         LOGGER.error(timeout.getMessage());
                         timeout.printStackTrace();
                         return Future.failedFuture(timeout);
                     }
 
                     return sleep(vertx, interval)
-                            .compose(v -> waitFor(vertx, description, interval, deadline, timeout, ready));
+                            .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
                 });
     }
 

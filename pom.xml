@@ -123,6 +123,11 @@
             <artifactId>vertx-junit5</artifactId>
             <version>4.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.javatuples</groupId>
+            <artifactId>javatuples</artifactId>
+            <version>1.2</version>
+        </dependency>
     </dependencies>
 
     <build>
