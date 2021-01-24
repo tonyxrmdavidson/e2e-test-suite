@@ -22,6 +22,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static io.managed.services.test.Environment.SERVICE_API_URI;
 import static io.managed.services.test.Environment.SSO_PASSWORD;
 import static io.managed.services.test.Environment.SSO_REDHAT_CLIENT_ID;
@@ -78,6 +81,8 @@ class ServiceAPITest {
     @Timeout(5 * 60 * 1000)
     void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
 
+        List<Exception> errors = new ArrayList<>();
+
         CreateKafkaPayload payload = new CreateKafkaPayload();
         payload.name = "mk-e2e-autotest";
         payload.multiAZ = true;
@@ -94,9 +99,27 @@ class ServiceAPITest {
             if (last) {
                 LOGGER.warn("last kafka response is: {}", Json.encode(r));
             }
-            return Pair.with(r.status.equals("ready"), r);
+
+            boolean ready = r.status.equals("ready");
+
+            // TODO: remove this workaround once the right status is reported
+            if (r.bootstrapServerHost != null && !ready) {
+                LOGGER.error("not ready kafka response: {}", Json.encode(r));
+                errors.add(new Exception("bootstrapServerHost is present but the kafka instance is not ready"));
+                return Pair.with(true, r);
+            }
+
+            return Pair.with(ready, r);
         });
-        await(waitFor(vertx, "Kafka instance to be ready", ofSeconds(10), ofMinutes(1), isReady));
+        await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
+
+        if (!errors.isEmpty()) {
+            for (Exception e : errors) {
+                LOGGER.error("{}: {}", e.getClass().toString(), e.getMessage());
+                e.printStackTrace();
+            }
+            throw new RuntimeException("test failed with multiple errors");
+        }
 
         context.completeNow();
     }
