@@ -1,6 +1,7 @@
 package io.managed.services.test.smoke;
 
 import io.managed.services.test.IsReady;
+import io.managed.services.test.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -14,6 +15,7 @@ import io.vertx.ext.auth.User;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.kafka.client.producer.KafkaProducer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -121,7 +123,7 @@ class ServiceAPITest {
 
             return Pair.with(ready, r);
         });
-        await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
+        kafka = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
@@ -131,6 +133,17 @@ class ServiceAPITest {
         ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
 
         LOGGER.info("service account: {}", Json.encode(serviceAccount));
+
+        // Send Kafka messages
+        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}",
+                kafka.bootstrapServerHost, serviceAccount.clientID, serviceAccount.clientSecret);
+        KafkaProducer<String, String> producer = KafkaUtils.createProducer(
+                vertx, kafka.bootstrapServerHost, serviceAccount.clientID, serviceAccount.clientSecret);
+
+        LOGGER.info("close kafka producer");
+        await(producer.close());
+
+        // TODO: Send and receive messages on one or more topic
 
         if (!errors.isEmpty()) {
             for (Exception e : errors) {
