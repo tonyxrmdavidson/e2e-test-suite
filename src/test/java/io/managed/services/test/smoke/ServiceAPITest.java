@@ -3,8 +3,10 @@ package io.managed.services.test.smoke;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
+import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -46,8 +48,10 @@ class ServiceAPITest {
 
     User user;
     KeycloakOAuth auth;
-    String kafkaID;
     ServiceAPI api;
+
+    String kafkaID;
+    String serviceAccountID;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -73,6 +77,11 @@ class ServiceAPITest {
             await(api.deleteKafka(kafkaID));
         }
 
+        if (serviceAccountID != null) {
+            LOGGER.info("clean service account: {}", serviceAccountID);
+            await(api.deleteServiceAccount(serviceAccountID));
+        }
+
         context.completeNow();
     }
 
@@ -83,14 +92,15 @@ class ServiceAPITest {
 
         List<Exception> errors = new ArrayList<>();
 
-        CreateKafkaPayload payload = new CreateKafkaPayload();
-        payload.name = "mk-e2e-autotest";
-        payload.multiAZ = true;
-        payload.cloudProvider = "aws";
-        payload.region = "us-east-1";
+        // Create Kafka Instance
+        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
+        kafkaPayload.name = "mk-e2e-autotest";
+        kafkaPayload.multiAZ = true;
+        kafkaPayload.cloudProvider = "aws";
+        kafkaPayload.region = "us-east-1";
 
-        LOGGER.info("create kafka instance: {}", payload.name);
-        KafkaResponse kafka = await(api.createKafka(payload, true));
+        LOGGER.info("create kafka instance: {}", kafkaPayload.name);
+        KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
         kafkaID = kafka.id;
 
         IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID).map(r -> {
@@ -112,6 +122,15 @@ class ServiceAPITest {
             return Pair.with(ready, r);
         });
         await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
+
+        // Create Service Account
+        CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
+        serviceAccountPayload.name = "mk-e2e-autotest";
+
+        LOGGER.info("create service account: {}", serviceAccountPayload.name);
+        ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
+
+        LOGGER.info("service account: {}", Json.encode(serviceAccount));
 
         if (!errors.isEmpty()) {
             for (Exception e : errors) {

@@ -56,7 +56,6 @@ public class ServiceAPI {
     }
 
     Future<HttpResponse<Buffer>> assertResponse(HttpResponse<Buffer> response, Integer statusCode) {
-//        return (HttpResponse<Buffer> response) -> {
         if (response.statusCode() != statusCode) {
 
             StringBuilder error = new StringBuilder();
@@ -68,15 +67,6 @@ public class ServiceAPI {
             return Future.failedFuture(new Exception(error.toString()));
         }
         return Future.succeededFuture(response);
-//        };
-    }
-
-    public Future<KafkaResponse> getKafka(String id) {
-        return client.get(String.format("/api/managed-services-api/v1/kafkas/%s", id))
-                .authentication(token)
-                .send()
-                .flatMap(r -> assertResponse(r, 200))
-                .map(response -> response.bodyAsJson(KafkaResponse.class));
     }
 
     public Future<KafkaResponse> createKafka(CreateKafkaPayload payload, Boolean async) {
@@ -84,16 +74,40 @@ public class ServiceAPI {
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .sendJson(payload)
-                .flatMap(r -> assertResponse(r, 202))
-                .map(response -> response.bodyAsJson(KafkaResponse.class));
+                .compose(r -> assertResponse(r, 202))
+                .map(r -> r.bodyAsJson(KafkaResponse.class));
+    }
+
+    public Future<KafkaResponse> getKafka(String id) {
+        return client.get(String.format("/api/managed-services-api/v1/kafkas/%s", id))
+                .authentication(token)
+                .send()
+                .compose(r -> assertResponse(r, 200))
+                .map(r -> r.bodyAsJson(KafkaResponse.class));
     }
 
     public Future<Void> deleteKafka(String id) {
         return client.delete(String.format("/api/managed-services-api/v1/kafkas/%s", id))
                 .authentication(token)
                 .send()
-                .flatMap(r -> assertResponse(r, 204))
-                .map(response -> response.bodyAsJson(Void.class));
+                .compose(r -> assertResponse(r, 204))
+                .map(r -> r.bodyAsJson(Void.class));
+    }
+
+    public Future<ServiceAccount> createServiceAccount(CreateServiceAccountPayload payload) {
+        return client.post("/api/managed-services-api/v1/serviceaccounts")
+                .authentication(token)
+                .sendJson(payload)
+                .compose(r -> assertResponse(r, 202)) // TODO: report issue: swagger says 200
+                .map(r -> r.bodyAsJson(ServiceAccount.class));
+    }
+
+    public Future<Void> deleteServiceAccount(String id) {
+        return client.delete(String.format("/api/managed-services-api/v1/serviceaccounts/%s", id))
+                .authentication(token)
+                .send()
+                .compose(r -> assertResponse(r, 204))
+                .map(r -> r.bodyAsJson(Void.class));
     }
 }
 
