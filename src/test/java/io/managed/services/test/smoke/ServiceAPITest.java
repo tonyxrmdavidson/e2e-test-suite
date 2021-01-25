@@ -1,5 +1,6 @@
 package io.managed.services.test.smoke;
 
+import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.KafkaUtils;
 import io.managed.services.test.TestBase;
@@ -24,19 +25,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.managed.services.test.Environment.SERVICE_API_URI;
-import static io.managed.services.test.Environment.SSO_PASSWORD;
-import static io.managed.services.test.Environment.SSO_REDHAT_CLIENT_ID;
-import static io.managed.services.test.Environment.SSO_REDHAT_KEYCLOAK_URI;
-import static io.managed.services.test.Environment.SSO_REDHAT_REALM;
-import static io.managed.services.test.Environment.SSO_REDHAT_REDIRECT_URI;
-import static io.managed.services.test.Environment.SSO_USERNAME;
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMinutes;
@@ -58,16 +51,16 @@ class ServiceAPITest extends TestBase {
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         this.auth = new KeycloakOAuth(vertx,
-                SSO_REDHAT_KEYCLOAK_URI,
-                SSO_REDHAT_REDIRECT_URI,
-                SSO_REDHAT_REALM,
-                SSO_REDHAT_CLIENT_ID);
+                Environment.SSO_REDHAT_KEYCLOAK_URI,
+                Environment.SSO_REDHAT_REDIRECT_URI,
+                Environment.SSO_REDHAT_REALM,
+                Environment.SSO_REDHAT_CLIENT_ID);
 
-        LOGGER.info("authenticate user: {} against: {}", SSO_USERNAME, SSO_REDHAT_KEYCLOAK_URI);
-        User user = await(auth.login(SSO_USERNAME, SSO_PASSWORD));
+        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
+        User user = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
         this.user = user;
-        this.api = new ServiceAPI(vertx, SERVICE_API_URI, user);
+        this.api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
 
         context.completeNow();
     }
@@ -155,5 +148,4 @@ class ServiceAPITest extends TestBase {
 
         context.completeNow();
     }
-
 }
