@@ -1,5 +1,6 @@
 package io.managed.services.test.smoke;
 
+import com.epam.reportportal.junit5.ReportPortalExtension;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.KafkaUtils;
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
+@ExtendWith(ReportPortalExtension.class)
 class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
@@ -110,6 +112,7 @@ class ServiceAPITest extends TestBase {
             boolean ready = r.status.equals("ready");
 
             // TODO: remove this workaround once the right status is reported
+            // https://issues.redhat.com/browse/MGDSTRM-1231
             if (r.bootstrapServerHost != null && !ready) {
                 LOGGER.error("not ready kafka response: {}", Json.encode(r));
                 errors.add(new Exception("bootstrapServerHost is present but the kafka instance is not ready"));
@@ -139,6 +142,7 @@ class ServiceAPITest extends TestBase {
         await(producer.close());
 
         // TODO: Send and receive messages on one or more topic
+        // https://issues.redhat.com/browse/MGDSTRM-1232
 
         if (!errors.isEmpty()) {
             for (Exception e : errors) {
