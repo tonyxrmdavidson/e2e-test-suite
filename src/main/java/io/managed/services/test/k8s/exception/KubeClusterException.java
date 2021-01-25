@@ -1,4 +1,4 @@
-package io.managed.services.test.k8s.exceptions;
+package io.managed.services.test.k8s.exception;
 
 
 import io.managed.services.test.executor.ExecResult;

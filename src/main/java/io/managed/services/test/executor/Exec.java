@@ -1,7 +1,7 @@
 package io.managed.services.test.executor;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
-import io.managed.services.test.k8s.exceptions.KubeClusterException;
+import io.managed.services.test.k8s.exception.KubeClusterException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
