@@ -2,6 +2,7 @@ package io.managed.services.test.smoke;
 
 import io.managed.services.test.IsReady;
 import io.managed.services.test.KafkaUtils;
+import io.managed.services.test.TestBase;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -42,10 +43,11 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
 
+@Tag(TestTag.SERVICE_API)
 @Tag(TestTag.SMOKE_SUITE)
 @ExtendWith(VertxExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ServiceAPITest {
+class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
     User user;
