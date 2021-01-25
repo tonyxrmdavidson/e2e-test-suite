@@ -44,7 +44,6 @@ import static java.time.Duration.ofSeconds;
 
 
 @Tag(TestTag.SERVICE_API)
-@Tag(TestTag.SMOKE_SUITE)
 @ExtendWith(VertxExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ServiceAPITest extends TestBase {
