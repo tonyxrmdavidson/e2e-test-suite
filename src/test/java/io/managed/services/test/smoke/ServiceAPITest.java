@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.platform.commons.util.ExceptionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 @Tag(TestTag.SERVICE_API)
@@ -140,10 +142,9 @@ class ServiceAPITest extends TestBase {
 
         if (!errors.isEmpty()) {
             for (Exception e : errors) {
-                LOGGER.error("{}: {}", e.getClass().toString(), e.getMessage());
-                e.printStackTrace();
+                LOGGER.error(ExceptionUtils.readStackTrace(e));
             }
-            throw new RuntimeException("test failed with multiple errors");
+            fail("test failed with multiple errors");
         }
 
         context.completeNow();

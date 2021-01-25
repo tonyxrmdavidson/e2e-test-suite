@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.platform.commons.util.ExceptionUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -75,8 +76,7 @@ public class TestUtils {
 
                     // if the last request after the timeout didn't succeed fail with the timeout error
                     if (last) {
-                        LOGGER.error(timeout.getMessage());
-                        timeout.printStackTrace();
+                        LOGGER.error(ExceptionUtils.readStackTrace(timeout));
                         return Future.failedFuture(timeout);
                     }
 
