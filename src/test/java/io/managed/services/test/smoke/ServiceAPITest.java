@@ -45,7 +45,6 @@ import static java.time.Duration.ofSeconds;
 
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
