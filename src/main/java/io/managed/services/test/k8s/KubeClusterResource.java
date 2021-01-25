@@ -1,72 +1,58 @@
 package io.managed.services.test.k8s;
 
+import io.fabric8.kubernetes.api.model.Node;
 import io.managed.services.test.k8s.cluster.KubeCluster;
-import io.managed.services.test.k8s.cluster.Minishift;
-import io.managed.services.test.k8s.cluster.OpenShift;
-import io.managed.services.test.k8s.cmdClient.KubeCmdClient;
-import io.managed.services.test.k8s.exceptions.NoClusterException;
+import io.managed.services.test.k8s.cmd.KubeCmdClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.Assumptions;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Stack;
-
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import java.util.Set;
 
 /**
- * A Junit resource which discovers the running cluster and provides an appropriate KubeClient for it,
- * for use with {@code @BeforeAll} (or {@code BeforeEach}.
- * For example:
- * <pre><code>
- *     public static KubeClusterResource testCluster = new KubeClusterResources();
- *
- *     &#64;BeforeEach
- *     void before() {
- *         testCluster.before();
- *     }
- * </code></pre>
+ * Abstraction for connected kubernetes/openshift cluster
  */
 public class KubeClusterResource {
 
     private static final Logger LOGGER = LogManager.getLogger(KubeClusterResource.class);
 
+    private final String name;
     private KubeCluster kubeCluster;
     private KubeCmdClient cmdClient;
-    private boolean bootstrap;
     private KubeClient client;
-    private static KubeClusterResource cluster;
 
     private String namespace;
     private String testNamespace;
 
     protected List<String> bindingsNamespaces = new ArrayList<>();
-    private List<String> deploymentNamespaces = new ArrayList<>();
-    private List<String> deploymentResources = new ArrayList<>();
-    private Stack<String> clusterOperatorConfigs = new Stack<>();
+    private final List<String> deploymentNamespaces = new ArrayList<>();
+    private final List<String> deploymentResources = new ArrayList<>();
 
-    public static synchronized KubeClusterResource getInstance() {
-        if (cluster == null) {
-            try {
-                cluster = new KubeClusterResource();
-                initNamespaces();
-                LOGGER.info("Cluster default namespace is {}", cluster.getNamespace());
-                LOGGER.info("Cluster command line client default namespace is {}", cluster.getTestNamespace());
-            } catch (RuntimeException e) {
-                assumeTrue(false, e.getMessage());
-            }
+    public KubeClusterResource(String kubeconfig) {
+        Path path = Paths.get(kubeconfig);
+        this.name = path.getName(path.getNameCount() - 1).toString();
+        try {
+            kubeCluster = KubeCluster.bootstrap();
+            client = kubeCluster.defaultClient(kubeconfig);
+            cmdClient = kubeCluster.defaultCmdClient(kubeconfig);
+            initNamespaces();
+            LOGGER.info("Cluster default namespace is {}", getNamespace());
+            LOGGER.info("Cluster command line client default namespace is {}", getTestNamespace());
+        } catch (RuntimeException | IOException e) {
+            Assumptions.assumeTrue(false, e.getMessage());
         }
-        return cluster;
     }
 
-    private KubeClusterResource() {
-        this.bootstrap = true;
-    }
-
-    private static void initNamespaces() {
-        cluster.setDefaultNamespace(cmdKubeClient().defaultNamespace());
-        cluster.setTestNamespace(cmdKubeClient().defaultNamespace());
+    private void initNamespaces() {
+        setDefaultNamespace(cmdKubeClient().defaultNamespace());
+        setTestNamespace(cmdKubeClient().defaultNamespace());
     }
 
     public void setTestNamespace(String testNamespace) {
@@ -108,8 +94,8 @@ public class KubeClusterResource {
      *
      * @return CMD client
      */
-    public static KubeCmdClient<?> cmdKubeClient() {
-        return cluster.cmdClient().namespace(cluster.getNamespace());
+    public KubeCmdClient<?> cmdKubeClient() {
+        return cmdClient.namespace(getNamespace());
     }
 
     /**
@@ -118,8 +104,8 @@ public class KubeClusterResource {
      * @param inNamespace Namespace will be used as a current namespace for client
      * @return CMD client with expected namespace in configuration
      */
-    public static KubeCmdClient<?> cmdKubeClient(String inNamespace) {
-        return cluster.cmdClient().namespace(inNamespace);
+    public KubeCmdClient<?> cmdKubeClient(String inNamespace) {
+        return cmdClient.namespace(inNamespace);
     }
 
     /**
@@ -127,8 +113,8 @@ public class KubeClusterResource {
      *
      * @return Kubernetes client
      */
-    public static KubeClient kubeClient() {
-        return cluster.client().namespace(cluster.getNamespace());
+    public KubeClient kubeClient() {
+        return client.namespace(getNamespace());
     }
 
     /**
@@ -137,19 +123,8 @@ public class KubeClusterResource {
      * @param inNamespace Namespace will be used as a current namespace for client
      * @return Kubernetes client with expected namespace in configuration
      */
-    public static KubeClient kubeClient(String inNamespace) {
-        return cluster.client().namespace(inNamespace);
-    }
-
-    /**
-     * Delete ServiceAccount, Roles and CRDs from kubernetes cluster.
-     */
-    public void deleteClusterOperatorInstallFiles() {
-        while (!clusterOperatorConfigs.empty()) {
-            String clusterOperatorConfig = clusterOperatorConfigs.pop();
-            LOGGER.info("Deleting configuration file: {}", clusterOperatorConfig);
-            cmdKubeClient().clientWithAdmin().namespace(getNamespace()).delete(clusterOperatorConfig);
-        }
+    public KubeClient kubeClient(String inNamespace) throws IOException {
+        return client.namespace(inNamespace);
     }
 
     /**
@@ -158,24 +133,24 @@ public class KubeClusterResource {
      * @param useNamespace namespace which will be used as default by kubernetes client
      * @param namespaces   list of namespaces which will be created
      */
-    public void createNamespaces(String useNamespace, List<String> namespaces) {
+    public void createNamespaces(String useNamespace, List<String> namespaces) throws IOException {
         bindingsNamespaces = namespaces;
         for (String namespace : namespaces) {
 
-            if (kubeClient().getNamespace(namespace) != null && System.getenv("SKIP_TEARDOWN") == null) {
+            if (kubeClient().getNamespace(namespace) != null) {
                 LOGGER.warn("Namespace {} is already created, going to delete it", namespace);
                 kubeClient().deleteNamespace(namespace);
-                cmdKubeClient().waitForResourceDeletion("Namespace", namespace);
+                cmdKubeClient().waitForResourceDeletion("namespace", namespace);
             }
 
             LOGGER.info("Creating Namespace {}", namespace);
             deploymentNamespaces.add(namespace);
             kubeClient().createNamespace(namespace);
-            cmdKubeClient().waitForResourceCreation("Namespace", namespace);
+            cmdKubeClient().waitForResourceCreation("namespace", namespace);
         }
         testNamespace = useNamespace;
         LOGGER.info("Using Namespace {}", useNamespace);
-        cluster.setNamespace(useNamespace);
+        setNamespace(useNamespace);
     }
 
     /**
@@ -184,19 +159,19 @@ public class KubeClusterResource {
      *
      * @param useNamespace namespace which will be created and used as default by kubernetes client
      */
-    public void createNamespace(String useNamespace) {
+    public void createNamespace(String useNamespace) throws IOException {
         createNamespaces(useNamespace, Collections.singletonList(useNamespace));
     }
 
     /**
      * Delete all created namespaces. Namespaces are deleted in the reverse order than they were created.
      */
-    public void deleteNamespaces() {
+    public void deleteNamespaces() throws IOException {
         Collections.reverse(deploymentNamespaces);
         for (String namespace : deploymentNamespaces) {
             LOGGER.info("Deleting Namespace {}", namespace);
             kubeClient().deleteNamespace(namespace);
-            cmdKubeClient().waitForResourceDeletion("Namespace", namespace);
+            cmdKubeClient().waitForResourceDeletion("namespace", namespace);
         }
         deploymentNamespaces.clear();
         bindingsNamespaces = null;
@@ -215,7 +190,7 @@ public class KubeClusterResource {
         for (String resource : resources) {
             LOGGER.info("Creating resources {} in Namespace {}", resource, getNamespace());
             deploymentResources.add(resource);
-            cmdKubeClient().clientWithAdmin().namespace(getNamespace()).create(resource);
+            cmdKubeClient().namespace(getNamespace()).create(resource);
         }
     }
 
@@ -242,72 +217,31 @@ public class KubeClusterResource {
         }
     }
 
+    /*
+     * Returns true if Cluster availability is multizone
+     */
+    public boolean isMultiAZ() throws IOException {
+        Set<String> zones = new HashSet<>();
+        for (Node node : kubeClient().getClient().nodes().list().getItems()) {
+            if (node.getMetadata().getLabels().containsKey("topology.kubernetes.io/zone")) {
+                zones.add(node.getMetadata().getLabels().get("topology.kubernetes.io/zone"));
+            }
+        }
+        return zones.size() > 1;
+    }
+
     /**
      * Gets the namespace in use
      */
     public String defaultNamespace() {
-        return cmdClient().defaultNamespace();
-    }
-
-    public KubeCmdClient cmdClient() {
-        if (cmdClient == null) {
-            cmdClient = cluster().defaultCmdClient();
-        }
-        return cmdClient;
-    }
-
-    public KubeClient client() {
-        if (client == null) {
-            this.client = cluster().defaultClient();
-        }
-        return client;
-    }
-
-    public KubeCluster cluster() {
-        if (kubeCluster == null) {
-            try {
-                kubeCluster = KubeCluster.bootstrap();
-            } catch (NoClusterException e) {
-                assumeTrue(false, e.getMessage());
-            }
-        }
-        return kubeCluster;
-    }
-
-    public void before() {
-        if (bootstrap) {
-            if (kubeCluster == null) {
-                try {
-                    kubeCluster = KubeCluster.bootstrap();
-                } catch (NoClusterException e) {
-                    assumeTrue(false, e.getMessage());
-                }
-            }
-            if (cmdClient == null) {
-                cmdClient = kubeCluster.defaultCmdClient();
-            }
-            if (client == null) {
-                this.client = kubeCluster.defaultClient();
-            }
-        }
+        return cmdClient.defaultNamespace();
     }
 
     public String getTestNamespace() {
         return testNamespace;
     }
 
-    public String getDefaultOlmNamespace() {
-        return cluster().defaultOlmNamespace();
-    }
-
-    public boolean isNotKubernetes() {
-        return cluster.cluster() instanceof Minishift || cluster.cluster() instanceof OpenShift;
-    }
-
-    /**
-     * Returns list of currently deployed resources
-     */
-    public List<String> getListOfDeployedResources() {
-        return deploymentResources;
+    public String getName() {
+        return name;
     }
 }

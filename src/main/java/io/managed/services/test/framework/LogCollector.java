@@ -2,6 +2,7 @@ package io.managed.services.test.framework;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestUtils;
+import io.managed.services.test.k8s.KubeClusterConnectionFactory;
 import io.managed.services.test.k8s.KubeClusterResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,11 +35,12 @@ public class LogCollector {
     }
 
     private static void saveClusterState(Path logpath) throws IOException {
-        KubeClusterResource cluster = KubeClusterResource.getInstance();
-        Files.writeString(logpath.resolve("describe_nodes.log"), cluster.cmdClient().exec(false, false, "describe", "nodes").out());
-        Files.writeString(logpath.resolve("events.log"), cluster.cmdClient().exec(false, false, "get", "events", "--all-namespaces").out());
-        Files.writeString(logpath.resolve("pvs.txt"), cluster.cmdClient().exec(false, false, "describe", "pv").out());
-        Files.writeString(logpath.resolve("storageclass.yml"), cluster.cmdClient().exec(false, false, "get", "storageclass", "-o", "yaml").out());
-        Files.writeString(logpath.resolve("routes.yml"), cluster.cmdClient().exec(false, false, "get", "routes", "--all-namespaces", "-o", "yaml").out());
+        for (KubeClusterResource cluster : KubeClusterConnectionFactory.getCurrentConnectedClusters()) {
+            Files.writeString(logpath.resolve("describe_nodes.log"), cluster.cmdKubeClient().exec(false, false, "describe", "nodes").out());
+            Files.writeString(logpath.resolve("events.log"), cluster.cmdKubeClient().exec(false, false, "get", "events", "--all-namespaces").out());
+            Files.writeString(logpath.resolve("pvs.txt"), cluster.cmdKubeClient().exec(false, false, "describe", "pv").out());
+            Files.writeString(logpath.resolve("storageclass.yml"), cluster.cmdKubeClient().exec(false, false, "get", "storageclass", "-o", "yaml").out());
+            Files.writeString(logpath.resolve("routes.yml"), cluster.cmdKubeClient().exec(false, false, "get", "routes", "--all-namespaces", "-o", "yaml").out());
+        }
     }
 }
