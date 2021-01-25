@@ -61,8 +61,20 @@ make PROFILE=ci test
 ## List of environment variables
 | Name        |      Description      |  Default value |
 |-------------|:-------------:|------:|
-| LOG_DIR     |  path where test suite stores logs from failed tests etc...      | $(pwd)/target/logs |
-| CONFIG_PATH | path where is stored config.json with env variables and values   | $(pwd)/config.json |
+| LOG_DIR                 |  path where test suite stores logs from failed tests etc...     | $(pwd)/target/logs |
+| CONFIG_PATH             | path where is stored config.json with env variables and values  | $(pwd)/config.json |
+| SERVICE_API_URI         | the service-api URI to tests                                    | https://api.stage.openshift.com |
+| SSO_REDHAT_KEYCLOAK_URI | the SSO URI to retrieve the service-api token                   | https://sso.redhat.com |
+| SSO_REDHAT_REALM        | authentication realm for SSO                                    | redhat-external |
+| SSO_REDHAT_CLIENT_ID    | authentication client_id for SSO                                | cloud-services |
+| SSO_REDHAT_REDIRECT_URI | valid redirect_uri for SSO                                      | https://qaprodauth.cloud.redhat.com |
+| SSO_USERNAME            | main user for SSO                                               |  |
+| SSO_PASSWORD            | main user password                                              |  |
+
+## List of profiles
+| Name | Description | Required Envs |
+|------|-------------|---------------|
+| service-api | run all tests targeting the service-api | SSO_USERNAME, SSO_PASSWORD |
 
 ## Maintainers
 * David Kornel <dkornel@redhat.com>
