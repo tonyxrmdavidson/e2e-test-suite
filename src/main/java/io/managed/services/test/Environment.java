@@ -101,7 +101,7 @@ public class Environment {
                         JSON_DATA.get(var).asText() :
                         null);
         T returnValue = defaultValue;
-        if (value != null) {
+        if (value != null && !value.isEmpty()) {
             returnValue = converter.apply(value);
         }
         VALUES.put(var, String.valueOf(returnValue));
