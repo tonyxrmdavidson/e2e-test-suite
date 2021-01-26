@@ -1,6 +1,8 @@
 ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 DOCKER ?= docker
-KUBECONFIG ?= ~/.kube/config
+KUBECONFIG ?= $(HOME)/.kube/config
+
+TMP_ENV := $(shell mktemp)
 
 ifdef PROFILE
 	PROFILE_ARGS = "-P$(PROFILE)"
@@ -23,9 +25,11 @@ pipeline:
 	./pipeline.sh
 
 ci/pipeline:
+	env > $(TMP_ENV)
 	$(DOCKER) pull quay.io/app-sre/mk-ci-tools:latest
 	$(DOCKER) run -v $(ROOT_DIR):/opt/mk-e2e-test-suite \
 	            -w /opt/mk-e2e-test-suite \
+	            --env-file=$(TMP_ENV) \
 				-e HOME=/tmp \
 				-v $(KUBECONFIG):/tmp/.kube/config \
 				-e GOPATH=/tmp \
