@@ -4,10 +4,13 @@
 # TESTCASE ............ maven surefire testcase format (package.TestClass#testcase)
 # PROFILE ............. maven profile of tests (for example "ci")
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+set -eEu -o pipefail
+# shellcheck disable=SC2154
+trap 's=$?; echo "$0: error on $0:$LINENO"; exit $s' ERR
+
 TESTCASE=${TESTCASE:-"io.managed.services.test.**"}
 PROFILE=${PROFILE:-"ci"}
-trap "echo script failed; exit 1" ERR
+REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
 
 function info() {
     MESSAGE="${1}"
@@ -39,10 +42,12 @@ check_env_variable "TESTCASE"
 check_env_variable "PROFILE"
 separator
 
-
 info "2. Running tests"
 separator
-TESTCASE_ARGS="-Dtest=${TESTCASE}"
-PROFILE_ARGS="-P${PROFILE}"
-mvn test "${TESTCASE_ARGS}" "${PROFILE_ARGS}" --no-transfer-progress
+mvn test \
+    "-P${PROFILE}" \
+    "-Dtest=${TESTCASE}" \
+    "-Drp.enable=true" \
+    "-Drp.uuid=${REPORTPORTAL_UUID}" \
+    --no-transfer-progress
 separator
