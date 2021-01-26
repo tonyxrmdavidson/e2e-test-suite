@@ -38,6 +38,7 @@ import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.fail;
 
 
+@Tag(TestTag.CI)
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
 class ServiceAPITest extends TestBase {
@@ -68,18 +69,19 @@ class ServiceAPITest extends TestBase {
     }
 
     @AfterAll
-    void clean(Vertx vertx, VertxTestContext context) {
+    void deleteKafkaInstance() {
         if (kafkaID != null) {
             LOGGER.info("clean kafka instance: {}", kafkaID);
             await(api.deleteKafka(kafkaID));
         }
+    }
 
+    @AfterAll
+    void deleteServiceAccount() {
         if (serviceAccountID != null) {
             LOGGER.info("clean service account: {}", serviceAccountID);
             await(api.deleteServiceAccount(serviceAccountID));
         }
-
-        context.completeNow();
     }
 
 
@@ -127,8 +129,7 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("create service account: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
-
-        LOGGER.info("service account: {}", Json.encode(serviceAccount));
+        serviceAccountID = serviceAccount.id;
 
         // Send Kafka messages
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}",
