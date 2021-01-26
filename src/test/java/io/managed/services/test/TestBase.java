@@ -1,5 +1,6 @@
 package io.managed.services.test;
 
+import com.epam.reportportal.junit5.ReportPortalExtension;
 import io.managed.services.test.framework.ExtensionContextParameterResolver;
 import io.managed.services.test.framework.IndicativeSentences;
 import io.managed.services.test.framework.TestCallbackListener;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(TestCallbackListener.class)
 @ExtendWith(TestExceptionCallbackListener.class)
 @ExtendWith(ExtensionContextParameterResolver.class)
+@ExtendWith(ReportPortalExtension.class)
 @DisplayNameGeneration(IndicativeSentences.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class TestBase {

@@ -1,6 +1,5 @@
 package io.managed.services.test.smoke;
 
-import com.epam.reportportal.junit5.ReportPortalExtension;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.KafkaUtils;
@@ -41,7 +40,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
-@ExtendWith(ReportPortalExtension.class)
 class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
