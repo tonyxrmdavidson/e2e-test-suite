@@ -1,5 +1,6 @@
 package io.managed.services.test.client.oauth;
 
+import io.managed.services.test.client.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -104,6 +105,10 @@ public class KeycloakOAuth {
 
     Future<User> authenticateUser(WebClientSession session, HttpResponse<Buffer> response) {
         String locationURI = response.headers().get("location");
+        if (locationURI == null) {
+            return Future.failedFuture(ResponseException.create("failed to login user", response));
+        }
+
         List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
         String code = queries.stream()
                 .filter(v -> v.getName().equals("code")).findFirst()

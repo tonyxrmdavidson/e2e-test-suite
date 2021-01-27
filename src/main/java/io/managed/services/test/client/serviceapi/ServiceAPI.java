@@ -1,5 +1,6 @@
 package io.managed.services.test.client.serviceapi;
 
+import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -11,7 +12,6 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
 import java.net.URI;
-import java.util.Map;
 
 
 public class ServiceAPI {
@@ -57,14 +57,8 @@ public class ServiceAPI {
 
     Future<HttpResponse<Buffer>> assertResponse(HttpResponse<Buffer> response, Integer statusCode) {
         if (response.statusCode() != statusCode) {
-
-            StringBuilder error = new StringBuilder();
-            error.append(String.format("Expected status code %d but got %s", statusCode, response.statusCode()));
-            for (Map.Entry<String, String> e : response.headers().entries()) {
-                error.append(String.format("\n< %s: %s", e.getKey(), e.getValue()));
-            }
-            error.append(String.format("\n%s", response.bodyAsString()));
-            return Future.failedFuture(new Exception(error.toString()));
+            String message = String.format("Expected status code %d but got %s", statusCode, response.statusCode());
+            return Future.failedFuture(ResponseException.create(message, response));
         }
         return Future.succeededFuture(response);
     }
