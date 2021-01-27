@@ -108,18 +108,7 @@ class ServiceAPITest extends TestBase {
             if (last) {
                 LOGGER.warn("last kafka response is: {}", Json.encode(r));
             }
-
-            boolean ready = r.status.equals("ready");
-
-            // TODO: remove this workaround once the right status is reported
-            // https://issues.redhat.com/browse/MGDSTRM-1231
-            if (r.bootstrapServerHost != null && !ready) {
-                LOGGER.error("not ready kafka response: {}", Json.encode(r));
-                errors.add(new Exception("bootstrapServerHost is present but the kafka instance is not ready"));
-                return Pair.with(true, r);
-            }
-
-            return Pair.with(ready, r);
+            return Pair.with(r.status.equals("ready"), r);
         });
         kafka = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
 
