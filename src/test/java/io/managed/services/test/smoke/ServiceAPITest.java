@@ -45,8 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
-    static final String KAFKA_NAME = "db-mk-e2e-autotest";
-
     User user;
     KeycloakOAuth auth;
     ServiceAPI api;
@@ -101,7 +99,8 @@ class ServiceAPITest extends TestBase {
 
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        kafkaPayload.name = KAFKA_NAME;
+        // add postfix to the name based on owner
+        kafkaPayload.name = "mk-e2e-" + Environment.SSO_USERNAME.replace("_","-");
         kafkaPayload.multiAZ = true;
         kafkaPayload.cloudProvider = "aws";
         kafkaPayload.region = "us-east-1";
