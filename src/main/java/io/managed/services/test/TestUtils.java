@@ -1,9 +1,11 @@
 package io.managed.services.test;
 
 import com.ea.async.Async;
+import io.managed.services.test.client.kafka.KafkaUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.TestInfo;
@@ -83,6 +85,18 @@ public class TestUtils {
                     return sleep(vertx, interval)
                             .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
                 });
+    }
+
+    /**
+     * Sync an async request by waiting for the passed Future do be completed
+     *
+     * @param future KafkaFuture
+     * @param <T>    The Future result Type
+     * @param <F>    Future
+     * @return The Future result
+     */
+    public static <T, F extends KafkaFuture<T>> T await(F future) {
+        return Async.await(KafkaUtils.toCompletionStage(future));
     }
 
     /**
