@@ -72,7 +72,7 @@ public class ServiceAPI {
                 .map(r -> r.bodyAsJson(KafkaResponse.class));
     }
 
-    public Future<KafkaListRespone> getListOfKafkaByName(String name) {
+    public Future<KafkaListResponse> getListOfKafkaByName(String name) {
         return client.get("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
                 .addQueryParam("page","1")
@@ -80,15 +80,15 @@ public class ServiceAPI {
                 .addQueryParam("search",String.format("name = %s",name.trim()))
                 .send()
                 .compose(r -> assertResponse(r, 200))
-                .map(r -> r.bodyAsJson(KafkaListRespone.class));
+                .map(r -> r.bodyAsJson(KafkaListResponse.class));
     }
 
-    public Future<KafkaListRespone> getListOfKafkas() {
+    public Future<KafkaListResponse> getListOfKafkas() {
         return client.get("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, 200))
-                .map(r -> r.bodyAsJson(KafkaListRespone.class));
+                .map(r -> r.bodyAsJson(KafkaListResponse.class));
     }
 
     public Future<KafkaResponse> getKafka(String id) {

@@ -100,7 +100,7 @@ class ServiceAPITest extends TestBase {
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
         // add postfix to the name based on owner
-        kafkaPayload.name = "mk-e2e-" + Environment.SSO_USERNAME.replace("_","-");
+        kafkaPayload.name = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
         kafkaPayload.multiAZ = true;
         kafkaPayload.cloudProvider = "aws";
         kafkaPayload.region = "us-east-1";

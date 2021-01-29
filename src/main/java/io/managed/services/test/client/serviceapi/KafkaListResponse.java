@@ -2,7 +2,7 @@ package io.managed.services.test.client.serviceapi;
 
 import java.util.List;
 
-public class KafkaListRespone {
+public class KafkaListResponse {
     public List<KafkaResponse> items;
     public String kind;
     public Integer page;

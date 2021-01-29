@@ -43,6 +43,8 @@ public class Environment {
 
     public static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
 
+    public static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME_ENV";
+
 
     /*
      * Setup constants from env variables or set default
@@ -62,6 +64,7 @@ public class Environment {
 
     public static final String SERVICE_API_URI = getOrDefault(SERVICE_API_URI_ENV, "https://api.stage.openshift.com");
 
+    public static final String KAFKA_POSTFIX_NAME = getOrDefault(KAFKA_POSTFIX_NAME_ENV,"auto-test");
 
     private Environment() {
     }
