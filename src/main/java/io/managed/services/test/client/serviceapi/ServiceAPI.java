@@ -75,9 +75,9 @@ public class ServiceAPI {
     public Future<KafkaListResponse> getListOfKafkaByName(String name) {
         return client.get("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
-                .addQueryParam("page","1")
-                .addQueryParam("size","10")
-                .addQueryParam("search",String.format("name = %s",name.trim()))
+                .addQueryParam("page", "1")
+                .addQueryParam("size", "10")
+                .addQueryParam("search", String.format("name = %s", name.trim()))
                 .send()
                 .compose(r -> assertResponse(r, 200))
                 .map(r -> r.bodyAsJson(KafkaListResponse.class));
