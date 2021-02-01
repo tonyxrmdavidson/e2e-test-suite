@@ -2,6 +2,7 @@ package io.managed.services.test.client.kafka;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 
 import java.util.Collections;
@@ -29,6 +30,10 @@ public class KafkaAdmin {
     public KafkaFuture<Void> createTopic(String name, Integer partitions, Short replicas) {
         NewTopic topic = new NewTopic(name, Optional.ofNullable(partitions), Optional.ofNullable(replicas));
         return admin.createTopics(Collections.singleton(topic)).all();
+    }
+
+    public KafkaFuture<Map<String, TopicDescription>> getMapOfTopicNameAndDescriptionByName(String name) {
+        return admin.describeTopics(Collections.singleton(name)).all();
     }
 }
 
