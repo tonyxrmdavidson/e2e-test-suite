@@ -2,6 +2,9 @@ package io.managed.services.test;
 
 import com.ea.async.Async;
 import io.managed.services.test.client.kafka.KafkaUtils;
+import io.managed.services.test.client.serviceapi.KafkaListResponse;
+import io.managed.services.test.client.serviceapi.KafkaResponse;
+import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -27,6 +30,8 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.function.BooleanSupplier;
+
+import io.managed.services.test.client.serviceapi.ServiceAPI;
 
 /**
  * Test utils contains static help methods
@@ -249,5 +254,18 @@ public class TestUtils {
         LOGGER.info("=======================================================================");
         LOGGER.info(pattern, text);
         LOGGER.info("=======================================================================");
+    }
+
+    /**
+     * Util function to get Kafka by name
+     * @param api
+     * @param name
+     * @return
+     * kafka of type KafkaResponse or null if not found
+     */
+    public static KafkaResponse getKafkaByName(ServiceAPI api, String name) {
+        KafkaListResponse response = await(api.getListOfKafkaByName(name));
+
+        return response.items.size() == 1 ? response.items.get(0) : null;
     }
 }
