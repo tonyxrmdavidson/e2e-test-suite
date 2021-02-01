@@ -45,6 +45,7 @@ public class Environment {
 
     public static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
     public static final String LONG_LIVED_KAFKA_NAME_ENV = "LONG_LIVED_KAFKA_NAME";
+    public static final String LONG_LIVED_KAFKA_TOPIC_NAME_ENV = "LONG_LIVED_KAFKA_TOPIC_NAME";
 
     /*
      * Setup constants from env variables or set default
@@ -66,6 +67,7 @@ public class Environment {
 
     public static final String KAFKA_POSTFIX_NAME = getOrDefault(KAFKA_POSTFIX_NAME_ENV, "auto-test");
     public static final String LONG_LIVED_KAFKA_NAME = getOrDefault(LONG_LIVED_KAFKA_NAME_ENV, "mk-e2e-longlive-test");
+    public static final String LONG_LIVED_KAFKA_TOPIC_NAME = getOrDefault(LONG_LIVED_KAFKA_NAME_ENV, "long-live-test-topic");
 
     private Environment() {
     }

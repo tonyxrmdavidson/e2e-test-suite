@@ -1,7 +1,6 @@
 package io.managed.services.test.smoke;
 
 import io.managed.services.test.Environment;
-import io.managed.services.test.IsReady;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaUtils;
@@ -14,7 +13,6 @@ import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import io.vertx.ext.auth.User;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
@@ -25,7 +23,6 @@ import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -33,9 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import static io.managed.services.test.TestUtils.await;
-import static io.managed.services.test.TestUtils.waitFor;
-import static java.time.Duration.ofMinutes;
-import static java.time.Duration.ofSeconds;
+import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
@@ -109,15 +104,7 @@ class ServiceAPITest extends TestBase {
         KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
         kafkaID = kafka.id;
 
-        IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID).map(r -> {
-            LOGGER.info("kafka instance status is: {}", r.status);
-
-            if (last) {
-                LOGGER.warn("last kafka response is: {}", Json.encode(r));
-            }
-            return Pair.with(r.status.equals("ready"), r);
-        });
-        kafka = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
+        kafka = waitUntilKafKaGetsReady(vertx, api, kafkaID);
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();

@@ -7,9 +7,11 @@ import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.util.ExceptionUtils;
@@ -30,6 +32,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
+
+import static java.time.Duration.ofMinutes;
+import static java.time.Duration.ofSeconds;
 
 /**
  * Test utils contains static help methods
@@ -265,5 +270,28 @@ public class TestUtils {
         return api.getListOfKafkaByName(name)
                 .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
                 .map(Optional::ofNullable);
+    }
+
+    /**
+     * Function that returns kafkaResponse only if status is in ready
+     *
+     * @param vertx
+     * @param api
+     * @param kafkaID
+     * @return
+     */
+    public static KafkaResponse waitUntilKafKaGetsReady(Vertx vertx, ServiceAPI api, String kafkaID) {
+        KafkaResponse kafkaResponse;
+        IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID).map(r -> {
+            LOGGER.info("kafka instance status is: {}", r.status);
+
+            if (last) {
+                LOGGER.warn("last kafka response is: {}", Json.encode(r));
+            }
+            return Pair.with(r.status.equals("ready"), r);
+        });
+
+        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
+        return kafkaResponse;
     }
 }
