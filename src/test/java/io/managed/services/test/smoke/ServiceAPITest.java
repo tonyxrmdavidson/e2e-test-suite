@@ -68,7 +68,7 @@ class ServiceAPITest extends TestBase {
     void deleteKafkaInstance() {
         if (kafkaID != null) {
             LOGGER.info("clean kafka instance: {}", kafkaID);
-            await(api.deleteKafka(kafkaID));
+            await(api.deleteKafka(kafkaID,true));
         }
     }
 

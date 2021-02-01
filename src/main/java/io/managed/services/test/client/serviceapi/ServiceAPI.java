@@ -99,9 +99,10 @@ public class ServiceAPI {
                 .map(r -> r.bodyAsJson(KafkaResponse.class));
     }
 
-    public Future<Void> deleteKafka(String id) {
+    public Future<Void> deleteKafka(String id,Boolean async) {
         return client.delete(String.format("/api/managed-services-api/v1/kafkas/%s", id))
                 .authentication(token)
+                .addQueryParam("async",async.toString())
                 .send()
                 .compose(r -> assertResponse(r, 204))
                 .map(r -> r.bodyAsJson(Void.class));
