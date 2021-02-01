@@ -29,9 +29,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
-
-import io.managed.services.test.client.serviceapi.ServiceAPI;
 
 /**
  * Test utils contains static help methods
@@ -258,14 +257,14 @@ public class TestUtils {
 
     /**
      * Util function to get Kafka by name
+     *
      * @param api
      * @param name
-     * @return
-     * kafka of type KafkaResponse or null if not found
+     * @return kafka of type Optional<KafkaResponse>
      */
-    public static KafkaResponse getKafkaByName(ServiceAPI api, String name) {
-        KafkaListResponse response = await(api.getListOfKafkaByName(name));
-
-        return response.items.size() == 1 ? response.items.get(0) : null;
+    public static Future<Optional<KafkaResponse>> getKafkaByName(ServiceAPI api, String name) {
+        return api.getListOfKafkaByName(name)
+                .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
+                .map(Optional::ofNullable);
     }
 }
