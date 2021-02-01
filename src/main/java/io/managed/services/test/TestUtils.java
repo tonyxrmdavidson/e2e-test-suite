@@ -2,7 +2,6 @@ package io.managed.services.test;
 
 import com.ea.async.Async;
 import io.managed.services.test.client.kafka.KafkaUtils;
-import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.vertx.core.Future;
