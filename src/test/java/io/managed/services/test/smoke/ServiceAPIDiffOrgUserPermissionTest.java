@@ -204,7 +204,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     @Order(2)
     void deleteKafkaOfOrg1ByOrg2(Vertx vertx, VertxTestContext context) {
         if (kafkaIDOrg1 != null) {
-            LOGGER.info("Delete Instance: {} of Org 1 using user of Org 2",kafkaIDOrg1);
+            LOGGER.info("Delete Instance: {} of Org 1 using user of Org 2", kafkaIDOrg1);
             await(apiOrg2.deleteKafka(kafkaIDOrg1, true).compose(r -> Future.failedFuture("user from different organisation is able to delete instance")).recover(throwable -> {
                 if (throwable instanceof ResponseException) {
                     if (((ResponseException) throwable).response.statusCode() == 404) {
