@@ -5,10 +5,10 @@ import io.managed.services.test.TestBase;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
+import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -21,6 +21,7 @@ import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -118,8 +119,11 @@ class ServiceAPILongLiveTest extends TestBase {
                 LOGGER.info("Topic is already available for the long live instance");
             }
         } catch (CompletionException exception) {
-            LOGGER.error("topic is not present :{} in instance:{} ", Environment.LONG_LIVED_KAFKA_TOPIC_NAME, Environment.LONG_LIVED_KAFKA_NAME);
-            fail(String.format("Something went wrong, topic is missing. Please create a topic with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_TOPIC_NAME));
+            if (exception.getCause() instanceof UnknownTopicOrPartitionException) {
+                LOGGER.error("topic is not present: {} in instance: {} ", Environment.LONG_LIVED_KAFKA_TOPIC_NAME, Environment.LONG_LIVED_KAFKA_NAME);
+                LOGGER.error("please create the topic with name '{}' in the '{}' instance", Environment.LONG_LIVED_KAFKA_TOPIC_NAME, Environment.LONG_LIVED_KAFKA_NAME);
+            }
+            fail(exception);
         }
 
         // Consume Kafka messages
