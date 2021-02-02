@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.TestUtils.getKafkaByName;
@@ -85,7 +86,7 @@ class ServiceAPILongLiveTest extends TestBase {
         KafkaResponse kafkaResponse;
         if (optionalKafka.isEmpty()) {
             LOGGER.error("kafka is not present :{} ", Environment.LONG_LIVED_KAFKA_NAME);
-            fail(String.format("Something went wrong, kafka is missing .Please create a kafka with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_NAME));
+            fail(String.format("Something went wrong, kafka is missing. Please create a kafka with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_NAME));
         }
         kafkaResponse = optionalKafka.get();
         kafkaID = kafkaResponse.id;
@@ -116,9 +117,10 @@ class ServiceAPILongLiveTest extends TestBase {
             if (result.containsKey(topicName)) {
                 LOGGER.info("Topic is already available for the long live instance");
             }
-        } catch (Exception exception) {
+        } catch (CompletionException exception) {
+            LOGGER.error(exception);
             LOGGER.error("topic is not present :{} in instance:{} ", Environment.LONG_LIVED_KAFKA_TOPIC_NAME, Environment.LONG_LIVED_KAFKA_NAME);
-            fail(String.format("Something went wrong, topic is missing .Please create a topic with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_TOPIC_NAME));
+            fail(String.format("Something went wrong, topic is missing. Please create a topic with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_TOPIC_NAME));
         }
 
         // Consume Kafka messages
