@@ -6,6 +6,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.util.Map;
 
 public class ResponseException extends Exception {
+    public HttpResponse<Buffer> response;
 
     public static ResponseException create(String message, HttpResponse<Buffer> response) {
         StringBuilder error = new StringBuilder();
@@ -14,10 +15,11 @@ public class ResponseException extends Exception {
             error.append(String.format("\n< %s: %s", e.getKey(), e.getValue()));
         }
         error.append(String.format("\n%s", response.bodyAsString()));
-        return new ResponseException(error.toString());
+        return new ResponseException(error.toString(), response);
     }
 
-    ResponseException(String message) {
+    ResponseException(String message, HttpResponse<Buffer> response) {
         super(message);
+        this.response = response;
     }
 }

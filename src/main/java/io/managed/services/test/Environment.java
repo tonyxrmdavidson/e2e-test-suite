@@ -35,6 +35,8 @@ public class Environment {
 
     public static final String SSO_USERNAME_ENV = "SSO_USERNAME";
     public static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
+    public static final String SSO_TEST_ORG_PRIMARY_USERNAME_ENV = "SSO_TEST_ORG_PRIMARY_USERNAME";
+    public static final String SSO_TEST_ORG_PRIMARY_PASSWORD_ENV = "SSO_TEST_ORG_PRIMARY_PASSWORD";
 
     public static final String SSO_REDHAT_KEYCLOAK_URI_ENV = "SSO_REDHAT_KEYCLOAK_URI";
     public static final String SSO_REDHAT_REALM_ENV = "SSO_REDHAT_REALM";
@@ -56,6 +58,11 @@ public class Environment {
     // main sso.redhat.com user
     public static final String SSO_USERNAME = getOrDefault(SSO_USERNAME_ENV, null);
     public static final String SSO_PASSWORD = getOrDefault(SSO_PASSWORD_ENV, null);
+
+    // test sso.redhat.com primary user
+    public static final String SSO_TEST_ORG_PRIMARY_USERNAME = getOrDefault(SSO_TEST_ORG_PRIMARY_USERNAME_ENV, null);
+    public static final String SSO_TEST_ORG_PRIMARY_PASSWORD = getOrDefault(SSO_TEST_ORG_PRIMARY_PASSWORD_ENV, null);
+
 
     // sso.redhat.com OAuth ENVs
     public static final String SSO_REDHAT_KEYCLOAK_URI = getOrDefault(SSO_REDHAT_KEYCLOAK_URI_ENV, "https://sso.redhat.com");

@@ -100,7 +100,7 @@ public class ServiceAPI {
     }
 
     public Future<Void> deleteKafka(String id, Boolean async) {
-        return client.delete(String.format("/api/managed-services-api/v1/kafkas/%s", id))
+        return client.delete(String.format("/api/managed-services-api/v1/kafkas/%s?async=%s", id, async))
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .send()
