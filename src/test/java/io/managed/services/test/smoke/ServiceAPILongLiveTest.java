@@ -118,7 +118,6 @@ class ServiceAPILongLiveTest extends TestBase {
                 LOGGER.info("Topic is already available for the long live instance");
             }
         } catch (CompletionException exception) {
-            LOGGER.error(exception);
             LOGGER.error("topic is not present :{} in instance:{} ", Environment.LONG_LIVED_KAFKA_TOPIC_NAME, Environment.LONG_LIVED_KAFKA_NAME);
             fail(String.format("Something went wrong, topic is missing. Please create a topic with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_TOPIC_NAME));
         }
