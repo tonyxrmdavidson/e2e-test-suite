@@ -23,6 +23,7 @@ import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,13 @@ class ServiceAPILongLiveTest extends TestBase {
         context.completeNow();
     }
 
+    @AfterAll
+    void deleteServiceAccount() {
+        if (serviceAccountID != null) {
+            LOGGER.info("clean service account: {}", serviceAccountID);
+            await(api.deleteServiceAccount(serviceAccountID));
+        }
+    }
 
     @Test
     @Timeout(5 * 60 * 1000)
@@ -82,7 +90,6 @@ class ServiceAPILongLiveTest extends TestBase {
         kafkaResponse = optionalKafka.get();
         kafkaID = kafkaResponse.id;
         LOGGER.info("kafka is present :{} and created at: {}", Environment.LONG_LIVED_KAFKA_NAME, kafkaResponse.createdAt);
-
 
         kafkaResponse = waitUntilKafKaGetsReady(vertx, api, kafkaID);
 
@@ -110,9 +117,8 @@ class ServiceAPILongLiveTest extends TestBase {
                 LOGGER.info("Topic is already available for the long live instance");
             }
         } catch (Exception exception) {
-            LOGGER.error("Topic is not present, that mean something went wrong in topic or It is not created earlier!");
-            LOGGER.info("Creating new Topic: {}", topicName);
-            await(admin.createTopic(topicName));
+            LOGGER.error("topic is not present :{} in instance:{} ", Environment.LONG_LIVED_KAFKA_TOPIC_NAME, Environment.LONG_LIVED_KAFKA_NAME);
+            fail(String.format("Something went wrong, topic is missing .Please create a topic with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_TOPIC_NAME));
         }
 
         // Consume Kafka messages
