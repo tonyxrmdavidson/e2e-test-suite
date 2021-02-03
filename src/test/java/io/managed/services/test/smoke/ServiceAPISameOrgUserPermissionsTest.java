@@ -65,8 +65,8 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         User user1 = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_TEST_ORG_PRIMARY_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        User user2 = await(auth.login(Environment.SSO_TEST_ORG_PRIMARY_USERNAME, Environment.SSO_TEST_ORG_PRIMARY_PASSWORD));
+        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_SECONDARY_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
+        User user2 = await(auth.login(Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD));
 
         this.user1 = user1;
         this.user2 = user2;
@@ -107,7 +107,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         kafkaID = kafka.id;
         kafka = waitUntilKafKaGetsReady(vertx, api1, kafkaID);
 
-        //Get kafka instance list by another user with same org
+        // Get kafka instance list by another user with same org
         KafkaListResponse kafkaList = await(api2.getListOfKafkas());
         LOGGER.info("fetch list of kafka instance for another user same org");
         List<KafkaResponse> filteredKafka = kafkaList.items.stream().filter(k -> k.id.equals(kafkaID)).collect(Collectors.toList());
@@ -163,16 +163,18 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         await(producer.close());
         await(consumer.close());
 
-        //Delete kafka instance by another user with same org
-        await(api2.deleteKafka(kafkaID, true).compose(r -> Future.failedFuture("Request should Ideally failed!")).recover(throwable -> {
-            if (throwable instanceof ResponseException) {
-                if (((ResponseException) throwable).response.statusCode() == 404) {
-                    LOGGER.info("another user is not authorised to delete kafka instance");
-                    return Future.succeededFuture();
-                }
-            }
-            return Future.failedFuture(throwable);
-        }));
+        // Delete kafka instance by another user with same org
+        await(api2.deleteKafka(kafkaID, true)
+                .compose(r -> Future.failedFuture("Request should Ideally failed!"))
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException) {
+                        if (((ResponseException) throwable).response.statusCode() == 404) {
+                            LOGGER.info("another user is not authorised to delete kafka instance");
+                            return Future.succeededFuture();
+                        }
+                    }
+                    return Future.failedFuture(throwable);
+                }));
 
         context.completeNow();
     }
