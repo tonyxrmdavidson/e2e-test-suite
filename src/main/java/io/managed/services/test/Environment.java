@@ -51,6 +51,11 @@ public class Environment {
     public static final String LONG_LIVED_KAFKA_NAME_ENV = "LONG_LIVED_KAFKA_NAME";
     public static final String LONG_LIVED_KAFKA_TOPIC_NAME_ENV = "LONG_LIVED_KAFKA_TOPIC_NAME";
 
+    public static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
+    public static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
+    public static final String DEV_CLUSTER_TOKEN_ENV = "DEV_CLUSTER_TOKEN";
+
+
     /*
      * Setup constants from env variables or set default
      */
@@ -79,6 +84,10 @@ public class Environment {
     public static final String KAFKA_POSTFIX_NAME = getOrDefault(KAFKA_POSTFIX_NAME_ENV, "auto-test");
     public static final String LONG_LIVED_KAFKA_NAME = getOrDefault(LONG_LIVED_KAFKA_NAME_ENV, "mk-e2e-longlive-test");
     public static final String LONG_LIVED_KAFKA_TOPIC_NAME = getOrDefault(LONG_LIVED_KAFKA_TOPIC_NAME_ENV, "long-live-test-topic");
+
+    public static final String DEV_CLUSTER_SERVER = getOrDefault(DEV_CLUSTER_SERVER_ENV, "https://api.devexp.imkr.s1.devshift.org:6443");
+    public static final String DEV_CLUSTER_NAMESPACE = getOrDefault(DEV_CLUSTER_NAMESPACE_ENV, "mk-e2e-tests");
+    public static final String DEV_CLUSTER_TOKEN = getOrDefault(DEV_CLUSTER_TOKEN_ENV, null);
 
     private Environment() {
     }
