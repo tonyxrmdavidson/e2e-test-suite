@@ -4,6 +4,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
@@ -18,6 +19,7 @@ import io.vertx.ext.auth.User;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Tag;
@@ -30,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
@@ -62,8 +66,9 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
                 Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        User userOfOrg1 = await(auth.login(Environment.SSO_TEST_ORG_PRIMARY_USERNAME, Environment.SSO_TEST_ORG_PRIMARY_PASSWORD));
-        User userOfOrg2 = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        User userOfOrg1 = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        User userOfOrg2 = await(auth.login(Environment.SSO_ALIEN_USERNAME, Environment.SSO_ALIEN_PASSWORD));
+
         this.userOfOrg1 = userOfOrg1;
         this.userOfOrg2 = userOfOrg2;
         this.apiOrg1 = new ServiceAPI(vertx, Environment.SERVICE_API_URI, userOfOrg1);
@@ -76,7 +81,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     void deleteKafkaInstance() {
         if (kafkaIDOrg1 != null) {
             LOGGER.info("clean kafka instance: {}", kafkaIDOrg1);
-            System.out.println(await(apiOrg1.deleteKafka(kafkaIDOrg1, true)));
+            await(apiOrg1.deleteKafka(kafkaIDOrg1, true));
         }
         if (kafkaIDOrg2 != null) {
             LOGGER.info("clean kafka instance: {}", kafkaIDOrg2);
@@ -135,6 +140,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         assertEquals(0, kafkaResponsesInOrg2.size(), "Kafka is not present in organisation 2");
         LOGGER.info("Kafka {} is not visible to Org 2", kafkaIDOrg1);
 
+        // Wait until kafka goes to ready state
         kafka = waitUntilKafKaGetsReady(vertx, apiOrg1, kafkaIDOrg1);
 
         // Create Service Account of Org 2
@@ -152,45 +158,30 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         // Create Kafka topic in Org 1 from Org 2 and it should fail
         // TODO: User service api to create topics when available
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
+        KafkaAdmin admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+
+        String topicName = "test-topic";
+
+        LOGGER.info("create kafka topic: {}", topicName);
         try {
-            KafkaAdmin admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
-            String topicName = "test-topic";
-            LOGGER.info("create kafka topic: {}", topicName);
             await(admin.createTopic(topicName));
-            LOGGER.error("it should fail");
-            fail("user from different organisation is able to create topic which is not expected");
-//            // Consume Kafka messages
-//            LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-//            KafkaConsumer<String, String> consumer = KafkaUtils.createConsumer(vertx, bootstrapHost, clientID, clientSecret);
-//
-//            Promise<KafkaConsumerRecord<String, String>> receiver = Promise.promise();
-//            consumer.handler(receiver::complete);
-//
-//            LOGGER.info("subscribe to topic: {}", topicName);
-//            await(consumer.subscribe(topicName));
-//
-//            // TODO: Send and receive multiple messages
-//
-//            // Produce Kafka messages
-//            LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-//            KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
-//
-//            LOGGER.info("send message to topic: {}", topicName);
-//            await(producer.send(KafkaProducerRecord.create(topicName, "hello world")));
-//
-//            // Wait for the message
-//            LOGGER.info("wait for message");
-//            KafkaConsumerRecord<String, String> record = await(receiver.future());
-//
-//            LOGGER.info("received message: {}", record.value());
-//            assertEquals("hello world", record.value());
-//
-//            LOGGER.info("close kafka producer and consumer");
-//            await(producer.close());
-//            await(consumer.close());
-        } catch (Exception e) {
-            LOGGER.info("user from different organisation is not allowed to create topic for instance:{}", kafkaIDOrg1);
+            LOGGER.error("user from another org is able to create topic or produce or consume messages");
+            fail("It should fail");
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof SaslAuthenticationException) {
+                LOGGER.info("user from different organisation is not allowed to create topic for instance:{}", kafkaIDOrg1);
+
+            }
         }
+//        await(KafkaUtils.toVertxFuture(admin.createTopic(topicName)).compose(r -> Future.failedFuture("user from another org is able to create topic or produce or consume messages")).recover(throwable -> {
+////            if (throwable instanceof CompletionException) {
+//                if (throwable.getCause() instanceof SaslAuthenticationException) {
+//                    LOGGER.info("user from different organisation is not allowed to create topic for instance:{}", kafkaIDOrg1);
+//                    return Future.succeededFuture();
+//                }
+////            }
+//            return Future.failedFuture(throwable);
+//        }));
 
         context.completeNow();
 
@@ -200,11 +191,13 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
      * Create a new Kafka instance in organization 1
      */
     @Test
-    @Timeout(10 * 60 * 1000)
+    @Timeout(value = 10, timeUnit = TimeUnit.MINUTES)
     @Order(2)
     void deleteKafkaOfOrg1ByOrg2(Vertx vertx, VertxTestContext context) {
         if (kafkaIDOrg1 != null) {
+
             LOGGER.info("Delete Instance: {} of Org 1 using user of Org 2", kafkaIDOrg1);
+
             await(apiOrg2.deleteKafka(kafkaIDOrg1, true).compose(r -> Future.failedFuture("user from different organisation is able to delete instance")).recover(throwable -> {
                 if (throwable instanceof ResponseException) {
                     if (((ResponseException) throwable).response.statusCode() == 404) {
@@ -212,10 +205,11 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
                         return Future.succeededFuture();
                     }
                 }
-                LOGGER.info("something went wrong");
                 return Future.failedFuture(throwable);
             }));
+
         }
+
         context.completeNow();
 
     }
