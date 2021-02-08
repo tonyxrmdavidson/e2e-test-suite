@@ -4,7 +4,6 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
