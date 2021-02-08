@@ -5,17 +5,13 @@ import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
+import io.managed.services.test.client.serviceapi.KafkaResponse;
+import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
-
+import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -26,13 +22,14 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
@@ -41,6 +38,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -60,16 +60,14 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     KeycloakOAuth auth;
     ServiceAPI apiOrg1, apiOrg2;
 
-    String kafkaIDOrg1;
-    String serviceAccountIDOrg2;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         this.auth = new KeycloakOAuth(vertx,
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID);
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         User userOfOrg1 = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
@@ -97,7 +95,6 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
      * Create a new Kafka instance in organization 1
      * Test it should be there for user of organization 1
      * And not available for user of another org
-     * Also user from another org not allowed to create topic to produce and consume messages
      */
     @Test
     @Timeout(10 * 60 * 1000)
@@ -114,7 +111,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
         LOGGER.info("create kafka instance in organisation 1: {}", kafkaPayload.name);
         KafkaResponse kafka = await(apiOrg1.createKafka(kafkaPayload, true));
-        kafkaIDOrg1 = kafka.id;
+        String kafkaIDOrg1 = kafka.id;
 
         // Get list of kafka Instance in org 1 and test it should be there
         KafkaListResponse kafkaListInOrg1 = await(apiOrg1.getListOfKafkas());
@@ -132,7 +129,18 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         LOGGER.info("Kafka {} is not visible to Org 2", kafkaIDOrg1);
 
         // Wait until kafka goes to ready state
-        kafka = waitUntilKafkaIsReady(vertx, apiOrg1, kafkaIDOrg1);
+        waitUntilKafkaIsReady(vertx, apiOrg1, kafkaIDOrg1);
+    }
+
+    /**
+     * A user in org A is not allowed to create topic to produce and consume messages on a kafka instance in org B
+     */
+    @Test
+    @Order(2)
+    @Disabled("Known issue: https://issues.redhat.com/browse/MGDSTRM-1439")
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+    void testCreateTopicInOrg1KafkaByOrg2() {
+        var kafka = await(getKafkaByName(apiOrg1, KAFKA_INSTANCE_NAME)).orElseThrow();
 
         // Create Service Account of Org 2
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
@@ -140,7 +148,6 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
         LOGGER.info("create service account in Org 2: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccountOrg2 = await(apiOrg2.createServiceAccount(serviceAccountPayload));
-        serviceAccountIDOrg2 = serviceAccountOrg2.id;
 
         String bootstrapHost = kafka.bootstrapServerHost;
         String clientID = serviceAccountOrg2.clientID;
@@ -160,13 +167,9 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
             fail("It should fail");
         } catch (CompletionException e) {
             if (e.getCause() instanceof SaslAuthenticationException) {
-                LOGGER.info("user from different organisation is not allowed to create topic for instance:{}", kafkaIDOrg1);
-
+                LOGGER.info("user from different organisation is not allowed to create topic for instance:{}", kafka.id);
             }
         }
-
-        context.completeNow();
-
     }
 
     /**
@@ -174,13 +177,14 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
      */
     @Test
     @Timeout(value = 10, timeUnit = TimeUnit.MINUTES)
-    @Order(2)
-    void deleteKafkaOfOrg1ByOrg2(Vertx vertx, VertxTestContext context) {
-        if (kafkaIDOrg1 != null) {
+    @Order(3)
+    void deleteKafkaOfOrg1ByOrg2() {
+        var kafka = await(getKafkaByName(apiOrg1, KAFKA_INSTANCE_NAME)).orElseThrow();
 
-            LOGGER.info("Delete Instance: {} of Org 1 using user of Org 2", kafkaIDOrg1);
-
-            await(apiOrg2.deleteKafka(kafkaIDOrg1, true).compose(r -> Future.failedFuture("user from different organisation is able to delete instance")).recover(throwable -> {
+        LOGGER.info("Delete Instance: {} of Org 1 using user of Org 2", kafka.id);
+        await(apiOrg2.deleteKafka(kafka.id, true)
+            .compose(r -> Future.failedFuture("user from different organisation is able to delete instance"))
+            .recover(throwable -> {
                 if (throwable instanceof ResponseException) {
                     if (((ResponseException) throwable).response.statusCode() == 404) {
                         LOGGER.info("user from different organisation is not allowed to delete instance");
@@ -189,10 +193,5 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
                 }
                 return Future.failedFuture(throwable);
             }));
-
-        }
-
-        context.completeNow();
-
     }
 }
