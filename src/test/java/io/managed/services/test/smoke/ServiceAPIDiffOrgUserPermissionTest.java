@@ -11,6 +11,11 @@ import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
+import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
+
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -36,7 +41,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
-import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -49,12 +53,15 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
+    static final String KAFKA_INSTANCE_NAME = "mk-e2e-sup-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String SERVICE_ACCOUNT_NAME_ORG2 = "mk-e2e--sup-sa-" + Environment.KAFKA_POSTFIX_NAME + "2";
+
     User userOfOrg1, userOfOrg2;
     KeycloakOAuth auth;
     ServiceAPI apiOrg1, apiOrg2;
 
-    String kafkaIDOrg1, kafkaIDOrg2;
-    String serviceAccountIDOrg1, serviceAccountIDOrg2;
+    String kafkaIDOrg1;
+    String serviceAccountIDOrg2;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -78,27 +85,12 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
     @AfterAll
     void deleteKafkaInstance() {
-        if (kafkaIDOrg1 != null) {
-            LOGGER.info("clean kafka instance: {}", kafkaIDOrg1);
-            await(apiOrg1.deleteKafka(kafkaIDOrg1, true));
-        }
-        if (kafkaIDOrg2 != null) {
-            LOGGER.info("clean kafka instance: {}", kafkaIDOrg2);
-            await(apiOrg2.deleteKafka(kafkaIDOrg2, true));
-        }
+        await(ServiceAPIUtils.deleteKafkaByNameIfExists(apiOrg1, KAFKA_INSTANCE_NAME));
     }
 
     @AfterAll
     void deleteServiceAccount() {
-        if (serviceAccountIDOrg1 != null) {
-            LOGGER.info("clean service account: {}", serviceAccountIDOrg1);
-            await(apiOrg1.deleteServiceAccount(serviceAccountIDOrg1));
-        }
-
-        if (serviceAccountIDOrg2 != null) {
-            LOGGER.info("clean service account: {}", serviceAccountIDOrg2);
-            await(apiOrg2.deleteServiceAccount(serviceAccountIDOrg2));
-        }
+        await(deleteServiceAccountByNameIfExists(apiOrg2, SERVICE_ACCOUNT_NAME_ORG2));
     }
 
     /**
@@ -115,7 +107,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         // Create Kafka Instance in org 1
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
         // add postfix to the name based on owner
-        kafkaPayload.name = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
+        kafkaPayload.name = KAFKA_INSTANCE_NAME;
         kafkaPayload.multiAZ = true;
         kafkaPayload.cloudProvider = "aws";
         kafkaPayload.region = "us-east-1";
@@ -140,11 +132,11 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         LOGGER.info("Kafka {} is not visible to Org 2", kafkaIDOrg1);
 
         // Wait until kafka goes to ready state
-        kafka = waitUntilKafKaGetsReady(vertx, apiOrg1, kafkaIDOrg1);
+        kafka = waitUntilKafkaIsReady(vertx, apiOrg1, kafkaIDOrg1);
 
         // Create Service Account of Org 2
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
-        serviceAccountPayload.name = "mk-e2e-org2-sa-auto";
+        serviceAccountPayload.name = SERVICE_ACCOUNT_NAME_ORG2;
 
         LOGGER.info("create service account in Org 2: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccountOrg2 = await(apiOrg2.createServiceAccount(serviceAccountPayload));
@@ -172,15 +164,6 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
             }
         }
-//        await(KafkaUtils.toVertxFuture(admin.createTopic(topicName)).compose(r -> Future.failedFuture("user from another org is able to create topic or produce or consume messages")).recover(throwable -> {
-////            if (throwable instanceof CompletionException) {
-//                if (throwable.getCause() instanceof SaslAuthenticationException) {
-//                    LOGGER.info("user from different organisation is not allowed to create topic for instance:{}", kafkaIDOrg1);
-//                    return Future.succeededFuture();
-//                }
-////            }
-//            return Future.failedFuture(throwable);
-//        }));
 
         context.completeNow();
 
