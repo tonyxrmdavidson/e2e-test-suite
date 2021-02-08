@@ -35,6 +35,10 @@ public class KafkaAdmin {
     public KafkaFuture<Map<String, TopicDescription>> getMapOfTopicNameAndDescriptionByName(String name) {
         return admin.describeTopics(Collections.singleton(name)).all();
     }
+
+    public KafkaFuture<Void> deleteTopic(String name) {
+        return admin.deleteTopics(Collections.singleton(name)).all();
+    }
 }
 
 

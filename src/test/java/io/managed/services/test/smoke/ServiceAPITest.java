@@ -2,17 +2,21 @@ package io.managed.services.test.smoke;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
+import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
+import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
 import io.vertx.ext.auth.User;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
@@ -25,37 +29,51 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.util.List;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 @Tag(TestTag.CI)
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String TOPIC_NAME = "test-topic";
 
     User user;
     KeycloakOAuth auth;
     ServiceAPI api;
+    String kafkaId;
+    KafkaAdmin admin;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         this.auth = new KeycloakOAuth(vertx,
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID);
+                Environment.SSO_REDHAT_KEYCLOAK_URI,
+                Environment.SSO_REDHAT_REDIRECT_URI,
+                Environment.SSO_REDHAT_REALM,
+                Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         User user = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
@@ -76,16 +94,12 @@ class ServiceAPITest extends TestBase {
         await(deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME));
     }
 
-    // TODO: Test list/search kafka instance
-    // TODO: Test creation of kafka instance with the same name
-    // TODO: Test deletion of topic
-
-
     /**
      * Create a new Kafka instance and test that is possible to create topics, send messages and receive messages
      */
     @Test
-    @Timeout(10 * 60 * 1000)
+    @Timeout(value = 10, timeUnit = TimeUnit.MINUTES)
+    @Order(1)
     void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
 
         // Create Kafka Instance
@@ -98,6 +112,7 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
+        kafkaId = kafka.id;
 
         kafka = waitUntilKafkaIsReady(vertx, api, kafka.id);
 
@@ -115,11 +130,10 @@ class ServiceAPITest extends TestBase {
         // Create Kafka topic
         // TODO: User service api to create topics when available
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaAdmin admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+        admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
-        String topicName = "test-topic";
-        LOGGER.info("create kafka topic: {}", topicName);
-        await(admin.createTopic(topicName));
+        LOGGER.info("create kafka topic: {}", TOPIC_NAME);
+        await(admin.createTopic(TOPIC_NAME));
 
         // Consume Kafka messages
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
@@ -128,8 +142,8 @@ class ServiceAPITest extends TestBase {
         Promise<KafkaConsumerRecord<String, String>> receiver = Promise.promise();
         consumer.handler(receiver::complete);
 
-        LOGGER.info("subscribe to topic: {}", topicName);
-        await(consumer.subscribe(topicName));
+        LOGGER.info("subscribe to topic: {}", TOPIC_NAME);
+        await(consumer.subscribe(TOPIC_NAME));
 
         // TODO: Send and receive multiple messages
 
@@ -137,8 +151,8 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
 
-        LOGGER.info("send message to topic: {}", topicName);
-        await(producer.send(KafkaProducerRecord.create(topicName, "hello world")));
+        LOGGER.info("send message to topic: {}", TOPIC_NAME);
+        await(producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world")));
 
         // Wait for the message
         LOGGER.info("wait for message");
@@ -150,6 +164,72 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
         await(consumer.close());
+
+        context.completeNow();
+    }
+
+    @Test
+    @Order(2)
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+    void testListAndSearchKafkaInstance(Vertx vertx, VertxTestContext context) {
+        //List kafka instances
+        KafkaListResponse kafkaList = await(api.getListOfKafkas());
+        LOGGER.info("fetch kafka instance list: {}", Json.encode(kafkaList.items));
+        assertTrue(kafkaList.items.size() > 0);
+
+        //Get created kafka instance from the list
+        List<KafkaResponse> filteredKafka = kafkaList.items.stream().filter(k -> k.name.equals(KAFKA_INSTANCE_NAME)).collect(Collectors.toList());
+        LOGGER.info("Filter kafka instance from list: {}", Json.encode(filteredKafka));
+        assertEquals(1, filteredKafka.size());
+
+        //Search kafka by name
+        KafkaResponse kafkaResponse = await(api.getKafka(kafkaId));
+        LOGGER.info("Get created kafka instance is : {}", Json.encode(kafkaResponse));
+        assertEquals(KAFKA_INSTANCE_NAME, kafkaResponse.name);
+
+        context.completeNow();
+    }
+
+    @Test
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+    @Order(2)
+    void testCreateKafkaInstanceWithExistingName(Vertx vertx, VertxTestContext context) {
+        // Create Kafka Instance with existing name
+        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
+        kafkaPayload.name = KAFKA_INSTANCE_NAME;
+        kafkaPayload.multiAZ = true;
+        kafkaPayload.cloudProvider = "aws";
+        kafkaPayload.region = "us-east-1";
+
+        LOGGER.info("create kafka instance with existing name: {}", kafkaPayload.name);
+
+        await(api.createKafka(kafkaPayload, true)
+                .compose(r -> Future.failedFuture("Request should Ideally failed!"))
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException) {
+                        if (((ResponseException) throwable).response.statusCode() == 409) {
+                            LOGGER.info("Existing kafka instance name can't be create : {}", kafkaPayload.name);
+                            return Future.succeededFuture();
+                        }
+                    }
+                    return Future.failedFuture(throwable);
+                }));
+
+        context.completeNow();
+    }
+
+    @Test
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+    @Order(3)
+    void testDeleteTopic(Vertx vertx, VertxTestContext context) {
+        LOGGER.info("Delete created topic : {}", TOPIC_NAME);
+        try {
+            await(admin.deleteTopic(TOPIC_NAME));
+            LOGGER.info("Topic deleted: {}", TOPIC_NAME);
+        } catch (CompletionException e) {
+            LOGGER.error("{} should be deleted", TOPIC_NAME);
+            fail("Created topic should be deleted");
+        }
 
         context.completeNow();
     }
