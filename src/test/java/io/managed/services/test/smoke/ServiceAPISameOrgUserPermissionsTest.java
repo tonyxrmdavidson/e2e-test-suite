@@ -6,14 +6,12 @@ import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
+import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
-
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -34,13 +32,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.TestUtils.deleteKafkaByNameIfExists;
+import static io.managed.services.test.TestUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(TestTag.CI)
 @Tag(TestTag.SERVICE_API)
@@ -48,19 +47,20 @@ import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
 public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPISameOrgUserPermissionsTest.class);
 
+    static final String KAFKA_INSTANCE_NAME = "mk-e2e-sup-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String SERVICE_ACCOUNT_NAME = "mk-e2e--sup-sa-" + Environment.KAFKA_POSTFIX_NAME;
+
     User user1, user2;
     KeycloakOAuth auth;
     ServiceAPI api1, api2;
-    String kafkaID;
-    String serviceAccountID;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         this.auth = new KeycloakOAuth(vertx,
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID);
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         User user1 = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
@@ -78,18 +78,12 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
 
     @AfterAll
     void deleteKafkaInstance() {
-        if (kafkaID != null) {
-            LOGGER.info("clean kafka instance: {}", kafkaID);
-            await(api1.deleteKafka(kafkaID, true));
-        }
+        await(deleteKafkaByNameIfExists(api1, KAFKA_INSTANCE_NAME));
     }
 
     @AfterAll
     void deleteServiceAccount() {
-        if (serviceAccountID != null) {
-            LOGGER.info("clean service account: {}", serviceAccountID);
-            await(api2.deleteServiceAccount(serviceAccountID));
-        }
+        await(deleteServiceAccountByNameIfExists(api1, SERVICE_ACCOUNT_NAME));
     }
 
     @Test
@@ -97,31 +91,30 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
         // add postfix to the name based on owner
-        kafkaPayload.name = Environment.KAFKA_POSTFIX_NAME + "mk-e2e-test";
+        kafkaPayload.name = KAFKA_INSTANCE_NAME;
         kafkaPayload.multiAZ = true;
         kafkaPayload.cloudProvider = "aws";
         kafkaPayload.region = "us-east-1";
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api1.createKafka(kafkaPayload, true));
-        kafkaID = kafka.id;
-        kafka = waitUntilKafKaGetsReady(vertx, api1, kafkaID);
+        kafka = waitUntilKafKaGetsReady(vertx, api1, kafka.id);
+        String kafkaID = kafka.id;
 
         // Get kafka instance list by another user with same org
         KafkaListResponse kafkaList = await(api2.getListOfKafkas());
         LOGGER.info("fetch list of kafka instance for another user same org");
         List<KafkaResponse> filteredKafka = kafkaList.items.stream().filter(k -> k.id.equals(kafkaID)).collect(Collectors.toList());
 
-        assertEquals(1, filteredKafka.size(), "Kafka is present for another user with same org");
         LOGGER.info("Kafka instance response is: {}", Json.encode(filteredKafka));
+        assertEquals(1, filteredKafka.size(), "Kafka is not present for another user with same org");
 
         // Create Service Account by another user
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
-        serviceAccountPayload.name = "mk-e2e-autotest";
+        serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
 
         LOGGER.info("create service account by another user with same org: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccount = await(api2.createServiceAccount(serviceAccountPayload));
-        serviceAccountID = serviceAccount.id;
 
         String bootstrapHost = kafka.bootstrapServerHost;
         String clientID = serviceAccount.clientID;
@@ -165,16 +158,16 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
 
         // Delete kafka instance by another user with same org
         await(api2.deleteKafka(kafkaID, true)
-                .compose(r -> Future.failedFuture("Request should Ideally failed!"))
-                .recover(throwable -> {
-                    if (throwable instanceof ResponseException) {
-                        if (((ResponseException) throwable).response.statusCode() == 404) {
-                            LOGGER.info("another user is not authorised to delete kafka instance");
-                            return Future.succeededFuture();
-                        }
+            .compose(r -> Future.failedFuture("Request should Ideally failed!"))
+            .recover(throwable -> {
+                if (throwable instanceof ResponseException) {
+                    if (((ResponseException) throwable).response.statusCode() == 404) {
+                        LOGGER.info("another user is not authorised to delete kafka instance");
+                        return Future.succeededFuture();
                     }
-                    return Future.failedFuture(throwable);
-                }));
+                }
+                return Future.failedFuture(throwable);
+            }));
 
         context.completeNow();
     }

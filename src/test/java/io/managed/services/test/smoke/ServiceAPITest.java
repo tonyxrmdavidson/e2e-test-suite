@@ -30,6 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.TestUtils.deleteKafkaByNameIfExists;
+import static io.managed.services.test.TestUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -40,20 +42,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
+    static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
+
     User user;
     KeycloakOAuth auth;
     ServiceAPI api;
 
-    String kafkaID;
-    String serviceAccountID;
-
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         this.auth = new KeycloakOAuth(vertx,
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID);
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         User user = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
@@ -66,18 +68,12 @@ class ServiceAPITest extends TestBase {
 
     @AfterAll
     void deleteKafkaInstance() {
-        if (kafkaID != null) {
-            LOGGER.info("clean kafka instance: {}", kafkaID);
-            await(api.deleteKafka(kafkaID, true));
-        }
+        await(deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME));
     }
 
     @AfterAll
     void deleteServiceAccount() {
-        if (serviceAccountID != null) {
-            LOGGER.info("clean service account: {}", serviceAccountID);
-            await(api.deleteServiceAccount(serviceAccountID));
-        }
+        await(deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME));
     }
 
     // TODO: Test list/search kafka instance
@@ -95,24 +91,22 @@ class ServiceAPITest extends TestBase {
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
         // add postfix to the name based on owner
-        kafkaPayload.name = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
+        kafkaPayload.name = KAFKA_INSTANCE_NAME;
         kafkaPayload.multiAZ = true;
         kafkaPayload.cloudProvider = "aws";
         kafkaPayload.region = "us-east-1";
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
-        kafkaID = kafka.id;
 
-        kafka = waitUntilKafKaGetsReady(vertx, api, kafkaID);
+        kafka = waitUntilKafKaGetsReady(vertx, api, kafka.id);
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
-        serviceAccountPayload.name = "mk-e2e-autotest";
+        serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
 
         LOGGER.info("create service account: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
-        serviceAccountID = serviceAccount.id;
 
         String bootstrapHost = kafka.bootstrapServerHost;
         String clientID = serviceAccount.clientID;

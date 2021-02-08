@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletionException;
 
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.TestUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.TestUtils.getKafkaByName;
 import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,20 +47,19 @@ import static org.junit.jupiter.api.Assertions.fail;
 class ServiceAPILongLiveTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
+    static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
+
     User user;
     KeycloakOAuth auth;
     ServiceAPI api;
 
-    String kafkaID;
-    String serviceAccountID;
-
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         this.auth = new KeycloakOAuth(vertx,
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID);
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         User user = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
@@ -72,10 +72,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
     @AfterAll
     void deleteServiceAccount() {
-        if (serviceAccountID != null) {
-            LOGGER.info("clean service account: {}", serviceAccountID);
-            await(api.deleteServiceAccount(serviceAccountID));
-        }
+        await(deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME));
     }
 
     @Test
@@ -90,18 +87,16 @@ class ServiceAPILongLiveTest extends TestBase {
             fail(String.format("Something went wrong, kafka is missing. Please create a kafka with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_NAME));
         }
         kafkaResponse = optionalKafka.get();
-        kafkaID = kafkaResponse.id;
         LOGGER.info("kafka is present :{} and created at: {}", Environment.LONG_LIVED_KAFKA_NAME, kafkaResponse.createdAt);
 
-        kafkaResponse = waitUntilKafKaGetsReady(vertx, api, kafkaID);
+        kafkaResponse = waitUntilKafKaGetsReady(vertx, api, kafkaResponse.id);
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
-        serviceAccountPayload.name = "mk-e2e-autotest";
+        serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
 
         LOGGER.info("create service account: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
-        serviceAccountID = serviceAccount.id;
 
         String bootstrapHost = kafkaResponse.bootstrapServerHost;
         String clientID = serviceAccount.clientID;

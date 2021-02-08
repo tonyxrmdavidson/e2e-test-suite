@@ -4,6 +4,7 @@ import com.ea.async.Async;
 import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -54,11 +55,11 @@ public class TestUtils {
      * @return A Future that will be completed once the lambda function returns true
      */
     public static <T> Future<T> waitFor(
-            Vertx vertx,
-            String description,
-            Duration interval,
-            Duration timeout,
-            IsReady<T> isReady) {
+        Vertx vertx,
+        String description,
+        Duration interval,
+        Duration timeout,
+        IsReady<T> isReady) {
 
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
         Exception e = new Exception(String.format("timeout after %s waiting for %s", timeout.toString(), description));
@@ -68,31 +69,31 @@ public class TestUtils {
     }
 
     static <T> Future<T> waitFor(
-            Vertx vertx,
-            String description,
-            Duration interval,
-            Instant deadline,
-            Exception timeout,
-            IsReady<T> isReady) {
+        Vertx vertx,
+        String description,
+        Duration interval,
+        Instant deadline,
+        Exception timeout,
+        IsReady<T> isReady) {
 
         boolean last = Instant.now().isAfter(deadline);
 
         LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
         return isReady.apply(last)
-                .compose(r -> {
-                    if (r.getValue0()) {
-                        return Future.succeededFuture(r.getValue1());
-                    }
+            .compose(r -> {
+                if (r.getValue0()) {
+                    return Future.succeededFuture(r.getValue1());
+                }
 
-                    // if the last request after the timeout didn't succeed fail with the timeout error
-                    if (last) {
-                        LOGGER.error(ExceptionUtils.readStackTrace(timeout));
-                        return Future.failedFuture(timeout);
-                    }
+                // if the last request after the timeout didn't succeed fail with the timeout error
+                if (last) {
+                    LOGGER.error(ExceptionUtils.readStackTrace(timeout));
+                    return Future.failedFuture(timeout);
+                }
 
-                    return sleep(vertx, interval)
-                            .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
-                });
+                return sleep(vertx, interval)
+                    .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
+            });
     }
 
     /**
@@ -180,6 +181,7 @@ public class TestUtils {
                 LOGGER.trace("{} not ready, will try again in {} ms ({}ms till timeout)", description, sleepTime, timeLeft);
             }
             try {
+                //noinspection BusyWait
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
                 return deadline - System.currentTimeMillis();
@@ -204,8 +206,8 @@ public class TestUtils {
             String yaml = sb.toString();
             yaml = yaml.replaceAll("namespace: .*", "namespace: " + namespace);
             yaml = yaml.replace("securityContext:\n" +
-                    "        runAsNonRoot: true\n" +
-                    "        runAsUser: 65534", "");
+                "        runAsNonRoot: true\n" +
+                "        runAsUser: 65534", "");
             osw.write(yaml);
             return yamlFile;
 
@@ -235,13 +237,13 @@ public class TestUtils {
 
     public static Path getLogPath(String folderName, ExtensionContext context) {
         String testMethod = context.getDisplayName();
-        Class<?> testClass = context.getTestClass().get();
+        Class<?> testClass = context.getTestClass().orElseThrow();
         return getLogPath(folderName, testClass, testMethod);
     }
 
     public static Path getLogPath(String folderName, TestInfo info) {
         String testMethod = info.getDisplayName();
-        Class<?> testClass = info.getTestClass().get();
+        Class<?> testClass = info.getTestClass().orElseThrow();
         return getLogPath(folderName, testClass, testMethod);
     }
 
@@ -262,23 +264,52 @@ public class TestUtils {
     /**
      * Util function to get Kafka by name
      *
-     * @param api
-     * @param name
+     * @param api  ServiceAPI
+     * @param name String
      * @return kafka of type Optional<KafkaResponse>
      */
     public static Future<Optional<KafkaResponse>> getKafkaByName(ServiceAPI api, String name) {
         return api.getListOfKafkaByName(name)
-                .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
-                .map(Optional::ofNullable);
+            .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
+            .map(Optional::ofNullable);
+    }
+
+    public static Future<Optional<ServiceAccount>> getServiceAccountByName(ServiceAPI api, String name) {
+        return api.getListOfServiceAccounts()
+            .map(r -> r.items.stream().filter(a -> a.name.equals(name)).findFirst());
+    }
+
+    public static Future<Void> deleteKafkaByNameIfExists(ServiceAPI api, String name) {
+
+        return getKafkaByName(api, name)
+            .compose(o -> o.map(k -> {
+                LOGGER.info("clean kafka instance: {}", k.id);
+                return api.deleteKafka(k.id, true);
+            }).orElseGet(() -> {
+                LOGGER.warn("kafka instance '{}' not found", name);
+                return Future.succeededFuture();
+            }));
+    }
+
+    public static Future<Void> deleteServiceAccountByNameIfExists(ServiceAPI api, String name) {
+
+        return getServiceAccountByName(api, name)
+            .compose(o -> o.map(s -> {
+                LOGGER.info("clean service account: {}", s.id);
+                return api.deleteServiceAccount(s.id);
+            }).orElseGet(() -> {
+                LOGGER.warn("service account '{}' not found", name);
+                return Future.succeededFuture();
+            }));
     }
 
     /**
      * Function that returns kafkaResponse only if status is in ready
      *
-     * @param vertx
-     * @param api
-     * @param kafkaID
-     * @return
+     * @param vertx   Vertx
+     * @param api     ServiceAPI
+     * @param kafkaID String
+     * @return KafkaResponse
      */
     public static KafkaResponse waitUntilKafKaGetsReady(Vertx vertx, ServiceAPI api, String kafkaID) {
         KafkaResponse kafkaResponse;

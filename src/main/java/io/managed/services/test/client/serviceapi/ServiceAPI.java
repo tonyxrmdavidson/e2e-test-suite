@@ -104,7 +104,7 @@ public class ServiceAPI {
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .send()
-                .compose(r -> assertResponse(r, 204))
+                .compose(r -> assertResponse(r, async ? 202 : 204))
                 .map(r -> r.bodyAsJson(Void.class));
     }
 
@@ -114,6 +114,14 @@ public class ServiceAPI {
                 .sendJson(payload)
                 .compose(r -> assertResponse(r, 202)) // TODO: report issue: swagger says 200
                 .map(r -> r.bodyAsJson(ServiceAccount.class));
+    }
+
+    public Future<ServiceAccountList> getListOfServiceAccounts() {
+        return client.get("/api/managed-services-api/v1/serviceaccounts")
+            .authentication(token)
+            .send()
+            .compose(r -> assertResponse(r, 200))
+            .map(r -> r.bodyAsJson(ServiceAccountList.class));
     }
 
     public Future<Void> deleteServiceAccount(String id) {
