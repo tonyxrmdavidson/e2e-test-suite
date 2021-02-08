@@ -36,9 +36,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
-import static io.managed.services.test.TestUtils.deleteKafkaByNameIfExists;
-import static io.managed.services.test.TestUtils.deleteServiceAccountByNameIfExists;
-import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(TestTag.CI)
@@ -98,7 +98,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api1.createKafka(kafkaPayload, true));
-        kafka = waitUntilKafKaGetsReady(vertx, api1, kafka.id);
+        kafka = waitUntilKafkaIsReady(vertx, api1, kafka.id);
         String kafkaID = kafka.id;
 
         // Get kafka instance list by another user with same org

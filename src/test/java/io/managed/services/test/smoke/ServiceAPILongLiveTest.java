@@ -35,9 +35,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletionException;
 
 import static io.managed.services.test.TestUtils.await;
-import static io.managed.services.test.TestUtils.deleteServiceAccountByNameIfExists;
-import static io.managed.services.test.TestUtils.getKafkaByName;
-import static io.managed.services.test.TestUtils.waitUntilKafKaGetsReady;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -89,7 +89,7 @@ class ServiceAPILongLiveTest extends TestBase {
         kafkaResponse = optionalKafka.get();
         LOGGER.info("kafka is present :{} and created at: {}", Environment.LONG_LIVED_KAFKA_NAME, kafkaResponse.createdAt);
 
-        kafkaResponse = waitUntilKafKaGetsReady(vertx, api, kafkaResponse.id);
+        kafkaResponse = waitUntilKafkaIsReady(vertx, api, kafkaResponse.id);
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
