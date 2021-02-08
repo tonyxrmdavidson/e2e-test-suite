@@ -157,6 +157,11 @@
             <scope>system</scope>
             <systemPath>${basedir}/lib/rhoas-model-1.0.0-SNAPSHOT.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.20</version>
+        </dependency>
     </dependencies>
 
     <build>

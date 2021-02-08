@@ -49,11 +49,11 @@ public class KeycloakOAuth {
         String authPath = String.format(AUTH_PATH_FORMAT, realm);
 
         this.oauth2 = OAuth2Auth.create(vertx, new OAuth2Options()
-                .setFlow(OAuth2FlowType.AUTH_CODE)
-                .setClientID(clientID)
-                .setSite(keycloakURI)
-                .setTokenPath(tokenPath)
-                .setAuthorizationPath(authPath));
+            .setFlow(OAuth2FlowType.AUTH_CODE)
+            .setClientID(clientID)
+            .setSite(keycloakURI)
+            .setTokenPath(tokenPath)
+            .setAuthorizationPath(authPath));
         this.vertx = vertx;
         this.redirectURI = redirectURI;
     }
@@ -73,15 +73,15 @@ public class KeycloakOAuth {
         WebClientSession session = WebClientSession.create(client);
 
         String authURI = oauth2.authorizeURL(new JsonObject()
-                .put("redirect_uri", redirectURI));
+            .put("redirect_uri", redirectURI));
 
         return startLogin(session, authURI)
-                .flatMap(r -> postUsernamePassword(session, r, username, password))
-                .flatMap(r -> authenticateUser(session, r))
-                .map(u -> {
-                    LOGGER.info("authentication completed; access_token={}", getToken(u));
-                    return u;
-                });
+            .flatMap(r -> postUsernamePassword(session, r, username, password))
+            .flatMap(r -> authenticateUser(session, r))
+            .map(u -> {
+                LOGGER.info("authentication completed; access_token={}", getToken(u));
+                return u;
+            });
     }
 
     Future<HttpResponse<Buffer>> startLogin(WebClientSession session, String authURI) {
@@ -92,7 +92,7 @@ public class KeycloakOAuth {
     }
 
     Future<HttpResponse<Buffer>> postUsernamePassword(
-            WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
+        WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
 
         Document d = Jsoup.parse(response.bodyAsString());
         String actionURI = d.select("#kc-form-login").attr("action");
@@ -110,17 +110,17 @@ public class KeycloakOAuth {
     Future<User> authenticateUser(WebClientSession session, HttpResponse<Buffer> response) {
         String locationURI = response.headers().get("location");
         if (locationURI == null) {
-            return Future.failedFuture(ResponseException.create("failed to login user", response));
+            return Future.failedFuture(new ResponseException("failed to login user", response));
         }
 
         List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
         String code = queries.stream()
-                .filter(v -> v.getName().equals("code")).findFirst()
-                .orElseThrow().getValue();
+            .filter(v -> v.getName().equals("code")).findFirst()
+            .orElseThrow().getValue();
 
         LOGGER.info("authenticate user; code={}", code);
         return oauth2.authenticate(new JsonObject()
-                .put("code", code)
-                .put("redirect_uri", redirectURI));
+            .put("code", code)
+            .put("redirect_uri", redirectURI));
     }
 }

@@ -1,67 +1,24 @@
 package io.managed.services.test.client.serviceapi;
 
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
-
-import java.net.URI;
 
 
-public class ServiceAPI {
+public class ServiceAPI extends BaseVertxClient {
 
-    final Vertx vertx;
-    final WebClient client;
     final User user;
     final TokenCredentials token;
 
     public ServiceAPI(Vertx vertx, String uri, User user) {
-
-        URI u = URI.create(uri);
-        this.vertx = vertx;
-        this.client = WebClient.create(vertx, new WebClientOptions()
-                .setDefaultHost(u.getHost())
-                .setDefaultPort(getPort(u))
-                .setSsl(isSsl(u)));
+        super(vertx, uri);
         this.user = user;
         this.token = new TokenCredentials(KeycloakOAuth.getToken(user));
     }
 
-    static Integer getPort(URI u) {
-        if (u.getPort() == -1) {
-            switch (u.getScheme()) {
-                case "https":
-                    return 443;
-                case "http":
-                    return 80;
-            }
-        }
-        return u.getPort();
-    }
-
-    static Boolean isSsl(URI u) {
-        switch (u.getScheme()) {
-            case "https":
-                return true;
-            case "http":
-                return false;
-        }
-        return false;
-    }
-
-    Future<HttpResponse<Buffer>> assertResponse(HttpResponse<Buffer> response, Integer statusCode) {
-        if (response.statusCode() != statusCode) {
-            String message = String.format("Expected status code %d but got %s", statusCode, response.statusCode());
-            return Future.failedFuture(ResponseException.create(message, response));
-        }
-        return Future.succeededFuture(response);
-    }
 
     public Future<KafkaResponse> createKafka(CreateKafkaPayload payload, Boolean async) {
         return client.post("/api/managed-services-api/v1/kafkas")

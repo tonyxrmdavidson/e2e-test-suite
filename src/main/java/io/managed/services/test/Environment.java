@@ -55,6 +55,10 @@ public class Environment {
     public static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
     public static final String DEV_CLUSTER_TOKEN_ENV = "DEV_CLUSTER_TOKEN";
 
+    public static final String BF2_GITHUB_TOKEN_ENV = "BF2_GITHUB_TOKEN";
+
+    public static final String CLI_VERSION_ENV = "CLI_VERSION";
+    public static final String CLI_ARCH_ENV = "CLI_ARCH";
 
     /*
      * Setup constants from env variables or set default
@@ -89,6 +93,11 @@ public class Environment {
     public static final String DEV_CLUSTER_NAMESPACE = getOrDefault(DEV_CLUSTER_NAMESPACE_ENV, "mk-e2e-tests");
     public static final String DEV_CLUSTER_TOKEN = getOrDefault(DEV_CLUSTER_TOKEN_ENV, null);
 
+    public static final String BF2_GITHUB_TOKEN = getOrDefault(BF2_GITHUB_TOKEN_ENV, null);
+
+    public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "0.15.1");
+    public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "linux_amd64");
+
     private Environment() {
     }
 
@@ -122,10 +131,10 @@ public class Environment {
      */
     private static <T> T getOrDefault(String var, Function<String, T> converter, T defaultValue) {
         String value = System.getenv(var) != null ?
-                System.getenv(var) :
-                (Objects.requireNonNull(JSON_DATA).get(var) != null ?
-                        JSON_DATA.get(var).asText() :
-                        null);
+            System.getenv(var) :
+            (Objects.requireNonNull(JSON_DATA).get(var) != null ?
+                JSON_DATA.get(var).asText() :
+                null);
         T returnValue = defaultValue;
         if (value != null && !value.isEmpty()) {
             returnValue = converter.apply(value);
@@ -141,7 +150,7 @@ public class Environment {
      */
     private static JsonNode loadConfigurationFile() {
         config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
-                Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
+            Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
         ObjectMapper mapper = new ObjectMapper();
         try {
             File jsonFile = new File(config).getAbsoluteFile();
