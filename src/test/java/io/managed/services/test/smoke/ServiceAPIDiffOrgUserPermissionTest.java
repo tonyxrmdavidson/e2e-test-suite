@@ -4,6 +4,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -33,7 +34,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -42,7 +42,6 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteS
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
 
 
 @Tag(TestTag.CI)
@@ -161,15 +160,17 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         String topicName = "test-topic";
 
         LOGGER.info("create kafka topic: {}", topicName);
-        try {
-            await(admin.createTopic(topicName));
-            LOGGER.error("user from another org is able to create topic or produce or consume messages");
-            fail("It should fail");
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof SaslAuthenticationException) {
-                LOGGER.info("user from different organisation is not allowed to create topic for instance:{}", kafka.id);
-            }
-        }
+        await(KafkaUtils.toVertxFuture(admin.createTopic(topicName))
+            // convert a success into a failure
+            .compose(r -> Future.failedFuture("user from another org is able to create topic or produce or consume messages"))
+            .recover(t -> {
+                // convert only the SaslAuthenticationException in a success
+                if (t instanceof SaslAuthenticationException) {
+                    LOGGER.info("user from different organisation is not allowed to create topic for instance: {}", kafka.id);
+                    return Future.succeededFuture();
+                }
+                return Future.failedFuture(t);
+            }));
     }
 
     /**
