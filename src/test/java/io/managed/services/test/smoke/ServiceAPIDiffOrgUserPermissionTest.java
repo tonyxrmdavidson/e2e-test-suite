@@ -53,8 +53,8 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
-    static final String KAFKA_INSTANCE_NAME = "mk-e2e-sup-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String SERVICE_ACCOUNT_NAME_ORG2 = "mk-e2e--sup-sa-" + Environment.KAFKA_POSTFIX_NAME + "2";
+    static final String KAFKA_INSTANCE_NAME = "mk-e2e-dup-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String SERVICE_ACCOUNT_NAME_ORG2 = "mk-e2e-dup-sa-" + Environment.KAFKA_POSTFIX_NAME;
 
     User userOfOrg1, userOfOrg2;
     KeycloakOAuth auth;
