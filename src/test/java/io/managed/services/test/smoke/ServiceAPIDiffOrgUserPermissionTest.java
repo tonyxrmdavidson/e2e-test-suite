@@ -98,7 +98,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     @Test
     @Timeout(10 * 60 * 1000)
     @Order(1)
-    void testCreateAndListKafkaInstance(Vertx vertx, VertxTestContext context) {
+    void testCreateAndListKafkaInstance(Vertx vertx) {
 
         // Create Kafka Instance in org 1
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
