@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -45,6 +46,7 @@ import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -100,7 +102,7 @@ class ServiceAPITest extends TestBase {
     @Test
     @Timeout(value = 10, timeUnit = TimeUnit.MINUTES)
     @Order(1)
-    void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
+    void testCreateKafkaInstance(Vertx vertx) {
 
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
@@ -164,14 +166,12 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
         await(consumer.close());
-
-        context.completeNow();
     }
 
     @Test
     @Order(2)
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    void testListAndSearchKafkaInstance(Vertx vertx, VertxTestContext context) {
+    void testListAndSearchKafkaInstance() {
         //List kafka instances
         KafkaListResponse kafkaList = await(api.getListOfKafkas());
         LOGGER.info("fetch kafka instance list: {}", Json.encode(kafkaList.items));
@@ -183,17 +183,15 @@ class ServiceAPITest extends TestBase {
         assertEquals(1, filteredKafka.size());
 
         //Search kafka by name
-        KafkaResponse kafkaResponse = await(api.getKafka(kafkaId));
-        LOGGER.info("Get created kafka instance is : {}", Json.encode(kafkaResponse));
-        assertEquals(KAFKA_INSTANCE_NAME, kafkaResponse.name);
-
-        context.completeNow();
+        Optional<KafkaResponse> optionalKafka = await(getKafkaByName(api, KAFKA_INSTANCE_NAME));
+        LOGGER.info("Get created kafka instance is : {}", Json.encode(optionalKafka.get()));
+        assertEquals(KAFKA_INSTANCE_NAME, optionalKafka.get().name);
     }
 
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(2)
-    void testCreateKafkaInstanceWithExistingName(Vertx vertx, VertxTestContext context) {
+    void testCreateKafkaInstanceWithExistingName() {
         // Create Kafka Instance with existing name
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
         kafkaPayload.name = KAFKA_INSTANCE_NAME;
@@ -204,7 +202,7 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("create kafka instance with existing name: {}", kafkaPayload.name);
 
         await(api.createKafka(kafkaPayload, true)
-                .compose(r -> Future.failedFuture("Request should Ideally failed!"))
+                .compose(r -> Future.failedFuture("create Kafka instance with existing name should fail"))
                 .recover(throwable -> {
                     if (throwable instanceof ResponseException) {
                         if (((ResponseException) throwable).response.statusCode() == 409) {
@@ -214,14 +212,12 @@ class ServiceAPITest extends TestBase {
                     }
                     return Future.failedFuture(throwable);
                 }));
-
-        context.completeNow();
     }
 
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(3)
-    void testDeleteTopic(Vertx vertx, VertxTestContext context) {
+    void testDeleteTopic() {
         LOGGER.info("Delete created topic : {}", TOPIC_NAME);
         try {
             await(admin.deleteTopic(TOPIC_NAME));
@@ -230,7 +226,5 @@ class ServiceAPITest extends TestBase {
             LOGGER.error("{} should be deleted", TOPIC_NAME);
             fail("Created topic should be deleted");
         }
-
-        context.completeNow();
     }
 }
