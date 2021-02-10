@@ -6,8 +6,6 @@ Junit5 based java test suite focused on e2e testing managed services running on 
 
 * java jdk 11
 * maven >= 3.3.1
-* oc or kubectl command installed
-* connected to a running kube cluster
 
 ## Build and check checkstyle
 
@@ -78,23 +76,32 @@ make PROFILE=ci test
 
 ## List of environment variables
 
-| Name        |      Description      |  Default value |
-|-------------|:-------------:|------:|
-| LOG_DIR                 |  path where test suite stores logs from failed tests etc...     | $(pwd)/target/logs |
-| CONFIG_PATH             | path where is stored config.json with env variables and values  | $(pwd)/config.json |
-| SERVICE_API_URI         | the service-api URI to tests                                    | https://api.stage.openshift.com |
-| SSO_REDHAT_KEYCLOAK_URI | the SSO URI to retrieve the service-api token                   | https://sso.redhat.com |
-| SSO_REDHAT_REALM        | authentication realm for SSO                                    | redhat-external |
-| SSO_REDHAT_CLIENT_ID    | authentication client_id for SSO                                | cloud-services |
-| SSO_REDHAT_REDIRECT_URI | valid redirect_uri for SSO                                      | https://qaprodauth.cloud.redhat.com |
-| SSO_USERNAME            | main user for SSO                                               |  |
-| SSO_PASSWORD            | main user password                                              |  |
+| Name        | Description   |  Default value |
+|-------------|:-------------:|---------------:|
+| LOG_DIR                 |  path where test suite stores logs from failed tests etc...                   | $(pwd)/target/logs |
+| CONFIG_PATH             | path where is stored config.json with env variables and values                | $(pwd)/config.json |
+| SERVICE_API_URI         | the service-api URI to tests                                                  | https://api.stage.openshift.com |
+| SSO_REDHAT_KEYCLOAK_URI | the SSO URI to retrieve the service-api token                                 | https://sso.redhat.com |
+| SSO_REDHAT_REALM        | authentication realm for SSO                                                  | redhat-external |
+| SSO_REDHAT_CLIENT_ID    | authentication client_id for SSO                                              | cloud-services |
+| SSO_REDHAT_REDIRECT_URI | valid redirect_uri for SSO                                                    | https://qaprodauth.cloud.redhat.com |
+| SSO_USERNAME            | main user for SSO                                                             |  |
+| SSO_PASSWORD            | main user password                                                            |  |
+| SSO_SECONDARY_USERNAME  | a second user in the same org as the main user                                |  |
+| SSO_SECONDARY_PASSWORD  | the secondary user password                                                   |  |
+| SSO_ALIEN_USERNAME      | a third user that is part of a different org respect the main user            |  |
+| SSO_ALIEN_PASSWORD      | the alien user password                                                       |  |
+| DEV_CLUSTER_SERVER      | the api server url of a openshift cluster with the binding operator installed | https://api.devexp.imkr.s1.devshift.org:6443 |
+| DEV_CLUSTER_NAMESPACE   | the namespace to use to install the binding operator CRs                      | mk-e2e-tests |
+| DEV_CLUSTER_TOKEN       | the cluster user token (this can also be a service account token)             |  |
 
-## List of profiles
+## List of Tags
 
 | Name | Description | Required Envs |
 |------|-------------|---------------|
-| service-api | run all tests targeting the service-api | SSO_USERNAME, SSO_PASSWORD |
+| service-api               | run all tests targeting the service-api | SSO_USERNAME, SSO_PASSWORD |
+| service-api-permissions   | run all service api permissions tests   | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD, SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD |
+| binding-operator          | run all tests for the binding-operator  | SSO_USERNAME, SSO_PASSWORD, DEV_CLUSTER_TOKEN |
 
 ## Report to ReportPortal
 
@@ -111,6 +118,20 @@ envs:
 
 rp.endpoint=https://reportportal-reportportal.apps.chiron.intlyqe.com/
 rp.api.key=ff7fd6a5-4985-4260-805f-bfeeca919536 rp.launch=mk-e2e-test-suite rp.project=default_personal rp.enable=false
+
+## Troubleshooting
+
+#### Recreate the mk-e2e-tests namespace in the dev cluster
+
+1. Login to the dev cluster as kubeadmin
+    ```
+    oc login --token=KUBE_ADMIN_TOKEN --server=DEV_CLUSTER_SERVER
+    ```
+2. Execute the `./hack/bootstrap-mk-e2e-tests-namespace.sh` script
+    ```
+   ./hack/bootstrap-mk-e2e-tests-namespace.sh
+    ```
+3. Update the [vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/staging) with the new dev cluster token
 
 ## Maintainers
 

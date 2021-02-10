@@ -150,6 +150,13 @@
             <artifactId>logger-java-log4j</artifactId>
             <version>4.0.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.openshift.cloud</groupId>
+            <artifactId>rhoas-operator-parent</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/rhoas-model-1.0.0-SNAPSHOT.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

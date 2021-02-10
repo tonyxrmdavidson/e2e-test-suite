@@ -39,6 +39,10 @@ public class KeycloakOAuth {
         return user.get("access_token");
     }
 
+    static public String getRefreshToken(User user) {
+        return user.get("refresh_token");
+    }
+
     public KeycloakOAuth(Vertx vertx, String keycloakURI, String redirectURI, String realm, String clientID) {
 
         String tokenPath = String.format(TOKEN_PATH_FORMAT, realm);

@@ -48,7 +48,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPISameOrgUserPermissionsTest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-sup-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String SERVICE_ACCOUNT_NAME = "mk-e2e--sup-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sup-sa-" + Environment.KAFKA_POSTFIX_NAME;
 
     User user1, user2;
     KeycloakOAuth auth;
