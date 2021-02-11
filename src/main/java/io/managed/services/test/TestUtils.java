@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -110,6 +111,19 @@ public class TestUtils {
     public static <T, F extends Future<T>> T await(F future) {
         return Async.await(future.toCompletionStage());
     }
+
+    /**
+     * Sync an async request by waiting for the passed Future do be completed
+     *
+     * @param future Future
+     * @param <T>    The Future result Type
+     * @param <F>    Future
+     * @return The Future result
+     */
+    public static <T, F extends CompletableFuture<T>> T await(F future) {
+        return Async.await(future);
+    }
+
 
     /**
      * Return a Future that will be completed after the passed duration.

@@ -1,9 +1,7 @@
 package io.managed.services.test.client.oauth;
 
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.BaseVertxClient;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
@@ -18,12 +16,13 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.postUsernamePassword;
+import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.startLogin;
 
 public class KeycloakOAuth {
     private static final Logger LOGGER = LogManager.getLogger(KeycloakOAuth.class);
@@ -66,9 +65,6 @@ public class KeycloakOAuth {
             throw new IllegalArgumentException("password is null");
         }
 
-        Promise<User> p = Promise.promise();
-
-
         WebClient client = WebClient.create(vertx);
         WebClientSession session = WebClientSession.create(client);
 
@@ -77,50 +73,26 @@ public class KeycloakOAuth {
 
         return startLogin(session, authURI)
             .flatMap(r -> postUsernamePassword(session, r, username, password))
-            .flatMap(r -> authenticateUser(session, r))
+            .flatMap(r -> authenticateUser(r))
             .map(u -> {
                 LOGGER.info("authentication completed; access_token={}", getToken(u));
                 return u;
             });
     }
 
-    Future<HttpResponse<Buffer>> startLogin(WebClientSession session, String authURI) {
-        LOGGER.info("start oauth login; uri={}", authURI);
-        Promise<HttpResponse<Buffer>> p = Promise.promise();
-        session.getAbs(authURI).send(p);
-        return p.future();
-    }
+    Future<User> authenticateUser(HttpResponse<Buffer> response) {
+        return BaseVertxClient.getRedirectLocation(response)
+            .compose(locationURI -> {
+                List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
+                String code = queries.stream()
+                    .filter(v -> v.getName().equals("code")).findFirst()
+                    .orElseThrow().getValue();
 
-    Future<HttpResponse<Buffer>> postUsernamePassword(
-        WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
+                LOGGER.info("authenticate user; code={}", code);
+                return oauth2.authenticate(new JsonObject()
+                    .put("code", code)
+                    .put("redirect_uri", redirectURI));
+            });
 
-        Document d = Jsoup.parse(response.bodyAsString());
-        String actionURI = d.select("#kc-form-login").attr("action");
-
-        MultiMap f = MultiMap.caseInsensitiveMultiMap();
-        f.add("username", username);
-        f.add("password", password);
-
-        LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
-        Promise<HttpResponse<Buffer>> p = Promise.promise();
-        session.postAbs(actionURI).sendForm(f, p);
-        return p.future();
-    }
-
-    Future<User> authenticateUser(WebClientSession session, HttpResponse<Buffer> response) {
-        String locationURI = response.headers().get("location");
-        if (locationURI == null) {
-            return Future.failedFuture(new ResponseException("failed to login user", response));
-        }
-
-        List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
-        String code = queries.stream()
-            .filter(v -> v.getName().equals("code")).findFirst()
-            .orElseThrow().getValue();
-
-        LOGGER.info("authenticate user; code={}", code);
-        return oauth2.authenticate(new JsonObject()
-            .put("code", code)
-            .put("redirect_uri", redirectURI));
     }
 }

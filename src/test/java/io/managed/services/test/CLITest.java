@@ -1,5 +1,7 @@
 package io.managed.services.test;
 
+import io.managed.services.test.cli.CLI;
+import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.client.github.GitHub;
 import io.managed.services.test.executor.ExecBuilder;
 import io.managed.services.test.framework.TestTag;
@@ -15,8 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;
 
-import static io.managed.services.test.CLIUtils.extractCLI;
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.cli.CLIUtils.extractCLI;
 
 @Tag(TestTag.CI)
 @Tag(TestTag.CLI)
@@ -30,13 +32,13 @@ public class CLITest extends TestBase {
     static final String DOWNLOAD_ASSET_TEMPLATE = "%s_%s_%s.tar.gz";
     static final String ARCHIVE_ENTRY_TEMPLATE = "%s_%s_%s/bin/%s";
 
-    String cli;
+    CLI cli;
 
     @Test
     @Order(1)
     void testDownloadCLI(Vertx vertx) throws IOException {
 
-        final var workdir = await(vertx.fileSystem().createTempDirectory("cli"));
+        String workdir = await(vertx.fileSystem().createTempDirectory("cli"));
         LOGGER.info("workdir: {}", workdir);
 
         var client = new GitHub(vertx, Environment.BF2_GITHUB_TOKEN);
@@ -49,7 +51,6 @@ public class CLITest extends TestBase {
         var asset = release.assets.stream()
             .filter(a -> a.name.equals(downloadAsset))
             .findFirst().orElseThrow();
-
 
         final var archive = workdir + "/cli.tar.gz";
         LOGGER.info("download asset '{}' to '{}'", asset.toString(), archive);
@@ -66,7 +67,7 @@ public class CLITest extends TestBase {
         // make the cli executable
         await(vertx.fileSystem().chmod(cli, "rwxr-xr-x"));
 
-        this.cli = cli;
+        this.cli = new CLI(vertx, workdir, CLI_NAME);
 
         LOGGER.info("validate cli");
         new ExecBuilder()
@@ -79,7 +80,8 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(2)
-    void testLogin(Vertx vertx) throws IOException {
-        // TODO
+    void testLogin(Vertx vertx) {
+
+        await(CLIUtils.login(vertx, cli));
     }
 }
