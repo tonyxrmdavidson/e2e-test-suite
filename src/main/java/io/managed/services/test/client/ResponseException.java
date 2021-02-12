@@ -5,7 +5,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.util.Map;
 
 public class ResponseException extends Exception {
-    public HttpResponse<?> response;
+    public final HttpResponse<?> response;
 
     public ResponseException(String message, HttpResponse<?> response) {
         super(message(message, response));

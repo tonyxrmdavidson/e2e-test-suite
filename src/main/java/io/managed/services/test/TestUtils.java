@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -122,6 +123,25 @@ public class TestUtils {
      */
     public static <T, F extends CompletableFuture<T>> T await(F future) {
         return Async.await(future);
+    }
+
+    /**
+     * Convert a Java CompletionStage or CompletableFuture to a Vertx Future
+     *
+     * @param completion CompletionStage | CompletableFuture
+     * @param <T>        Type
+     * @return Vertx Future
+     */
+    public static <T> Future<T> toVertxFuture(CompletionStage<T> completion) {
+        Promise<T> promise = Promise.promise();
+        completion.whenComplete((r, t) -> {
+            if (t == null) {
+                promise.complete(r);
+            } else {
+                promise.fail(t);
+            }
+        });
+        return promise.future();
     }
 
 

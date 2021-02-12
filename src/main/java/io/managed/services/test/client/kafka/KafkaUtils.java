@@ -1,7 +1,5 @@
 package io.managed.services.test.client.kafka;
 
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.producer.KafkaProducer;
@@ -34,19 +32,6 @@ public class KafkaUtils {
             }
         });
         return completable;
-    }
-
-    static public <T> Future<T> toVertxFuture(KafkaFuture<T> future) {
-        Promise<T> promise = Promise.promise();
-
-        future.whenComplete((r, e) -> {
-            if (e == null) {
-                promise.complete(r);
-            } else {
-                promise.fail(e);
-            }
-        });
-        return promise.future();
     }
 
     static public KafkaProducer<String, String> createProducer(
