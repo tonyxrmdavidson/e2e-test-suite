@@ -140,5 +140,3 @@ public class ServiceAPIUtils {
         return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
     }
 }
-
-
