@@ -42,6 +42,7 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteS
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
 @Tag(TestTag.CI)
@@ -59,6 +60,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     KeycloakOAuth auth;
     ServiceAPI apiOrg1, apiOrg2;
 
+    boolean kafkaInstanceCreated = false;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -129,6 +131,8 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
         // Wait until kafka goes to ready state
         waitUntilKafkaIsReady(vertx, apiOrg1, kafkaIDOrg1);
+
+        kafkaInstanceCreated = true;
     }
 
     /**
@@ -139,6 +143,8 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     @Disabled("Known issue: https://issues.redhat.com/browse/MGDSTRM-1439")
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     void testCreateTopicInOrg1KafkaByOrg2() {
+        assumeTrue(kafkaInstanceCreated, "testCreateAndListKafkaInstance failed");
+
         var kafka = await(getKafkaByName(apiOrg1, KAFKA_INSTANCE_NAME)).orElseThrow();
 
         // Create Service Account of Org 2
@@ -180,6 +186,8 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     @Timeout(value = 10, timeUnit = TimeUnit.MINUTES)
     @Order(3)
     void deleteKafkaOfOrg1ByOrg2() {
+        assumeTrue(kafkaInstanceCreated, "testCreateAndListKafkaInstance failed");
+
         var kafka = await(getKafkaByName(apiOrg1, KAFKA_INSTANCE_NAME)).orElseThrow();
 
         LOGGER.info("Delete Instance: {} of Org 1 using user of Org 2", kafka.id);
