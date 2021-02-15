@@ -101,7 +101,7 @@ public class ServiceAPIUtils {
             return Pair.with(r.status.equals("ready"), r);
         });
 
-        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
+        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(10), isReady));
         return kafkaResponse;
     }
 }
