@@ -218,6 +218,7 @@ public class BindingOperatorTest extends TestBase {
         assumeTrue(client != null, "the global client is null");
 
         var managedKafkaRequest = OperatorUtils.managedKafka(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
+        assumeTrue(managedKafkaRequest != null, "the ManagedKafkaRequest is null");
         assumeTrue(managedKafkaRequest.getStatus() != null, "the ManagedKafkaRequest status is null");
 
         var userKafka = managedKafkaRequest.getStatus().getUserKafkas().stream()
