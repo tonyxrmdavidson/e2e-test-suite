@@ -60,6 +60,9 @@ public class Environment {
     public static final String CLI_VERSION_ENV = "CLI_VERSION";
     public static final String CLI_ARCH_ENV = "CLI_ARCH";
 
+    public static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
+    public static final String WAIT_READY_MS_ENV = "WAIT_READY_MS";
+
     /*
      * Setup constants from env variables or set default
      */
@@ -97,6 +100,9 @@ public class Environment {
 
     public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "0.15.1");
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "linux_amd64");
+
+    public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
+    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
     private Environment() {
     }

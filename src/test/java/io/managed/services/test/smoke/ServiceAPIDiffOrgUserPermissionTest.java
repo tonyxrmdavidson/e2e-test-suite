@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -195,7 +196,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
             .compose(r -> Future.failedFuture("user from different organisation is able to delete instance"))
             .recover(throwable -> {
                 if (throwable instanceof ResponseException) {
-                    if (((ResponseException) throwable).response.statusCode() == 404) {
+                    if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
                         LOGGER.info("user from different organisation is not allowed to delete instance");
                         return Future.succeededFuture();
                     }

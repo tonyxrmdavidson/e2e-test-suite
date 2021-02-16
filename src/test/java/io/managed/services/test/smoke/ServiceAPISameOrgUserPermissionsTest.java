@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -161,7 +162,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
             .compose(r -> Future.failedFuture("Request should Ideally failed!"))
             .recover(throwable -> {
                 if (throwable instanceof ResponseException) {
-                    if (((ResponseException) throwable).response.statusCode() == 404) {
+                    if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
                         LOGGER.info("another user is not authorised to delete kafka instance");
                         return Future.succeededFuture();
                     }

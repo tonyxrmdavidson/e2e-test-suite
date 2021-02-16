@@ -17,12 +17,14 @@ public class KeycloakOAuthUtils {
     public static Future<HttpResponse<Buffer>> startLogin(WebClientSession session, String authURI) {
         LOGGER.info("start oauth login; uri={}", authURI);
         Promise<HttpResponse<Buffer>> p = Promise.promise();
-        session.getAbs(authURI).send(p);
+        session
+                .getAbs(authURI)
+                .send(p);
         return p.future();
     }
 
     public static Future<HttpResponse<Buffer>> postUsernamePassword(
-        WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
+            WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
 
         Document d = Jsoup.parse(response.bodyAsString());
         String actionURI = d.select("#kc-form-login").attr("action");
@@ -33,7 +35,9 @@ public class KeycloakOAuthUtils {
 
         LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
         Promise<HttpResponse<Buffer>> p = Promise.promise();
-        session.postAbs(actionURI).sendForm(f, p);
+        session
+                .postAbs(actionURI)
+                .sendForm(f, p);
         return p.future();
     }
 }

@@ -1,5 +1,6 @@
 package io.managed.services.test.client;
 
+import io.managed.services.test.Environment;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -34,9 +35,10 @@ public abstract class BaseVertxClient {
 
     protected static WebClientOptions optionsForURI(URI uri) {
         return new WebClientOptions()
-            .setDefaultHost(uri.getHost())
-            .setDefaultPort(getPort(uri))
-            .setSsl(isSsl(uri));
+                .setDefaultHost(uri.getHost())
+                .setDefaultPort(getPort(uri))
+                .setSsl(isSsl(uri))
+                .setConnectTimeout((int) Environment.API_TIMEOUT_MS);
     }
 
     static Integer getPort(URI u) {
@@ -79,6 +81,6 @@ public abstract class BaseVertxClient {
 
     public static Future<HttpResponse<Buffer>> followRedirect(WebClient client, HttpResponse<Buffer> response) {
         return getRedirectLocation(response)
-            .compose(l -> client.getAbs(l).send());
+                .compose(l -> client.getAbs(l).send());
     }
 }

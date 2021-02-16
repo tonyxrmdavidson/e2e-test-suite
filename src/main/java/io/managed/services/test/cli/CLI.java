@@ -30,7 +30,7 @@ public class CLI {
     }
 
     private Future<Process> exec(String... command) {
-        return execAsync(command).compose(a -> a.future());
+        return execAsync(command).compose(AsyncProcess::future);
     }
 
     private Future<AsyncProcess> execAsync(String... command) {

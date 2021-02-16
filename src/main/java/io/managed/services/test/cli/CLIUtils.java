@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -73,9 +74,9 @@ public class CLIUtils {
                 var oauthFuture = parseSSOUrl(vertx, process.stdout())
                     .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
                     .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
-                    .compose(r -> BaseVertxClient.assertResponse(r, 302))
+                    .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))
                     .compose(r -> BaseVertxClient.followRedirect(session, r))
-                    .compose(r -> BaseVertxClient.assertResponse(r, 200))
+                    .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
                     .map(v -> {
                         LOGGER.info("oauth login completed");
                         return null;

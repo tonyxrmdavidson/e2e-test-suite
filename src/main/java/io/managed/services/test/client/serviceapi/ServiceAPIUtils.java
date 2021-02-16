@@ -1,6 +1,7 @@
 package io.managed.services.test.client.serviceapi;
 
 
+import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -13,7 +14,7 @@ import java.util.Optional;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.TestUtils.waitFor;
-import static java.time.Duration.ofMinutes;
+import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
 
 public class ServiceAPIUtils {
@@ -101,7 +102,7 @@ public class ServiceAPIUtils {
             return Pair.with(r.status.equals("ready"), r);
         });
 
-        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(10), isReady));
+        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady));
         return kafkaResponse;
     }
 }
