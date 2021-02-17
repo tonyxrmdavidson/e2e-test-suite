@@ -65,7 +65,9 @@ class ServiceAPITest extends TestBase {
     ServiceAPI api;
     KafkaAdmin admin;
 
-    boolean kafkaInstanceCreated = false;
+    KafkaResponse kafka;
+    ServiceAccount serviceAccount;
+    String topic;
 
     @BeforeAll
     void bootstrap(Vertx vertx) {
@@ -82,13 +84,30 @@ class ServiceAPITest extends TestBase {
         await(deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME));
     }
 
+    void assertAPI() {
+        assumeTrue(api != null, "api is null because the bootstrap has failed");
+    }
+
+    void assertKafka() {
+        assumeTrue(kafka != null, "kafka is null because the testCreateKafkaInstance has failed to create the Kafka instance");
+    }
+
+    void assertServiceAccount() {
+        assumeTrue(serviceAccount != null, "serviceAccount is null because the testCreateServiceAccount has failed to create the Service Account");
+    }
+
+    void assertTopic() {
+        assumeTrue(topic != null, "topic is null because the testCreateTopic has failed to create the topic on the Kafka instance");
+    }
+
     /**
-     * Create a new Kafka instance and test that is possible to create topics, send messages and receive messages
+     * Create a new Kafka instance
      */
     @Test
-    @Timeout(value = 10, timeUnit = TimeUnit.MINUTES)
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @Order(1)
     void testCreateKafkaInstance(Vertx vertx) {
+        assertAPI();
 
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
@@ -99,20 +118,33 @@ class ServiceAPITest extends TestBase {
         kafkaPayload.region = "us-east-1";
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-        KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
+        kafka = await(api.createKafka(kafkaPayload, true));
 
         kafka = await(waitUntilKafkaIsReady(vertx, api, kafka.id));
+    }
+
+    @Test
+    @Order(1)
+    void testCreateServiceAccount() {
+        assertAPI();
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
         serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
 
         LOGGER.info("create service account: {}", serviceAccountPayload.name);
-        ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
+        serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
+    }
 
-        String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
+    @Test
+    @Order(2)
+    void testCreateTopic() {
+        assertKafka();
+        assertServiceAccount();
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
 
         // Create Kafka topic
         // TODO: User service api to create topics when available
@@ -121,6 +153,18 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("create kafka topic: {}", TOPIC_NAME);
         await(admin.createTopic(TOPIC_NAME));
+
+        topic = TOPIC_NAME;
+    }
+
+    @Test
+    @Order(3)
+    void testProduceAndConsumeKafkaMessages(Vertx vertx) {
+        assertTopic();
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
 
         // Consume Kafka messages
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
@@ -151,15 +195,12 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
         await(consumer.close());
-
-        kafkaInstanceCreated = true;
     }
 
     @Test
     @Order(2)
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     void testListAndSearchKafkaInstance() {
-        assumeTrue(kafkaInstanceCreated, "testCreateKafkaInstance failed");
+        assertKafka();
 
         //List kafka instances
         KafkaListResponse kafkaList = await(api.getListOfKafkas());
@@ -178,10 +219,9 @@ class ServiceAPITest extends TestBase {
     }
 
     @Test
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(2)
     void testCreateKafkaInstanceWithExistingName() {
-        assumeTrue(kafkaInstanceCreated, "testCreateKafkaInstance failed");
+        assertKafka();
 
         // Create Kafka Instance with existing name
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
@@ -191,7 +231,6 @@ class ServiceAPITest extends TestBase {
         kafkaPayload.region = "us-east-1";
 
         LOGGER.info("create kafka instance with existing name: {}", kafkaPayload.name);
-
         await(api.createKafka(kafkaPayload, true)
                 .compose(r -> Future.failedFuture("create Kafka instance with existing name should fail"))
                 .recover(throwable -> {
@@ -206,10 +245,9 @@ class ServiceAPITest extends TestBase {
     }
 
     @Test
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    @Order(3)
+    @Order(4)
     void testDeleteTopic() {
-        assumeTrue(kafkaInstanceCreated, "testCreateKafkaInstance failed");
+        assertTopic();
 
         LOGGER.info("Delete created topic : {}", TOPIC_NAME);
         try {
