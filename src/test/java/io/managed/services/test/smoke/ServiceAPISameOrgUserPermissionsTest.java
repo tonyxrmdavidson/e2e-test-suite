@@ -5,19 +5,18 @@ import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaUtils;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import io.vertx.ext.auth.User;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
@@ -51,30 +50,15 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-sup-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sup-sa-" + Environment.KAFKA_POSTFIX_NAME;
 
-    User user1, user2;
-    KeycloakOAuth auth;
     ServiceAPI api1, api2;
 
     @BeforeAll
-    void bootstrap(Vertx vertx, VertxTestContext context) {
-        this.auth = new KeycloakOAuth(vertx,
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID);
-
+    void bootstrap(Vertx vertx) {
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        User user1 = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        api1 = await(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_SECONDARY_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        User user2 = await(auth.login(Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD));
-
-        this.user1 = user1;
-        this.user2 = user2;
-        this.api1 = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user1);
-        this.api2 = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user2);
-
-        context.completeNow();
+        api2 = await(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD));
     }
 
     @AfterAll
@@ -159,16 +143,16 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
 
         // Delete kafka instance by another user with same org
         await(api2.deleteKafka(kafkaID, true)
-            .compose(r -> Future.failedFuture("Request should Ideally failed!"))
-            .recover(throwable -> {
-                if (throwable instanceof ResponseException) {
-                    if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                        LOGGER.info("another user is not authorised to delete kafka instance");
-                        return Future.succeededFuture();
+                .compose(r -> Future.failedFuture("Request should Ideally failed!"))
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException) {
+                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                            LOGGER.info("another user is not authorised to delete kafka instance");
+                            return Future.succeededFuture();
+                        }
                     }
-                }
-                return Future.failedFuture(throwable);
-            }));
+                    return Future.failedFuture(throwable);
+                }));
 
         context.completeNow();
     }
