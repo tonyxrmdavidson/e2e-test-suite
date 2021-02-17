@@ -7,7 +7,6 @@ package io.managed.services.test.framework;
  */
 public class TestTag {
     public static final String CI = "ci";
-    public static final String SMOKE_SUITE = "smoke-suite";
 
     public static final String SERVICE_API = "service-api";
     public static final String BINDING_OPERATOR = "binding-operator";

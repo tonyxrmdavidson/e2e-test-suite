@@ -44,9 +44,9 @@ separator
 
 info "2. Running tests"
 separator
-mvn test \
+mvn verify \
     "-P${PROFILE}" \
-    "-Dtest=${TESTCASE}" \
+    "-Dit.test=${TESTCASE}" \
     "-Drp.enable=true" \
     "-Drp.uuid=${REPORTPORTAL_UUID}" \
     --no-transfer-progress
