@@ -47,6 +47,7 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteK
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDelete;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -68,6 +69,7 @@ class ServiceAPITest extends TestBase {
     ServiceAPI api;
     String kafkaId;
     KafkaAdmin admin;
+    String bootstrapHost, clientID, clientSecret;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -125,9 +127,9 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("create service account: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
 
-        String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
+        bootstrapHost = kafka.bootstrapServerHost;
+        clientID = serviceAccount.clientID;
+        clientSecret = serviceAccount.clientSecret;
 
         // Create Kafka topic
         // TODO: User service api to create topics when available
@@ -226,5 +228,63 @@ class ServiceAPITest extends TestBase {
             LOGGER.error("{} should be deleted", TOPIC_NAME);
             fail("Created topic should be deleted");
         }
+    }
+
+    @Test
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+    @Order(4)
+    void testVerifyNotToSendAndReceiveMessageAfterDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
+        // Consume Kafka messages
+        LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
+        KafkaConsumer<String, String> consumer = KafkaUtils.createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+
+        Promise<KafkaConsumerRecord<String, String>> receiver = Promise.promise();
+        consumer.handler(receiver::complete);
+
+        LOGGER.info("subscribe to topic: {}", TOPIC_NAME);
+        await(consumer.subscribe(TOPIC_NAME));
+
+        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
+        KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
+
+        LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);
+        waitUntilKafkaIsDelete(vertx, api, kafkaId);
+
+        //Get kafka instance to make sure that kafka has deleted
+        await(api.getKafka(kafkaId)
+                .compose(r -> {
+                    LOGGER.error("Kafka response after deleted kafka: {}", Json.encode(r));
+                    return Future.failedFuture("Get kafka request should Ideally failed!");
+                })
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException) {
+                        if (((ResponseException) throwable).response.statusCode() == 404) {
+                            LOGGER.info("Kafka instance not found");
+                            return Future.succeededFuture();
+                        }
+                    }
+                    return Future.failedFuture(throwable);
+                }));
+
+
+        // Produce Kafka messages
+        LOGGER.info("send message to topic: {}", TOPIC_NAME);
+        //SslAuthenticationException
+        await(producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world"))
+                .compose(r -> Future.failedFuture("Send message should failed!"))
+                .recover(throwable -> {
+                    if (throwable instanceof Exception) {
+                        LOGGER.info("Send message has failed");
+                        return Future.succeededFuture();
+                    }
+                    return Future.failedFuture(throwable);
+                })
+        );
+
+        LOGGER.info("close kafka producer and consumer");
+        await(producer.close());
+        await(consumer.close());
+
+        context.completeNow();
     }
 }

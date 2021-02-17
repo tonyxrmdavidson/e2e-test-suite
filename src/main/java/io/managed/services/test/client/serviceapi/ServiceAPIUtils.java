@@ -1,7 +1,7 @@
 package io.managed.services.test.client.serviceapi;
 
-
 import io.managed.services.test.IsReady;
+import io.managed.services.test.client.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -16,6 +16,7 @@ import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
+
 public class ServiceAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPIUtils.class);
 
@@ -28,8 +29,8 @@ public class ServiceAPIUtils {
      */
     public static Future<Optional<KafkaResponse>> getKafkaByName(ServiceAPI api, String name) {
         return api.getListOfKafkaByName(name)
-            .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
-            .map(Optional::ofNullable);
+                .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
+                .map(Optional::ofNullable);
     }
 
     /**
@@ -41,7 +42,7 @@ public class ServiceAPIUtils {
      */
     public static Future<Optional<ServiceAccount>> getServiceAccountByName(ServiceAPI api, String name) {
         return api.getListOfServiceAccounts()
-            .map(r -> r.items.stream().filter(a -> a.name.equals(name)).findFirst());
+                .map(r -> r.items.stream().filter(a -> a.name.equals(name)).findFirst());
     }
 
     /**
@@ -54,13 +55,13 @@ public class ServiceAPIUtils {
     public static Future<Void> deleteKafkaByNameIfExists(ServiceAPI api, String name) {
 
         return getKafkaByName(api, name)
-            .compose(o -> o.map(k -> {
-                LOGGER.info("clean kafka instance: {}", k.id);
-                return api.deleteKafka(k.id, true);
-            }).orElseGet(() -> {
-                LOGGER.warn("kafka instance '{}' not found", name);
-                return Future.succeededFuture();
-            }));
+                .compose(o -> o.map(k -> {
+                    LOGGER.info("clean kafka instance: {}", k.id);
+                    return api.deleteKafka(k.id, true);
+                }).orElseGet(() -> {
+                    LOGGER.warn("kafka instance '{}' not found", name);
+                    return Future.succeededFuture();
+                }));
     }
 
     /**
@@ -73,13 +74,13 @@ public class ServiceAPIUtils {
     public static Future<Void> deleteServiceAccountByNameIfExists(ServiceAPI api, String name) {
 
         return getServiceAccountByName(api, name)
-            .compose(o -> o.map(s -> {
-                LOGGER.info("clean service account: {}", s.id);
-                return api.deleteServiceAccount(s.id);
-            }).orElseGet(() -> {
-                LOGGER.warn("service account '{}' not found", name);
-                return Future.succeededFuture();
-            }));
+                .compose(o -> o.map(s -> {
+                    LOGGER.info("clean service account: {}", s.id);
+                    return api.deleteServiceAccount(s.id);
+                }).orElseGet(() -> {
+                    LOGGER.warn("service account '{}' not found", name);
+                    return Future.succeededFuture();
+                }));
     }
 
     /**
@@ -103,6 +104,24 @@ public class ServiceAPIUtils {
 
         kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
         return kafkaResponse;
+    }
+
+    public static void waitUntilKafkaIsDelete(Vertx vertx, ServiceAPI api, String kafkaID) {
+        await(api.deleteKafka(kafkaID, true));
+
+        IsReady<Void> isDeleted = last -> api.getKafka(kafkaID)
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException && ((ResponseException) throwable).response.statusCode() == 404) {
+                        return Future.succeededFuture(null);
+                    }
+                    return Future.failedFuture(throwable);
+                })
+                .map(r -> {
+                    LOGGER.info("Kafka response : {}", Json.encode(r));
+                    return Pair.with(r == null, null);
+                });
+
+        await(waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMinutes(5), isDeleted));
     }
 }
 
