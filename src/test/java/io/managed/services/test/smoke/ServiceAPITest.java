@@ -5,22 +5,20 @@ import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaUtils;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import io.vertx.ext.auth.User;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import io.vertx.kafka.client.producer.KafkaProducer;
@@ -64,29 +62,14 @@ class ServiceAPITest extends TestBase {
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TOPIC_NAME = "test-topic";
 
-    User user;
-    KeycloakOAuth auth;
-    ServiceAPI api;    
+    ServiceAPI api;
     KafkaAdmin admin;
-    String bootstrapHost, clientID, clientSecret, kafkaId;
 
     boolean kafkaInstanceCreated = false;
 
     @BeforeAll
-    void bootstrap(Vertx vertx, VertxTestContext context) {
-        this.auth = new KeycloakOAuth(vertx,
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID);
-
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        User user = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
-
-        this.user = user;
-        this.api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
-
-        context.completeNow();
+    void bootstrap(Vertx vertx) {
+        api = await(ServiceAPIUtils.serviceAPI(vertx));
     }
 
     @AfterAll
@@ -117,10 +100,8 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
-        kafkaId = kafka.id;
 
         kafka = waitUntilKafkaIsReady(vertx, api, kafka.id);
-
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
@@ -129,9 +110,9 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("create service account: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
 
-        bootstrapHost = kafka.bootstrapServerHost;
-        clientID = serviceAccount.clientID;
-        clientSecret = serviceAccount.clientSecret;
+        String bootstrapHost = kafka.bootstrapServerHost;
+        String clientID = serviceAccount.clientID;
+        String clientSecret = serviceAccount.clientSecret;
 
         // Create Kafka topic
         // TODO: User service api to create topics when available

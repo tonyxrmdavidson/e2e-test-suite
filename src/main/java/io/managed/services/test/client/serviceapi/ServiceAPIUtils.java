@@ -4,6 +4,7 @@ package io.managed.services.test.client.serviceapi;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -21,6 +22,23 @@ import static java.time.Duration.ofSeconds;
 
 public class ServiceAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPIUtils.class);
+
+    public static Future<ServiceAPI> serviceAPI(Vertx vertx) {
+        return serviceAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+    }
+
+    public static Future<ServiceAPI> serviceAPI(Vertx vertx, String username, String password) {
+        var auth = new KeycloakOAuth(vertx,
+                Environment.SSO_REDHAT_KEYCLOAK_URI,
+                Environment.SSO_REDHAT_REDIRECT_URI,
+                Environment.SSO_REDHAT_REALM,
+                Environment.SSO_REDHAT_CLIENT_ID);
+
+        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
+        return auth.login(username, password)
+                .map(user -> new ServiceAPI(vertx, Environment.SERVICE_API_URI, user));
+    }
+
 
     /**
      * Get Kafka by name or return empty optional
