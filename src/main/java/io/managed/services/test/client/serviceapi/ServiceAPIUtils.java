@@ -14,7 +14,6 @@ import org.javatuples.Pair;
 
 import java.util.Optional;
 
-import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
@@ -111,8 +110,7 @@ public class ServiceAPIUtils {
      * @param kafkaID String
      * @return KafkaResponse
      */
-    public static KafkaResponse waitUntilKafkaIsReady(Vertx vertx, ServiceAPI api, String kafkaID) {
-        KafkaResponse kafkaResponse;
+    public static Future<KafkaResponse> waitUntilKafkaIsReady(Vertx vertx, ServiceAPI api, String kafkaID) {
         IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID).map(r -> {
             LOGGER.info("kafka instance status is: {}", r.status);
 
@@ -122,8 +120,7 @@ public class ServiceAPIUtils {
             return Pair.with(r.status.equals("ready"), r);
         });
 
-        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady));
-        return kafkaResponse;
+        return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
     }
 
     public static void waitUntilKafkaIsDelete(Vertx vertx, ServiceAPI api, String kafkaID) {

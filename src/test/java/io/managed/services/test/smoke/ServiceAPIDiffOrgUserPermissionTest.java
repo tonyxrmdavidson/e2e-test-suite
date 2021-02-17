@@ -66,10 +66,10 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         this.auth = new KeycloakOAuth(vertx,
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID);
+                Environment.SSO_REDHAT_KEYCLOAK_URI,
+                Environment.SSO_REDHAT_REDIRECT_URI,
+                Environment.SSO_REDHAT_REALM,
+                Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         User userOfOrg1 = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
@@ -131,7 +131,7 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         LOGGER.info("Kafka {} is not visible to Org 2", kafkaIDOrg1);
 
         // Wait until kafka goes to ready state
-        waitUntilKafkaIsReady(vertx, apiOrg1, kafkaIDOrg1);
+        await(waitUntilKafkaIsReady(vertx, apiOrg1, kafkaIDOrg1));
 
         kafkaInstanceCreated = true;
     }
@@ -168,16 +168,16 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
         LOGGER.info("create kafka topic: {}", topicName);
         await(KafkaUtils.toVertxFuture(admin.createTopic(topicName))
-            // convert a success into a failure
-            .compose(r -> Future.failedFuture("user from another org is able to create topic or produce or consume messages"))
-            .recover(t -> {
-                // convert only the SaslAuthenticationException in a success
-                if (t instanceof SaslAuthenticationException) {
-                    LOGGER.info("user from different organisation is not allowed to create topic for instance: {}", kafka.id);
-                    return Future.succeededFuture();
-                }
-                return Future.failedFuture(t);
-            }));
+                // convert a success into a failure
+                .compose(r -> Future.failedFuture("user from another org is able to create topic or produce or consume messages"))
+                .recover(t -> {
+                    // convert only the SaslAuthenticationException in a success
+                    if (t instanceof SaslAuthenticationException) {
+                        LOGGER.info("user from different organisation is not allowed to create topic for instance: {}", kafka.id);
+                        return Future.succeededFuture();
+                    }
+                    return Future.failedFuture(t);
+                }));
     }
 
     /**
@@ -193,15 +193,15 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
         LOGGER.info("Delete Instance: {} of Org 1 using user of Org 2", kafka.id);
         await(apiOrg2.deleteKafka(kafka.id, true)
-            .compose(r -> Future.failedFuture("user from different organisation is able to delete instance"))
-            .recover(throwable -> {
-                if (throwable instanceof ResponseException) {
-                    if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                        LOGGER.info("user from different organisation is not allowed to delete instance");
-                        return Future.succeededFuture();
+                .compose(r -> Future.failedFuture("user from different organisation is able to delete instance"))
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException) {
+                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                            LOGGER.info("user from different organisation is not allowed to delete instance");
+                            return Future.succeededFuture();
+                        }
                     }
-                }
-                return Future.failedFuture(throwable);
-            }));
+                    return Future.failedFuture(throwable);
+                }));
     }
 }

@@ -99,7 +99,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api1.createKafka(kafkaPayload, true));
-        kafka = waitUntilKafkaIsReady(vertx, api1, kafka.id);
+        kafka = await(waitUntilKafkaIsReady(vertx, api1, kafka.id));
         String kafkaID = kafka.id;
 
         // Get kafka instance list by another user with same org

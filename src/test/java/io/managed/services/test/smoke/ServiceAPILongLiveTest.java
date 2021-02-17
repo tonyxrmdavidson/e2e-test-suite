@@ -74,7 +74,7 @@ class ServiceAPILongLiveTest extends TestBase {
         kafkaResponse = optionalKafka.get();
         LOGGER.info("kafka is present :{} and created at: {}", Environment.LONG_LIVED_KAFKA_NAME, kafkaResponse.createdAt);
 
-        kafkaResponse = waitUntilKafkaIsReady(vertx, api, kafkaResponse.id);
+        kafkaResponse = await(waitUntilKafkaIsReady(vertx, api, kafkaResponse.id));
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();

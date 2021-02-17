@@ -101,7 +101,7 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
 
-        kafka = waitUntilKafkaIsReady(vertx, api, kafka.id);
+        kafka = await(waitUntilKafkaIsReady(vertx, api, kafka.id));
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
