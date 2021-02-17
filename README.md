@@ -78,7 +78,7 @@ make PROFILE=ci test
 
 | Name        | Description   |  Default value |
 |-------------|:-------------:|---------------:|
-| LOG_DIR                 |  path where test suite stores logs from failed tests etc...                   | $(pwd)/target/logs |
+| LOG_DIR                 | path where test suite stores logs from failed tests etc...                    | $(pwd)/target/logs |
 | CONFIG_PATH             | path where is stored config.json with env variables and values                | $(pwd)/config.json |
 | SERVICE_API_URI         | the service-api URI to tests                                                  | https://api.stage.openshift.com |
 | SSO_REDHAT_KEYCLOAK_URI | the SSO URI to retrieve the service-api token                                 | https://sso.redhat.com |
@@ -94,6 +94,9 @@ make PROFILE=ci test
 | DEV_CLUSTER_SERVER      | the api server url of a openshift cluster with the binding operator installed | https://api.devexp.imkr.s1.devshift.org:6443 |
 | DEV_CLUSTER_NAMESPACE   | the namespace to use to install the binding operator CRs                      | mk-e2e-tests |
 | DEV_CLUSTER_TOKEN       | the cluster user token (this can also be a service account token)             |  |
+| BF2_GITHUB_TOKEN        | a github token to download artifacts from the bf2 org                         |  |
+| CLI_VERSION             | the CLI version to download from bf2/cli                                      | 0.15.1 |
+| CLI_ARCH                | the CLI arch and os to download from bf2/cli                                  | linux_amd64 |
 
 ## List of Tags
 
@@ -102,6 +105,7 @@ make PROFILE=ci test
 | service-api               | run all tests targeting the service-api | SSO_USERNAME, SSO_PASSWORD |
 | service-api-permissions   | run all service api permissions tests   | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD, SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD |
 | binding-operator          | run all tests for the binding-operator  | SSO_USERNAME, SSO_PASSWORD, DEV_CLUSTER_TOKEN |
+| cli                       | run all tests for the CLI               | SSO_USERNAME, SSO_PASSWORD, BF2_GITHUB_TOKEN |
 
 ## Report to ReportPortal
 

@@ -8,8 +8,8 @@ import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
+import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
@@ -29,15 +29,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -45,12 +44,13 @@ import java.util.stream.Collectors;
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDelete;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
 @Tag(TestTag.CI)
@@ -70,6 +70,8 @@ class ServiceAPITest extends TestBase {
     String kafkaId;
     KafkaAdmin admin;
     String bootstrapHost, clientID, clientSecret;
+
+    boolean kafkaInstanceCreated = false;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -120,6 +122,7 @@ class ServiceAPITest extends TestBase {
 
         kafka = waitUntilKafkaIsReady(vertx, api, kafka.id);
 
+
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
         serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
@@ -168,12 +171,16 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
         await(consumer.close());
+
+        kafkaInstanceCreated = true;
     }
 
     @Test
     @Order(2)
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     void testListAndSearchKafkaInstance() {
+        assumeTrue(kafkaInstanceCreated, "testCreateKafkaInstance failed");
+
         //List kafka instances
         KafkaListResponse kafkaList = await(api.getListOfKafkas());
         LOGGER.info("fetch kafka instance list: {}", Json.encode(kafkaList.items));
@@ -185,15 +192,17 @@ class ServiceAPITest extends TestBase {
         assertEquals(1, filteredKafka.size());
 
         //Search kafka by name
-        Optional<KafkaResponse> optionalKafka = await(getKafkaByName(api, KAFKA_INSTANCE_NAME));
-        LOGGER.info("Get created kafka instance is : {}", Json.encode(optionalKafka.get()));
-        assertEquals(KAFKA_INSTANCE_NAME, optionalKafka.get().name);
+        KafkaResponse kafka = await(getKafkaByName(api, KAFKA_INSTANCE_NAME)).orElseThrow();
+        LOGGER.info("Get created kafka instance is : {}", Json.encode(kafka));
+        assertEquals(KAFKA_INSTANCE_NAME, kafka.name);
     }
 
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(2)
     void testCreateKafkaInstanceWithExistingName() {
+        assumeTrue(kafkaInstanceCreated, "testCreateKafkaInstance failed");
+
         // Create Kafka Instance with existing name
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
         kafkaPayload.name = KAFKA_INSTANCE_NAME;
@@ -220,6 +229,8 @@ class ServiceAPITest extends TestBase {
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(3)
     void testDeleteTopic() {
+        assumeTrue(kafkaInstanceCreated, "testCreateKafkaInstance failed");
+
         LOGGER.info("Delete created topic : {}", TOPIC_NAME);
         try {
             await(admin.deleteTopic(TOPIC_NAME));

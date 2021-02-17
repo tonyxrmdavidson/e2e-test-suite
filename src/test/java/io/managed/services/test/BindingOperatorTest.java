@@ -43,6 +43,7 @@ import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.CI)
 @Tag(TestTag.BINDING_OPERATOR)
@@ -65,6 +66,10 @@ public class BindingOperatorTest extends TestBase {
 
     @BeforeAll
     void bootstrap(Vertx vertx) {
+        assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
+        assumeTrue(Environment.SSO_PASSWORD != null, "the SSO_PASSWORD env is null");
+        assumeTrue(Environment.DEV_CLUSTER_TOKEN != null, "the DEV_CLUSTER_TOKEN env is null");
+
         KeycloakOAuth auth = new KeycloakOAuth(vertx,
             Environment.SSO_REDHAT_KEYCLOAK_URI,
             Environment.SSO_REDHAT_REDIRECT_URI,
@@ -127,6 +132,8 @@ public class BindingOperatorTest extends TestBase {
     @Test
     @Order(1)
     void createAccessTokenSecret() {
+        assumeTrue(client != null, "the global client is null");
+
         // Create Secret
         Map<String, String> data = new HashMap<>();
         data.put("value", Base64.getEncoder().encodeToString(KeycloakOAuth.getRefreshToken(user).getBytes()));
@@ -138,6 +145,7 @@ public class BindingOperatorTest extends TestBase {
     @Test
     @Order(2)
     void createManagedServiceAccountRequest(Vertx vertx) {
+        assumeTrue(client != null, "the global client is null");
 
         var a = new ManagedServiceAccountRequest();
         a.getMetadata().setName(MANAGED_SERVICE_ACCOUNT_REQUEST_NAME);
@@ -173,6 +181,7 @@ public class BindingOperatorTest extends TestBase {
     @Test
     @Order(2)
     void createManagedKafkaRequest(Vertx vertx) {
+        assumeTrue(client != null, "the global client is null");
 
         var k = new ManagedKafkaRequest();
         k.getMetadata().setName(MANAGED_KAFKA_REQUEST_NAME);
@@ -206,8 +215,12 @@ public class BindingOperatorTest extends TestBase {
     @Test
     @Order(3)
     void createManagedKafkaConnection(Vertx vertx) {
+        assumeTrue(client != null, "the global client is null");
 
         var managedKafkaRequest = OperatorUtils.managedKafka(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
+        assumeTrue(managedKafkaRequest != null, "the ManagedKafkaRequest is null");
+        assumeTrue(managedKafkaRequest.getStatus() != null, "the ManagedKafkaRequest status is null");
+
         var userKafka = managedKafkaRequest.getStatus().getUserKafkas().stream()
             .filter(k -> k.getName().equals(Environment.LONG_LIVED_KAFKA_NAME))
             .findFirst();

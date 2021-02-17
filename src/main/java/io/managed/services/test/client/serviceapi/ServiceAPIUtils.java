@@ -1,5 +1,7 @@
 package io.managed.services.test.client.serviceapi;
 
+
+import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.client.ResponseException;
 import io.vertx.core.Future;
@@ -102,7 +104,7 @@ public class ServiceAPIUtils {
             return Pair.with(r.status.equals("ready"), r);
         });
 
-        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(5), isReady));
+        kafkaResponse = await(waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(Environment.WAIT_READY_MS), isReady));
         return kafkaResponse;
     }
 

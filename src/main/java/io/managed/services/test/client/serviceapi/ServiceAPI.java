@@ -1,74 +1,33 @@
 package io.managed.services.test.client.serviceapi;
 
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 
-import java.net.URI;
+import java.net.HttpURLConnection;
 
 
-public class ServiceAPI {
+public class ServiceAPI extends BaseVertxClient {
 
-    final Vertx vertx;
-    final WebClient client;
     final User user;
     final TokenCredentials token;
 
     public ServiceAPI(Vertx vertx, String uri, User user) {
-
-        URI u = URI.create(uri);
-        this.vertx = vertx;
-        this.client = WebClient.create(vertx, new WebClientOptions()
-                .setDefaultHost(u.getHost())
-                .setDefaultPort(getPort(u))
-                .setSsl(isSsl(u)));
+        super(vertx, uri);
         this.user = user;
         this.token = new TokenCredentials(KeycloakOAuth.getToken(user));
     }
 
-    static Integer getPort(URI u) {
-        if (u.getPort() == -1) {
-            switch (u.getScheme()) {
-                case "https":
-                    return 443;
-                case "http":
-                    return 80;
-            }
-        }
-        return u.getPort();
-    }
-
-    static Boolean isSsl(URI u) {
-        switch (u.getScheme()) {
-            case "https":
-                return true;
-            case "http":
-                return false;
-        }
-        return false;
-    }
-
-    Future<HttpResponse<Buffer>> assertResponse(HttpResponse<Buffer> response, Integer statusCode) {
-        if (response.statusCode() != statusCode) {
-            String message = String.format("Expected status code %d but got %s", statusCode, response.statusCode());
-            return Future.failedFuture(ResponseException.create(message, response));
-        }
-        return Future.succeededFuture(response);
-    }
 
     public Future<KafkaResponse> createKafka(CreateKafkaPayload payload, Boolean async) {
         return client.post("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .sendJson(payload)
-                .compose(r -> assertResponse(r, 202))
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_ACCEPTED))
                 .map(r -> r.bodyAsJson(KafkaResponse.class));
     }
 
@@ -79,7 +38,7 @@ public class ServiceAPI {
                 .addQueryParam("size", "10")
                 .addQueryParam("search", String.format("name = %s", name.trim()))
                 .send()
-                .compose(r -> assertResponse(r, 200))
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(r -> r.bodyAsJson(KafkaListResponse.class));
     }
 
@@ -87,7 +46,7 @@ public class ServiceAPI {
         return client.get("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
                 .send()
-                .compose(r -> assertResponse(r, 200))
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(r -> r.bodyAsJson(KafkaListResponse.class));
     }
 
@@ -95,7 +54,7 @@ public class ServiceAPI {
         return client.get(String.format("/api/managed-services-api/v1/kafkas/%s", id))
                 .authentication(token)
                 .send()
-                .compose(r -> assertResponse(r, 200))
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(r -> r.bodyAsJson(KafkaResponse.class));
     }
 
@@ -104,7 +63,7 @@ public class ServiceAPI {
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .send()
-                .compose(r -> assertResponse(r, async ? 202 : 204))
+                .compose(r -> assertResponse(r, async ? HttpURLConnection.HTTP_ACCEPTED : HttpURLConnection.HTTP_NO_CONTENT))
                 .map(r -> r.bodyAsJson(Void.class));
     }
 
@@ -112,23 +71,23 @@ public class ServiceAPI {
         return client.post("/api/managed-services-api/v1/serviceaccounts")
                 .authentication(token)
                 .sendJson(payload)
-                .compose(r -> assertResponse(r, 202)) // TODO: report issue: swagger says 200
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_ACCEPTED)) // TODO: report issue: swagger says 200
                 .map(r -> r.bodyAsJson(ServiceAccount.class));
     }
 
     public Future<ServiceAccountList> getListOfServiceAccounts() {
         return client.get("/api/managed-services-api/v1/serviceaccounts")
-            .authentication(token)
-            .send()
-            .compose(r -> assertResponse(r, 200))
-            .map(r -> r.bodyAsJson(ServiceAccountList.class));
+                .authentication(token)
+                .send()
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
+                .map(r -> r.bodyAsJson(ServiceAccountList.class));
     }
 
     public Future<Void> deleteServiceAccount(String id) {
         return client.delete(String.format("/api/managed-services-api/v1/serviceaccounts/%s", id))
                 .authentication(token)
                 .send()
-                .compose(r -> assertResponse(r, 204))
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_NO_CONTENT))
                 .map(r -> r.bodyAsJson(Void.class));
     }
 }
