@@ -1,16 +1,26 @@
 package io.managed.services.test.client;
 
 import io.managed.services.test.Environment;
+import io.managed.services.test.TestUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.net.URI;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import static io.managed.services.test.TestUtils.sleep;
+import static java.time.Duration.ofSeconds;
 
 public abstract class BaseVertxClient {
+    private static final Logger LOGGER = LogManager.getLogger(TestUtils.class);
 
     protected final Vertx vertx;
     protected final WebClient client;
@@ -61,6 +71,42 @@ public abstract class BaseVertxClient {
                 return false;
         }
         return false;
+    }
+
+    public <T> Future<T> retry(Supplier<Future<T>> call) {
+        return retry(call, 3);
+    }
+
+    public <T> Future<T> retry(Supplier<Future<T>> call, int attempts) {
+
+        Function<Throwable, Future<T>> retry = t -> {
+            LOGGER.error("skip error: ", t);
+
+            // retry the API call
+            return sleep(vertx, ofSeconds(1))
+                    .compose(r -> retry(call, attempts - 1));
+        };
+
+        return call.get().recover(t -> {
+            if (attempts <= 0) {
+                // no more attempts remaining
+                return Future.failedFuture(t);
+            }
+
+            if (t instanceof ResponseException) {
+                if (((ResponseException) t).response.statusCode() == 500) {
+                    return retry.apply(t);
+                }
+            }
+
+            if (t instanceof VertxException) {
+                if (t.getMessage().equals("Connection was closed")) {
+                    return retry.apply(t);
+                }
+            }
+
+            return Future.failedFuture(t);
+        });
     }
 
     public static <T> Future<HttpResponse<T>> assertResponse(HttpResponse<T> response, Integer statusCode) {

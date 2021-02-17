@@ -23,72 +23,72 @@ public class ServiceAPI extends BaseVertxClient {
 
 
     public Future<KafkaResponse> createKafka(CreateKafkaPayload payload, Boolean async) {
-        return client.post("/api/managed-services-api/v1/kafkas")
+        return retry(() -> client.post("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .sendJson(payload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_ACCEPTED))
-                .map(r -> r.bodyAsJson(KafkaResponse.class));
+                .map(r -> r.bodyAsJson(KafkaResponse.class)));
     }
 
     public Future<KafkaListResponse> getListOfKafkaByName(String name) {
-        return client.get("/api/managed-services-api/v1/kafkas")
+        return retry(() -> client.get("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
                 .addQueryParam("page", "1")
                 .addQueryParam("size", "10")
                 .addQueryParam("search", String.format("name = %s", name.trim()))
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(KafkaListResponse.class));
+                .map(r -> r.bodyAsJson(KafkaListResponse.class)));
     }
 
     public Future<KafkaListResponse> getListOfKafkas() {
-        return client.get("/api/managed-services-api/v1/kafkas")
+        return retry(() -> client.get("/api/managed-services-api/v1/kafkas")
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(KafkaListResponse.class));
+                .map(r -> r.bodyAsJson(KafkaListResponse.class)));
     }
 
     public Future<KafkaResponse> getKafka(String id) {
-        return client.get(String.format("/api/managed-services-api/v1/kafkas/%s", id))
+        return retry(() -> client.get(String.format("/api/managed-services-api/v1/kafkas/%s", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(KafkaResponse.class));
+                .map(r -> r.bodyAsJson(KafkaResponse.class)));
     }
 
     public Future<Void> deleteKafka(String id, Boolean async) {
-        return client.delete(String.format("/api/managed-services-api/v1/kafkas/%s?async=%s", id, async))
+        return retry(() -> client.delete(String.format("/api/managed-services-api/v1/kafkas/%s?async=%s", id, async))
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .send()
                 .compose(r -> assertResponse(r, async ? HttpURLConnection.HTTP_ACCEPTED : HttpURLConnection.HTTP_NO_CONTENT))
-                .map(r -> r.bodyAsJson(Void.class));
+                .map(r -> r.bodyAsJson(Void.class)));
     }
 
     public Future<ServiceAccount> createServiceAccount(CreateServiceAccountPayload payload) {
-        return client.post("/api/managed-services-api/v1/serviceaccounts")
+        return retry(() -> client.post("/api/managed-services-api/v1/serviceaccounts")
                 .authentication(token)
                 .sendJson(payload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_ACCEPTED)) // TODO: report issue: swagger says 200
-                .map(r -> r.bodyAsJson(ServiceAccount.class));
+                .map(r -> r.bodyAsJson(ServiceAccount.class)));
     }
 
     public Future<ServiceAccountList> getListOfServiceAccounts() {
-        return client.get("/api/managed-services-api/v1/serviceaccounts")
+        return retry(() -> client.get("/api/managed-services-api/v1/serviceaccounts")
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(ServiceAccountList.class));
+                .map(r -> r.bodyAsJson(ServiceAccountList.class)));
     }
 
     public Future<Void> deleteServiceAccount(String id) {
-        return client.delete(String.format("/api/managed-services-api/v1/serviceaccounts/%s", id))
+        return retry(() -> client.delete(String.format("/api/managed-services-api/v1/serviceaccounts/%s", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_NO_CONTENT))
-                .map(r -> r.bodyAsJson(Void.class));
+                .map(r -> r.bodyAsJson(Void.class)));
     }
 }
 
