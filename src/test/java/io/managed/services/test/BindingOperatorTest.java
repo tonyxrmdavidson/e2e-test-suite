@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -49,6 +50,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Tag(TestTag.BINDING_OPERATOR)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Disabled("We need to find a long term cluster for this tests")
 public class BindingOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(BindingOperatorTest.class);
 
