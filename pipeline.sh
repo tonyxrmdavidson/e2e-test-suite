@@ -12,6 +12,9 @@ TESTCASE=${TESTCASE:-"io.managed.services.test.**"}
 PROFILE=${PROFILE:-"ci"}
 REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
 
+# change the KAFKA_POSTFIX_NAME when executing the tests on the ci
+export KAFKA_POSTFIX_NAME=${KAFKA_POSTFIX_NAME:-"ci"}
+
 function info() {
     MESSAGE="${1}"
     echo "[INFO]  [$(date +"%T")] - ${MESSAGE}"
