@@ -14,7 +14,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import io.vertx.kafka.client.producer.KafkaProducer;
@@ -25,30 +24,37 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.CI)
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ServiceAPILongLiveTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
 
     ServiceAPI api;
+
+    KafkaResponse kafka;
 
     @BeforeAll
     void bootstrap(Vertx vertx) {
@@ -60,21 +66,35 @@ class ServiceAPILongLiveTest extends TestBase {
         await(deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME));
     }
 
+    void assertAPI() {
+        assumeTrue(api != null, "api is null because the bootstrap has failed");
+    }
+
+    void assertKafka() {
+        assumeTrue(kafka != null, "kafka is null because the testPresenceOfLongLiveKafkaInstance has failed to create the Kafka instance");
+    }
+
     @Test
-    @Timeout(5 * 60 * 1000)
-    void testPresenceOfLongLiveKafkaToProduceAndConsumeMessages(Vertx vertx, VertxTestContext context) {
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
+    @Order(1)
+    void testPresenceOfLongLiveKafkaInstance() {
+        assertAPI();
 
         LOGGER.info("Get kafka instance for name: {}", Environment.LONG_LIVED_KAFKA_NAME);
         Optional<KafkaResponse> optionalKafka = await(getKafkaByName(api, Environment.LONG_LIVED_KAFKA_NAME));
-        KafkaResponse kafkaResponse;
         if (optionalKafka.isEmpty()) {
             LOGGER.error("kafka is not present :{} ", Environment.LONG_LIVED_KAFKA_NAME);
             fail(String.format("Something went wrong, kafka is missing. Please create a kafka with name: %s if not created before!", Environment.LONG_LIVED_KAFKA_NAME));
         }
-        kafkaResponse = optionalKafka.get();
-        LOGGER.info("kafka is present :{} and created at: {}", Environment.LONG_LIVED_KAFKA_NAME, kafkaResponse.createdAt);
 
-        kafkaResponse = await(waitUntilKafkaIsReady(vertx, api, kafkaResponse.id));
+        kafka = optionalKafka.get();
+        LOGGER.info("kafka is present :{} and created at: {}", Environment.LONG_LIVED_KAFKA_NAME, kafka.createdAt);
+    }
+
+    @Test
+    @Order(2)
+    void testProduceAndConsumeKafkaMessages(Vertx vertx) {
+        assertKafka();
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
@@ -83,7 +103,7 @@ class ServiceAPILongLiveTest extends TestBase {
         LOGGER.info("create service account: {}", serviceAccountPayload.name);
         ServiceAccount serviceAccount = await(api.createServiceAccount(serviceAccountPayload));
 
-        String bootstrapHost = kafkaResponse.bootstrapServerHost;
+        String bootstrapHost = kafka.bootstrapServerHost;
         String clientID = serviceAccount.clientID;
         String clientSecret = serviceAccount.clientSecret;
 
@@ -135,8 +155,6 @@ class ServiceAPILongLiveTest extends TestBase {
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
         await(consumer.close());
-
-        context.completeNow();
-
     }
 }
+
