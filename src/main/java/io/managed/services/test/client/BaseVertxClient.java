@@ -12,6 +12,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -74,7 +75,7 @@ public abstract class BaseVertxClient {
     }
 
     public <T> Future<T> retry(Supplier<Future<T>> call) {
-        return retry(call, 3);
+        return retry(call, Environment.API_CALL_THRESHOLD);
     }
 
     public <T> Future<T> retry(Supplier<Future<T>> call, int attempts) {
@@ -94,7 +95,7 @@ public abstract class BaseVertxClient {
             }
 
             if (t instanceof ResponseException) {
-                if (((ResponseException) t).response.statusCode() == 500) {
+                if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_INTERNAL_ERROR) {
                     return retry.apply(t);
                 }
             }

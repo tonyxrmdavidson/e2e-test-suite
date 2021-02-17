@@ -33,35 +33,37 @@ public class Environment {
     private static final String LOG_DIR_ENV = "LOG_DIR";
     private static final String CONFIG_FILE_PATH_ENV = "CONFIG_PATH";
 
-    public static final String SSO_USERNAME_ENV = "SSO_USERNAME";
-    public static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
-    public static final String SSO_SECONDARY_USERNAME_ENV = "SSO_SECONDARY_USERNAME";
-    public static final String SSSO_SECONDARY_PASSWORD_ENV = "SSO_SECONDARY_PASSWORD";
-    public static final String SSO_ALIEN_USERNAME_ENV = "SSO_ALIEN_USERNAME";
-    public static final String SSO_ALIEN_PASSWORD_ENV = "SSO_ALIEN_PASSWORD";
+    private static final String SSO_USERNAME_ENV = "SSO_USERNAME";
+    private static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
+    private static final String SSO_SECONDARY_USERNAME_ENV = "SSO_SECONDARY_USERNAME";
+    private static final String SSSO_SECONDARY_PASSWORD_ENV = "SSO_SECONDARY_PASSWORD";
+    private static final String SSO_ALIEN_USERNAME_ENV = "SSO_ALIEN_USERNAME";
+    private static final String SSO_ALIEN_PASSWORD_ENV = "SSO_ALIEN_PASSWORD";
 
-    public static final String SSO_REDHAT_KEYCLOAK_URI_ENV = "SSO_REDHAT_KEYCLOAK_URI";
-    public static final String SSO_REDHAT_REALM_ENV = "SSO_REDHAT_REALM";
-    public static final String SSO_REDHAT_CLIENT_ID_ENV = "SSO_REDHAT_CLIENT_ID";
-    public static final String SSO_REDHAT_REDIRECT_URI_ENV = "SSO_REDHAT_REDIRECT_URI";
+    private static final String SSO_REDHAT_KEYCLOAK_URI_ENV = "SSO_REDHAT_KEYCLOAK_URI";
+    private static final String SSO_REDHAT_REALM_ENV = "SSO_REDHAT_REALM";
+    private static final String SSO_REDHAT_CLIENT_ID_ENV = "SSO_REDHAT_CLIENT_ID";
+    private static final String SSO_REDHAT_REDIRECT_URI_ENV = "SSO_REDHAT_REDIRECT_URI";
 
-    public static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
+    private static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
 
-    public static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
-    public static final String LONG_LIVED_KAFKA_NAME_ENV = "LONG_LIVED_KAFKA_NAME";
-    public static final String LONG_LIVED_KAFKA_TOPIC_NAME_ENV = "LONG_LIVED_KAFKA_TOPIC_NAME";
+    private static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
+    private static final String LONG_LIVED_KAFKA_NAME_ENV = "LONG_LIVED_KAFKA_NAME";
+    private static final String LONG_LIVED_KAFKA_TOPIC_NAME_ENV = "LONG_LIVED_KAFKA_TOPIC_NAME";
 
-    public static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
-    public static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
-    public static final String DEV_CLUSTER_TOKEN_ENV = "DEV_CLUSTER_TOKEN";
+    private static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
+    private static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
+    private static final String DEV_CLUSTER_TOKEN_ENV = "DEV_CLUSTER_TOKEN";
 
-    public static final String BF2_GITHUB_TOKEN_ENV = "BF2_GITHUB_TOKEN";
+    private static final String BF2_GITHUB_TOKEN_ENV = "BF2_GITHUB_TOKEN";
 
-    public static final String CLI_VERSION_ENV = "CLI_VERSION";
-    public static final String CLI_ARCH_ENV = "CLI_ARCH";
+    private static final String CLI_VERSION_ENV = "CLI_VERSION";
+    private static final String CLI_ARCH_ENV = "CLI_ARCH";
 
-    public static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
-    public static final String WAIT_READY_MS_ENV = "WAIT_READY_MS";
+    private static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
+    private static final String WAIT_READY_MS_ENV = "WAIT_READY_MS";
+
+    private static final String API_CALL_THRESHOLD_ENV = "API_CALL_THRESHOLD";
 
     /*
      * Setup constants from env variables or set default
@@ -103,6 +105,8 @@ public class Environment {
 
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
     public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
+
+    public static final int API_CALL_THRESHOLD = getOrDefault(API_CALL_THRESHOLD_ENV, Integer::parseInt, 10);
 
     private Environment() {
     }
