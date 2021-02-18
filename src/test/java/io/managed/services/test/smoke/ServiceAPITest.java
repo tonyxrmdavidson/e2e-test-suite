@@ -241,7 +241,7 @@ class ServiceAPITest extends TestBase {
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(4)
-    void testVerifyNotToSendAndReceiveMessageAfterDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
+    void testVerifyNotToSendAndReceiveMessageAfterDeleteKafkaInstance(Vertx vertx) {
         // Consume Kafka messages
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         KafkaConsumer<String, String> consumer = KafkaUtils.createConsumer(vertx, bootstrapHost, clientID, clientSecret);
@@ -257,23 +257,6 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);
         waitUntilKafkaIsDelete(vertx, api, kafkaId);
-
-        //Get kafka instance to make sure that kafka has deleted
-        await(api.getKafka(kafkaId)
-                .compose(r -> {
-                    LOGGER.error("Kafka response after deleted kafka: {}", Json.encode(r));
-                    return Future.failedFuture("Get kafka request should Ideally failed!");
-                })
-                .recover(throwable -> {
-                    if (throwable instanceof ResponseException) {
-                        if (((ResponseException) throwable).response.statusCode() == 404) {
-                            LOGGER.info("Kafka instance not found");
-                            return Future.succeededFuture();
-                        }
-                    }
-                    return Future.failedFuture(throwable);
-                }));
-
 
         // Produce Kafka messages
         LOGGER.info("send message to topic: {}", TOPIC_NAME);
@@ -292,7 +275,5 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
         await(consumer.close());
-
-        context.completeNow();
     }
 }
