@@ -123,8 +123,7 @@ public class ServiceAPIUtils {
         return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
     }
 
-    public static void waitUntilKafkaIsDelete(Vertx vertx, ServiceAPI api, String kafkaID) {
-        await(api.deleteKafka(kafkaID, true));
+    public static Future<Void> waitUntilKafkaIsDeleted(Vertx vertx, ServiceAPI api, String kafkaID) {
 
         IsReady<Void> isDeleted = last -> api.getKafka(kafkaID)
                 .recover(throwable -> {
@@ -138,7 +137,7 @@ public class ServiceAPIUtils {
                     return Pair.with(r == null, null);
                 });
 
-        await(waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted));
+        return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
     }
 }
 

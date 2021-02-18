@@ -35,7 +35,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -43,11 +42,10 @@ import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDelete;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDeleted;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
@@ -250,43 +248,36 @@ class ServiceAPITest extends TestBase {
         assertTopic();
 
         LOGGER.info("Delete created topic : {}", TOPIC_NAME);
-        try {
-            await(admin.deleteTopic(TOPIC_NAME));
-            LOGGER.info("Topic deleted: {}", TOPIC_NAME);
-        } catch (CompletionException e) {
-            LOGGER.error("{} should be deleted", TOPIC_NAME);
-            fail("Created topic should be deleted");
-        }
+        await(admin.deleteTopic(TOPIC_NAME));
     }
 
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    @Order(4)
-    void testVerifyNotToSendAndReceiveMessageAfterDeleteKafkaInstance(Vertx vertx) {
-        // Consume Kafka messages
-        LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaConsumer<String, String> consumer = KafkaUtils.createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+    @Order(5)
+    void testDeleteKafkaInstance(Vertx vertx) {
+        assertKafka();
 
-        Promise<KafkaConsumerRecord<String, String>> receiver = Promise.promise();
-        consumer.handler(receiver::complete);
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
 
-        LOGGER.info("subscribe to topic: {}", TOPIC_NAME);
-        await(consumer.subscribe(TOPIC_NAME));
-
+        // Connect the Kafka producer
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
 
+        // Delete the Kafka instance
         LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);
-        waitUntilKafkaIsDelete(vertx, api, kafkaId);
+        await(api.deleteKafka(kafka.id, true));
+        await(waitUntilKafkaIsDeleted(vertx, api, kafka.id));
 
         // Produce Kafka messages
         LOGGER.info("send message to topic: {}", TOPIC_NAME);
         //SslAuthenticationException
         await(producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world"))
-                .compose(r -> Future.failedFuture("Send message should failed!"))
+                .compose(r -> Future.failedFuture("send message should failed"))
                 .recover(throwable -> {
                     if (throwable instanceof Exception) {
-                        LOGGER.info("Send message has failed");
+                        LOGGER.info("send message has failed");
                         return Future.succeededFuture();
                     }
                     return Future.failedFuture(throwable);
@@ -295,6 +286,5 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
-        await(consumer.close());
     }
 }
