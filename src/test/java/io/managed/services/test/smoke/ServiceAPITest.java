@@ -45,8 +45,8 @@ import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDelete;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -66,7 +66,7 @@ class ServiceAPITest extends TestBase {
 
     User user;
     KeycloakOAuth auth;
-    ServiceAPI api;
+    ServiceAPI api;    
     KafkaAdmin admin;
     String bootstrapHost, clientID, clientSecret, kafkaId;
 
@@ -117,8 +117,10 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         KafkaResponse kafka = await(api.createKafka(kafkaPayload, true));
+        kafkaId = kafka.id;
 
         kafka = waitUntilKafkaIsReady(vertx, api, kafka.id);
+
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
