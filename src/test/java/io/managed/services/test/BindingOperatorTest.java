@@ -4,10 +4,10 @@ package io.managed.services.test;
 import com.openshift.cloud.v1alpha.models.Credentials;
 import com.openshift.cloud.v1alpha.models.ManagedKafkaConnection;
 import com.openshift.cloud.v1alpha.models.ManagedKafkaConnectionSpec;
-import com.openshift.cloud.v1alpha.models.ManagedKafkaRequest;
-import com.openshift.cloud.v1alpha.models.ManagedKafkaRequestSpec;
 import com.openshift.cloud.v1alpha.models.ManagedServiceAccountRequest;
 import com.openshift.cloud.v1alpha.models.ManagedServiceAccountRequestSpec;
+import com.openshift.cloud.v1alpha.models.ManagedServicesRequest;
+import com.openshift.cloud.v1alpha.models.ManagedServicesRequestSpec;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -102,19 +102,19 @@ public class BindingOperatorTest extends TestBase {
 
     @AfterAll
     void cleanManagedServiceAccountRequest() {
-        ManagedServiceAccountRequest a = OperatorUtils.managedServiceAccount(client).withName(MANAGED_SERVICE_ACCOUNT_REQUEST_NAME).get();
+        ManagedServiceAccountRequest a = OperatorUtils.managedServiceAccountRequest(client).withName(MANAGED_SERVICE_ACCOUNT_REQUEST_NAME).get();
         if (a != null) {
             LOGGER.info("clean ManagedServiceAccountRequest: {}", a.getMetadata().getName());
-            OperatorUtils.managedServiceAccount(client).delete(a);
+            OperatorUtils.managedServiceAccountRequest(client).delete(a);
         }
     }
 
     @AfterAll
-    void cleanManagedKafkaRequest() {
-        var k = OperatorUtils.managedKafka(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
+    void cleanManagedServicesRequest() {
+        var k = OperatorUtils.managedServicesRequest(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
         if (k != null) {
-            LOGGER.info("clean ManagedKafkaRequest: {}", k.getMetadata().getName());
-            OperatorUtils.managedKafka(client).delete(k);
+            LOGGER.info("clean ManagedServicesRequest: {}", k.getMetadata().getName());
+            OperatorUtils.managedServicesRequest(client).delete(k);
         }
     }
 
@@ -156,11 +156,11 @@ public class BindingOperatorTest extends TestBase {
         a.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
 
         LOGGER.info("create ManagedServiceAccountRequest with name: {}", MANAGED_SERVICE_ACCOUNT_REQUEST_NAME);
-        a = OperatorUtils.managedServiceAccount(client).create(a);
+        a = OperatorUtils.managedServiceAccountRequest(client).create(a);
         LOGGER.info("created ManagedServiceAccountRequest: {}", Json.encode(a));
 
         IsReady<ManagedServiceAccountRequest> ready = last ->
-            Future.succeededFuture(OperatorUtils.managedServiceAccount(client).withName(MANAGED_SERVICE_ACCOUNT_REQUEST_NAME).get())
+            Future.succeededFuture(OperatorUtils.managedServiceAccountRequest(client).withName(MANAGED_SERVICE_ACCOUNT_REQUEST_NAME).get())
                 .map(r -> {
 
                     LOGGER.info("ManagedServiceAccountRequest status is: {}", Json.encode(r.getStatus()));
@@ -180,26 +180,26 @@ public class BindingOperatorTest extends TestBase {
 
     @Test
     @Order(2)
-    void createManagedKafkaRequest(Vertx vertx) {
+    void createManagedServicesRequest(Vertx vertx) {
         assumeTrue(client != null, "the global client is null");
 
-        var k = new ManagedKafkaRequest();
+        var k = new ManagedServicesRequest();
         k.getMetadata().setName(MANAGED_KAFKA_REQUEST_NAME);
-        k.setSpec(new ManagedKafkaRequestSpec());
+        k.setSpec(new ManagedServicesRequestSpec());
         k.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
 
-        LOGGER.info("create ManagedKafkaRequest with name: {}", MANAGED_KAFKA_REQUEST_NAME);
-        k = OperatorUtils.managedKafka(client).create(k);
-        LOGGER.info("created ManagedKafkaRequest: {}", Json.encode(k));
+        LOGGER.info("create ManagedServicesRequest with name: {}", MANAGED_KAFKA_REQUEST_NAME);
+        k = OperatorUtils.managedServicesRequest(client).create(k);
+        LOGGER.info("created ManagedServicesRequest: {}", Json.encode(k));
 
-        IsReady<ManagedKafkaRequest> ready = last ->
-            Future.succeededFuture(OperatorUtils.managedKafka(client).withName(MANAGED_KAFKA_REQUEST_NAME).get())
+        IsReady<ManagedServicesRequest> ready = last ->
+            Future.succeededFuture(OperatorUtils.managedServicesRequest(client).withName(MANAGED_KAFKA_REQUEST_NAME).get())
                 .map(r -> {
 
-                    LOGGER.info("ManagedKafkaRequest status is: {}", Json.encode(r.getStatus()));
+                    LOGGER.info("ManagedServicesRequest status is: {}", Json.encode(r.getStatus()));
 
                     if (last) {
-                        LOGGER.warn("last ManagedKafkaRequest is: {}", Json.encode(r));
+                        LOGGER.warn("last ManagedServicesRequest is: {}", Json.encode(r));
                     }
 
                     if (r.getStatus() != null && !r.getStatus().getUserKafkas().isEmpty()) {
@@ -207,8 +207,8 @@ public class BindingOperatorTest extends TestBase {
                     }
                     return Pair.with(false, null);
                 });
-        k = await(waitFor(vertx, "ManagedKafkaRequest to complete", ofSeconds(10), ofMinutes(2), ready));
-        LOGGER.info("ManagedKafkaRequest is ready: {}", Json.encode(k));
+        k = await(waitFor(vertx, "ManagedServicesRequest to complete", ofSeconds(10), ofMinutes(2), ready));
+        LOGGER.info("ManagedServicesRequest is ready: {}", Json.encode(k));
     }
 
 
@@ -217,17 +217,17 @@ public class BindingOperatorTest extends TestBase {
     void createManagedKafkaConnection(Vertx vertx) {
         assumeTrue(client != null, "the global client is null");
 
-        var managedKafkaRequest = OperatorUtils.managedKafka(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
-        assumeTrue(managedKafkaRequest != null, "the ManagedKafkaRequest is null");
-        assumeTrue(managedKafkaRequest.getStatus() != null, "the ManagedKafkaRequest status is null");
+        var ManagedServicesRequest = OperatorUtils.managedServicesRequest(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
+        assumeTrue(ManagedServicesRequest != null, "the ManagedServicesRequest is null");
+        assumeTrue(ManagedServicesRequest.getStatus() != null, "the ManagedServicesRequest status is null");
 
-        var userKafka = managedKafkaRequest.getStatus().getUserKafkas().stream()
+        var userKafka = ManagedServicesRequest.getStatus().getUserKafkas().stream()
             .filter(k -> k.getName().equals(Environment.LONG_LIVED_KAFKA_NAME))
             .findFirst();
 
         if (userKafka.isEmpty()) {
-            LOGGER.info("ManagedKafkaRequest: {}", Json.encode(managedKafkaRequest));
-            fail(String.format("failed to find the user kafka instance %s in the ManagedKafkaRequest %s",
+            LOGGER.info("ManagedServicesRequest: {}", Json.encode(ManagedServicesRequest));
+            fail(String.format("failed to find the user kafka instance %s in the ManagedServicesRequest %s",
                 Environment.LONG_LIVED_KAFKA_NAME, MANAGED_KAFKA_REQUEST_NAME));
         }
 
