@@ -33,7 +33,7 @@ public class KafkaConsumerClient {
     }
 
     public Future<List<KafkaConsumerRecord<String, String>>> receiveAsync(int msgExpected) {
-        AtomicInteger msgCount = new AtomicInteger(0);
+        final AtomicInteger msgCount = new AtomicInteger(0);
         Promise<List<KafkaConsumerRecord<String, String>>> received = Promise.promise();
         List<KafkaConsumerRecord<String, String>> msgs = new LinkedList<>();
 
@@ -44,8 +44,9 @@ public class KafkaConsumerClient {
             LOGGER.debug("Processing key=" + record.key() + ",value=" + record.value() +
                     ",partition=" + record.partition() + ",offset=" + record.offset());
             msgs.add(record);
+            msgCount.incrementAndGet();
 
-            if (msgCount.incrementAndGet() == msgExpected) {
+            if (msgCount.get() == msgExpected) {
                 LOGGER.info("Consumer consumed {} messages", msgCount.get());
                 received.complete(msgs);
             }
