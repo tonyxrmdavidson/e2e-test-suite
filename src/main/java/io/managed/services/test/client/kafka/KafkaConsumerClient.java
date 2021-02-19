@@ -11,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -23,6 +22,7 @@ public class KafkaConsumerClient {
     private String clientID;
     private String clientSecret;
     private KafkaConsumer<String, String> consumer;
+    private static final Object LOCK = new Object();
 
     public KafkaConsumerClient(Vertx vertx, String topicName, String bootstrapHost, String clientID, String clientSecret) {
         this.vertx = vertx;
@@ -33,8 +33,7 @@ public class KafkaConsumerClient {
     }
 
     public Future<List<KafkaConsumerRecord<String, String>>> receiveAsync(int msgExpected) {
-        final AtomicInteger msgCount = new AtomicInteger(0);
-        Promise<List<KafkaConsumerRecord<String, String>>> received = Promise.promise();
+        final Promise<List<KafkaConsumerRecord<String, String>>> received = Promise.promise();
         List<KafkaConsumerRecord<String, String>> msgs = new LinkedList<>();
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
@@ -43,12 +42,14 @@ public class KafkaConsumerClient {
         consumer.handler(record -> {
             LOGGER.debug("Processing key=" + record.key() + ",value=" + record.value() +
                     ",partition=" + record.partition() + ",offset=" + record.offset());
-            msgs.add(record);
-            msgCount.incrementAndGet();
 
-            if (msgCount.get() == msgExpected) {
-                LOGGER.info("Consumer consumed {} messages", msgCount.get());
-                received.complete(msgs);
+            synchronized (LOCK) {
+                msgs.add(record);
+                if (msgs.size() == msgExpected) {
+                    LOGGER.info("Consumer consumed {} messages", msgs.size());
+                    consumer.pause();
+                    received.complete(msgs);
+                }
             }
         });
         LOGGER.info("subscribe to topic: {}", topic);

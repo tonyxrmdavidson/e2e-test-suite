@@ -42,7 +42,7 @@ public class KafkaProducerClient {
         producer = createProducer(vertx, bootstrapHost, clientID, clientSecret);
 
         messages.forEach(message -> {
-            LOGGER.info("send messgae {} to topic: {}", message, topic);
+            LOGGER.debug("send messgae {} to topic: {}", message, topic);
             sentRecors.add(producer.send(KafkaProducerRecord.create(topic, message)));
         });
         return sentRecors;
