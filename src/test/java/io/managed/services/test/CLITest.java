@@ -34,7 +34,7 @@ public class CLITest extends TestBase {
     static final String DOWNLOAD_ORG = "bf2fc6cc711aee1a0c2a";
     static final String DOWNLOAD_REPO = "cli";
     static final String CLI_NAME = "rhoas";
-    static final String DOWNLOAD_ASSET_TEMPLATE = "%s_%s_%s.tar.gz";
+    static final String DOWNLOAD_ASSET_TEMPLATE = "%s_%s_%s.%s";
     static final String ARCHIVE_ENTRY_TEMPLATE = "%s_%s_%s/bin/%s";
 
     String workdir;
@@ -72,13 +72,13 @@ public class CLITest extends TestBase {
         LOGGER.info("retrieve release by tag '{}' in repository: '{}/{}'", Environment.CLI_VERSION, DOWNLOAD_ORG, DOWNLOAD_REPO);
         var release = await(client.getReleaseByTagName(DOWNLOAD_ORG, DOWNLOAD_REPO, Environment.CLI_VERSION));
 
-        final var downloadAsset = String.format(DOWNLOAD_ASSET_TEMPLATE, CLI_NAME, Environment.CLI_VERSION, Environment.CLI_ARCH);
+        final var downloadAsset = String.format(DOWNLOAD_ASSET_TEMPLATE, CLI_NAME, release.tagName, Environment.CLI_ARCH, Platform.getArch().equals(Platform.WINDOWS) ? "zip" : "tar.gz");
         LOGGER.info("search for asset '{}' in release: '{}'", downloadAsset, release.toString());
         var asset = release.assets.stream()
                 .filter(a -> a.name.equals(downloadAsset))
                 .findFirst().orElseThrow();
 
-        final var archive = workdir + "/cli." + (Platform.getArch().equals(Platform.WINDOWS) ? "zip" : ".tar.gz");
+        final var archive = workdir + "/cli." + (Platform.getArch().equals(Platform.WINDOWS) ? "zip" : "tar.gz");
         LOGGER.info("download asset '{}' to '{}'", asset.toString(), archive);
         var archiveFile = await(vertx.fileSystem().open(archive, new OpenOptions()
                 .setCreate(true)
@@ -86,7 +86,7 @@ public class CLITest extends TestBase {
         await(client.downloadAsset(DOWNLOAD_ORG, DOWNLOAD_REPO, asset.id, archiveFile));
 
         final var cli = workdir + "/" + CLI_NAME;
-        final var entry = String.format(ARCHIVE_ENTRY_TEMPLATE, CLI_NAME, Environment.CLI_VERSION, Environment.CLI_ARCH, CLI_NAME);
+        final var entry = String.format(ARCHIVE_ENTRY_TEMPLATE, CLI_NAME, release.tagName, Environment.CLI_ARCH, CLI_NAME);
         LOGGER.info("extract {} from archive {} to: {}", entry, archive, cli);
         extractCLI(archive, entry, cli);
 

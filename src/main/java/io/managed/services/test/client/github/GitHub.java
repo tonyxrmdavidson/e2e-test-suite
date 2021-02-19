@@ -12,6 +12,7 @@ import io.vertx.ext.web.codec.BodyCodec;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.util.Locale;
 
 public class GitHub extends BaseVertxClient {
 
@@ -30,7 +31,14 @@ public class GitHub extends BaseVertxClient {
     }
 
     public Future<Release> getReleaseByTagName(String org, String repo, String name) {
-        return client.get(String.format("/repos/%s/%s/releases/tags/%s", org, repo, name))
+        String path;
+        if (name.toLowerCase(Locale.ROOT).equals("latest")) {
+            path = String.format("/repos/%s/%s/releases/latest", org, repo);
+        } else {
+            path = String.format("/repos/%s/%s/releases/tags/%s", org, repo, name);
+        }
+
+        return client.get(path)
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))

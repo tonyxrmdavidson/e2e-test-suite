@@ -101,7 +101,7 @@ public class Environment {
 
     public static final String BF2_GITHUB_TOKEN = getOrDefault(BF2_GITHUB_TOKEN_ENV, null);
 
-    public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "0.16.0");
+    public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "latest");
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, Platform.getArch().toString() + "_amd64");
 
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
