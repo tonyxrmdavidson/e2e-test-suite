@@ -26,7 +26,7 @@ public class CLI {
         cmd.addAll(Arrays.asList(command));
 
         return new ProcessBuilder(cmd)
-            .directory(new File(workdir));
+                .directory(new File(workdir));
     }
 
     private Future<Process> exec(String... command) {

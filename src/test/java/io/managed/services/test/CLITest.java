@@ -2,6 +2,7 @@ package io.managed.services.test;
 
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIUtils;
+import io.managed.services.test.cli.Platform;
 import io.managed.services.test.cli.ProcessException;
 import io.managed.services.test.client.github.GitHub;
 import io.managed.services.test.executor.ExecBuilder;
@@ -74,14 +75,14 @@ public class CLITest extends TestBase {
         final var downloadAsset = String.format(DOWNLOAD_ASSET_TEMPLATE, CLI_NAME, Environment.CLI_VERSION, Environment.CLI_ARCH);
         LOGGER.info("search for asset '{}' in release: '{}'", downloadAsset, release.toString());
         var asset = release.assets.stream()
-            .filter(a -> a.name.equals(downloadAsset))
-            .findFirst().orElseThrow();
+                .filter(a -> a.name.equals(downloadAsset))
+                .findFirst().orElseThrow();
 
-        final var archive = workdir + "/cli.tar.gz";
+        final var archive = workdir + "/cli." + (Platform.getArch().equals(Platform.WINDOWS) ? "zip" : ".tar.gz");
         LOGGER.info("download asset '{}' to '{}'", asset.toString(), archive);
         var archiveFile = await(vertx.fileSystem().open(archive, new OpenOptions()
-            .setCreate(true)
-            .setAppend(false)));
+                .setCreate(true)
+                .setAppend(false)));
         await(client.downloadAsset(DOWNLOAD_ORG, DOWNLOAD_REPO, asset.id, archiveFile));
 
         final var cli = workdir + "/" + CLI_NAME;
@@ -90,16 +91,18 @@ public class CLITest extends TestBase {
         extractCLI(archive, entry, cli);
 
         // make the cli executable
-        await(vertx.fileSystem().chmod(cli, "rwxr-xr-x"));
+        if (!Platform.getArch().equals(Platform.WINDOWS)) {
+            await(vertx.fileSystem().chmod(cli, "rwxr-xr-x"));
+        }
 
         this.cli = new CLI(workdir, CLI_NAME);
 
         LOGGER.info("validate cli");
         new ExecBuilder()
-            .withCommand(cli, "--help")
-            .logToOutput(true)
-            .throwErrors(true)
-            .exec();
+                .withCommand(cli, "--help")
+                .logToOutput(true)
+                .throwErrors(true)
+                .exec();
     }
 
 
@@ -112,16 +115,16 @@ public class CLITest extends TestBase {
 
         LOGGER.info("verify that we aren't logged-in");
         await(cli.listKafkas()
-            .compose(r -> Future.failedFuture("cli kafka list should fail because we haven't log-in yet"))
-            .recover(t -> {
-                if (t instanceof ProcessException) {
-                    if (((ProcessException) t).process.exitValue() == 1) {
-                        LOGGER.info("we haven't log-in yet");
-                        return Future.succeededFuture();
+                .compose(r -> Future.failedFuture("cli kafka list should fail because we haven't log-in yet"))
+                .recover(t -> {
+                    if (t instanceof ProcessException) {
+                        if (((ProcessException) t).process.exitValue() == 1) {
+                            LOGGER.info("we haven't log-in yet");
+                            return Future.succeededFuture();
+                        }
                     }
-                }
-                return Future.failedFuture(t);
-            }));
+                    return Future.failedFuture(t);
+                }));
 
         LOGGER.info("login the CLI");
         await(CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
