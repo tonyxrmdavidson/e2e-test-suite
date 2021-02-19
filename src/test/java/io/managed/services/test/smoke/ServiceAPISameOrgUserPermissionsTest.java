@@ -4,7 +4,8 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafka.KafkaUtils;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
@@ -14,15 +15,11 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
-import io.vertx.kafka.client.producer.KafkaProducer;
-import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -146,34 +143,23 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         LOGGER.info("create kafka topic: {}", topicName);
         await(admin.createTopic(topicName));
 
-        // Consume Kafka messages
-        LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaConsumer<String, String> consumer = KafkaUtils.createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        KafkaConsumerClient consumer = new KafkaConsumerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
+        KafkaProducerClient producer = new KafkaProducerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
 
-        Promise<KafkaConsumerRecord<String, String>> receiver = Promise.promise();
-        consumer.handler(receiver::complete);
-
-        LOGGER.info("subscribe to topic: {}", topicName);
-        await(consumer.subscribe(topicName));
+        //subscribe receiver
+        Future<List<KafkaConsumerRecord<String, String>>> received = consumer.receiveAsync(1);
 
         // Produce Kafka messages
-        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
-
-        LOGGER.info("send message to topic: {}", topicName);
-        await(producer.send(KafkaProducerRecord.create(topicName, "test message")));
+        producer.sendAsync("hello world");
 
         // Wait for the message
-        LOGGER.info("wait for message");
-        KafkaConsumerRecord<String, String> record = await(receiver.future());
+        LOGGER.info("wait for messages");
+        List<KafkaConsumerRecord<String, String>> recvMessages = await(received);
 
-        LOGGER.info("received message: {}", record.value());
-        assertEquals("test message", record.value());
-
-        LOGGER.info("close kafka producer and consumer");
+        LOGGER.info("Received {} messages", recvMessages.size());
+        recvMessages.forEach(record -> assertEquals("hello world", record.value()));
         await(producer.close());
         await(consumer.close());
-
     }
 
     @Test

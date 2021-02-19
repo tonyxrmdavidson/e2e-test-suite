@@ -2,9 +2,6 @@ package io.managed.services.test.client.kafka;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
-import io.vertx.kafka.client.producer.KafkaProducer;
 import org.apache.kafka.common.KafkaFuture;
 
 import java.util.HashMap;
@@ -49,27 +46,4 @@ public class KafkaUtils {
         return promise.future();
     }
 
-    static public KafkaProducer<String, String> createProducer(
-            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
-
-        Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
-        config.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        config.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        config.put("acks", "all");
-
-        return KafkaProducer.create(vertx, config);
-    }
-
-    public static KafkaConsumer<String, String> createConsumer(
-            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
-
-        Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
-        config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        config.put("group.id", "test-group");
-        config.put("auto.offset.reset", "earliest");
-        config.put("enable.auto.commit", "false");
-
-        return KafkaConsumer.create(vertx, config);
-    }
 }

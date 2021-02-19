@@ -4,7 +4,8 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafka.KafkaUtils;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
@@ -13,16 +14,16 @@ import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
+import io.vertx.kafka.client.producer.RecordMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -34,9 +35,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
@@ -46,6 +49,7 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUnt
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
@@ -164,31 +168,28 @@ class ServiceAPITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        // Consume Kafka messages
-        LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaConsumer<String, String> consumer = KafkaUtils.createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        int msgCount = 1000;
+        List<String> messages = IntStream.range(0, msgCount).boxed().map(i -> "hello-world-" + i).collect(Collectors.toList());
 
-        Promise<KafkaConsumerRecord<String, String>> receiver = Promise.promise();
-        consumer.handler(receiver::complete);
+        KafkaConsumerClient consumer = new KafkaConsumerClient(vertx, TOPIC_NAME, bootstrapHost, clientID, clientSecret);
+        KafkaProducerClient producer = new KafkaProducerClient(vertx, TOPIC_NAME, bootstrapHost, clientID, clientSecret);
 
-        LOGGER.info("subscribe to topic: {}", TOPIC_NAME);
-        await(consumer.subscribe(TOPIC_NAME));
-
-        // TODO: Send and receive multiple messages
+        //subscribe receiver
+        Future<List<KafkaConsumerRecord<String, String>>> received = consumer.receiveAsync(msgCount);
 
         // Produce Kafka messages
-        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
-
-        LOGGER.info("send message to topic: {}", TOPIC_NAME);
-        await(producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world")));
+        List<Future<RecordMetadata>> sentRecords = producer.sendAsync(messages);
+        CompositeFuture.all(Arrays.asList(sentRecords.toArray(new Future[0])))
+                .onSuccess(compositeFuture -> LOGGER.info("All messages were sent"))
+                .onFailure(cause -> fail("Messages were not sent", cause));
 
         // Wait for the message
-        LOGGER.info("wait for message");
-        KafkaConsumerRecord<String, String> record = await(receiver.future());
+        LOGGER.info("wait for messages");
+        List<KafkaConsumerRecord<String, String>> recvMessages = await(received);
 
-        LOGGER.info("received message: {}", record.value());
-        assertEquals("hello world", record.value());
+        LOGGER.info("Received {} messages", recvMessages.size());
+        recvMessages.forEach(record -> assertTrue(record.value().contains("hello-world-")));
+
 
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
@@ -263,7 +264,7 @@ class ServiceAPITest extends TestBase {
 
         // Connect the Kafka producer
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
+        KafkaProducer<String, String> producer = KafkaProducerClient.createProducer(vertx, bootstrapHost, clientID, clientSecret);
 
         // Delete the Kafka instance
         LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);

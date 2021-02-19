@@ -3,21 +3,19 @@ package io.managed.services.test.smoke;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafka.KafkaUtils;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
-import io.vertx.kafka.client.producer.KafkaProducer;
-import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.logging.log4j.LogManager;
@@ -31,15 +29,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -126,31 +127,24 @@ class ServiceAPILongLiveTest extends TestBase {
             fail(exception);
         }
 
-        // Consume Kafka messages
-        LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaConsumer<String, String> consumer = KafkaUtils.createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        int msgCount = 1000;
+        List<String> messages = IntStream.range(0, msgCount).boxed().map(i -> "hello-world-" + i).collect(Collectors.toList());
 
-        Promise<KafkaConsumerRecord<String, String>> receiver = Promise.promise();
-        consumer.handler(receiver::complete);
+        KafkaConsumerClient consumer = new KafkaConsumerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
+        KafkaProducerClient producer = new KafkaProducerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
 
-        LOGGER.info("subscribe to topic: {}", topicName);
-        await(consumer.subscribe(topicName));
-
-        // TODO: Send and receive multiple messages
+        //subscribe receiver
+        Future<List<KafkaConsumerRecord<String, String>>> received = consumer.receiveAsync(msgCount);
 
         // Produce Kafka messages
-        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaProducer<String, String> producer = KafkaUtils.createProducer(vertx, bootstrapHost, clientID, clientSecret);
-
-        LOGGER.info("send message to topic: {}", topicName);
-        await(producer.send(KafkaProducerRecord.create(topicName, "hello world")));
+        producer.sendAsync(messages);
 
         // Wait for the message
-        LOGGER.info("wait for message");
-        KafkaConsumerRecord<String, String> record = await(receiver.future());
+        LOGGER.info("wait for messages");
+        List<KafkaConsumerRecord<String, String>> recvMessages = await(received);
 
-        LOGGER.info("received message: {}", record.value());
-        assertEquals("hello world", record.value());
+        LOGGER.info("Received {} messages", recvMessages.size());
+        recvMessages.forEach(record -> assertTrue(record.value().contains("hello-world-")));
 
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
