@@ -217,16 +217,16 @@ public class BindingOperatorTest extends TestBase {
     void createManagedKafkaConnection(Vertx vertx) {
         assumeTrue(client != null, "the global client is null");
 
-        var ManagedServicesRequest = OperatorUtils.managedServicesRequest(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
-        assumeTrue(ManagedServicesRequest != null, "the ManagedServicesRequest is null");
-        assumeTrue(ManagedServicesRequest.getStatus() != null, "the ManagedServicesRequest status is null");
+        var managedServicesRequest = OperatorUtils.managedServicesRequest(client).withName(MANAGED_KAFKA_REQUEST_NAME).get();
+        assumeTrue(managedServicesRequest != null, "the ManagedServicesRequest is null");
+        assumeTrue(managedServicesRequest.getStatus() != null, "the ManagedServicesRequest status is null");
 
-        var userKafka = ManagedServicesRequest.getStatus().getUserKafkas().stream()
+        var userKafka = managedServicesRequest.getStatus().getUserKafkas().stream()
             .filter(k -> k.getName().equals(Environment.LONG_LIVED_KAFKA_NAME))
             .findFirst();
 
         if (userKafka.isEmpty()) {
-            LOGGER.info("ManagedServicesRequest: {}", Json.encode(ManagedServicesRequest));
+            LOGGER.info("ManagedServicesRequest: {}", Json.encode(managedServicesRequest));
             fail(String.format("failed to find the user kafka instance %s in the ManagedServicesRequest %s",
                 Environment.LONG_LIVED_KAFKA_NAME, MANAGED_KAFKA_REQUEST_NAME));
         }
