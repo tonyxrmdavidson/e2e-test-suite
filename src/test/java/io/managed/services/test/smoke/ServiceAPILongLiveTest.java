@@ -40,7 +40,7 @@ import java.util.stream.IntStream;
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -144,7 +144,7 @@ class ServiceAPILongLiveTest extends TestBase {
         List<KafkaConsumerRecord<String, String>> recvMessages = await(received);
 
         LOGGER.info("Received {} messages", recvMessages.size());
-        recvMessages.forEach(record -> assertTrue(record.value().contains("hello-world-")));
+        assertEquals(msgCount, recvMessages.size());
 
         LOGGER.info("close kafka producer and consumer");
         await(producer.close());
