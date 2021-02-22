@@ -120,9 +120,9 @@ class ServiceAPITest extends TestBase {
         kafkaPayload.region = "us-east-1";
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-        kafka = await(api.createKafka(kafkaPayload, true));
+        KafkaResponse k = await(api.createKafka(kafkaPayload, true));
 
-        kafka = await(waitUntilKafkaIsReady(vertx, api, kafka.id));
+        kafka = await(waitUntilKafkaIsReady(vertx, api, k.id));
     }
 
     @Test
