@@ -23,6 +23,7 @@ public class CLI {
     private ProcessBuilder builder(String... command) {
         var cmd = new ArrayList<String>();
         cmd.add(this.cmd);
+        cmd.add("-d");
         cmd.addAll(Arrays.asList(command));
 
         return new ProcessBuilder(cmd)
@@ -55,5 +56,21 @@ public class CLI {
 
     public Future<Process> listKafkas() {
         return exec("kafka", "list");
+    }
+
+    public Future<AsyncProcess> createKafkaInstance(String name) {
+        return execAsync("kafka", "create", name);
+    }
+
+    public Future<Process> deleteKafkaInstance(String id) {
+        return exec("kafka", "delete", "--id", id, "-f");
+    }
+
+    public Future<AsyncProcess> getStatusOfKafkaInstance(String id) {
+        return execAsync("kafka", "describe", "--id", id);
+    }
+
+    public Future<AsyncProcess> getKafkaJsonList() {
+        return execAsync("kafka", "list", "-o", "json");
     }
 }

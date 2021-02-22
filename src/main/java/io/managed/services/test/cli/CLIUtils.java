@@ -1,9 +1,16 @@
 package io.managed.services.test.cli;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.managed.services.test.Environment;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.oauth.KeycloakOAuthUtils;
+import io.managed.services.test.client.serviceapi.KafkaListResponse;
+import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientSession;
@@ -23,6 +30,9 @@ import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+import static io.managed.services.test.TestUtils.await;
 
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
@@ -68,29 +78,29 @@ public class CLIUtils {
 
         LOGGER.info("start CLI login with username: {}", username);
         return cli.login()
-            .compose(process -> {
+                .compose(process -> {
 
-                LOGGER.info("start oauth login against CLI");
-                var oauthFuture = parseSSOUrl(vertx, process.stdout())
-                    .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
-                    .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
-                    .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))
-                    .compose(r -> BaseVertxClient.followRedirect(session, r))
-                    .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
-                    .map(v -> {
-                        LOGGER.info("oauth login completed");
-                        return null;
-                    });
+                    LOGGER.info("start oauth login against CLI");
+                    var oauthFuture = parseSSOUrl(vertx, process.stdout())
+                            .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
+                            .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
+                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))
+                            .compose(r -> BaseVertxClient.followRedirect(session, r))
+                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
+                            .map(v -> {
+                                LOGGER.info("oauth login completed");
+                                return null;
+                            });
 
-                var cliFuture = process.future()
-                    .map(r -> {
-                        LOGGER.info("CLI login completed");
-                        return null;
-                    });
+                    var cliFuture = process.future()
+                            .map(r -> {
+                                LOGGER.info("CLI login completed");
+                                return null;
+                            });
 
-                return CompositeFuture.all(oauthFuture, cliFuture);
-            })
-            .map(n -> null);
+                    return CompositeFuture.all(oauthFuture, cliFuture);
+                })
+                .map(n -> null);
     }
 
     private static Future<String> parseSSOUrl(Vertx vertx, BufferedReader stdout) {
@@ -119,4 +129,40 @@ public class CLIUtils {
         });
     }
 
+    public static Future<KafkaResponse> createKafkaInstance(CLI cli, String name) {
+        return processStdOut(KafkaResponse.class, cli.createKafkaInstance(name));
+    }
+
+    public static Future<KafkaResponse> getStatusOfKafka(CLI cli, String id) {
+        return processStdOut(KafkaResponse.class, cli.getStatusOfKafkaInstance(id));
+    }
+
+    public static Future<KafkaListResponse> getKafkaList(CLI cli) {
+        return processStdOut(KafkaListResponse.class, cli.getKafkaJsonList());
+    }
+
+    private static <T> Future<T> processStdOut(Class<T> clazz, Future<AsyncProcess> processing) {
+        Promise<String> output = Promise.promise();
+        return processing
+                .compose(asyncProcess ->
+                        asyncProcess.future().onComplete(result ->
+                                output.complete(asyncProcess.stdout().lines().collect(Collectors.joining()))))
+                .compose(process -> output.future())
+                .map(stdout -> {
+                    ObjectMapper mapper = new ObjectMapper();
+                    try {
+                        return mapper.readValue(stdout, clazz);
+                    } catch (JsonProcessingException e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                });
+    }
+
+    public static void waitForKafkaReady(CLI cli, String id) {
+        TestUtils.waitFor("Kafka instance ready", 10_000, Environment.WAIT_READY_MS, () -> {
+            KafkaResponse kafka = await(CLIUtils.getStatusOfKafka(cli, id));
+            return kafka.status.equals("ready");
+        });
+    }
 }
