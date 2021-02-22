@@ -103,10 +103,10 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
         kafkaPayload.region = "us-east-1";
 
         LOGGER.info("create kafka instance in organisation 1: {}", kafkaPayload.name);
-        kafka = await(apiOrg1.createKafka(kafkaPayload, true));
+        KafkaResponse k = await(apiOrg1.createKafka(kafkaPayload, true));
 
         // Wait until kafka goes to ready state
-        await(waitUntilKafkaIsReady(vertx, apiOrg1, kafka.id));
+        kafka = await(waitUntilKafkaIsReady(vertx, apiOrg1, k.id));
     }
 
     @Test
