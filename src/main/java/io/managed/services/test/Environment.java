@@ -37,9 +37,11 @@ public class Environment {
     private static final String SSO_USERNAME_ENV = "SSO_USERNAME";
     private static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
     private static final String SSO_SECONDARY_USERNAME_ENV = "SSO_SECONDARY_USERNAME";
-    private static final String SSSO_SECONDARY_PASSWORD_ENV = "SSO_SECONDARY_PASSWORD";
+    private static final String SSO_SECONDARY_PASSWORD_ENV = "SSO_SECONDARY_PASSWORD";
     private static final String SSO_ALIEN_USERNAME_ENV = "SSO_ALIEN_USERNAME";
     private static final String SSO_ALIEN_PASSWORD_ENV = "SSO_ALIEN_PASSWORD";
+    private static final String SSO_UNAUTHORIZED_USERNAME_ENV = "SSO_UNAUTHORIZED_USERNAME";
+    private static final String SSO_UNAUTHORIZED_PASSWORD_ENV = "SSO_UNAUTHORIZED_PASSWORD";
 
     private static final String SSO_REDHAT_KEYCLOAK_URI_ENV = "SSO_REDHAT_KEYCLOAK_URI";
     private static final String SSO_REDHAT_REALM_ENV = "SSO_REDHAT_REALM";
@@ -78,10 +80,14 @@ public class Environment {
 
     // test sso.redhat.com secondary user
     public static final String SSO_SECONDARY_USERNAME = getOrDefault(SSO_SECONDARY_USERNAME_ENV, null);
-    public static final String SSO_SECONDARY_PASSWORD = getOrDefault(SSSO_SECONDARY_PASSWORD_ENV, null);
+    public static final String SSO_SECONDARY_PASSWORD = getOrDefault(SSO_SECONDARY_PASSWORD_ENV, null);
 
     public static final String SSO_ALIEN_USERNAME = getOrDefault(SSO_ALIEN_USERNAME_ENV, null);
     public static final String SSO_ALIEN_PASSWORD = getOrDefault(SSO_ALIEN_PASSWORD_ENV, null);
+
+    //test sso.redhat.com unauthorized user
+    public static final String SSO_UNAUTHORIZED_USERNAME = getOrDefault(SSO_UNAUTHORIZED_USERNAME_ENV, null);
+    public static final String SSO_UNAUTHORIZED_PASSWORD = getOrDefault(SSO_UNAUTHORIZED_PASSWORD_ENV, null);
 
     // sso.redhat.com OAuth ENVs
     public static final String SSO_REDHAT_KEYCLOAK_URI = getOrDefault(SSO_REDHAT_KEYCLOAK_URI_ENV, "https://sso.redhat.com");
