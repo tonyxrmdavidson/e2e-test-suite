@@ -37,17 +37,12 @@ public class ServiceAPUnauthorizedAndUnauthenticatedUserTest extends TestBase {
 
     ServiceAPI api1, api2, api3;
 
-    @BeforeAll
-    void bootstrap(Vertx vertx) {
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        api1 = await(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_UNAUTHORIZED_PASSWORD));
-        api2 = new ServiceAPI(vertx, Environment.SERVICE_API_URI, FAKE_TOKEN);
-        api3 = new ServiceAPI(vertx, Environment.SERVICE_API_URI, "");
-    }
-
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    void testUnauthorizedUser() {
+    void testUnauthorizedUser(Vertx vertx) {
+        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
+        api1 = await(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_UNAUTHORIZED_PASSWORD));
+
         await(api1.getListOfKafkas()
                 .compose(r -> Future.failedFuture("Get kafka list initially should fail!"))
                 .recover(throwable -> {
@@ -62,7 +57,9 @@ public class ServiceAPUnauthorizedAndUnauthenticatedUserTest extends TestBase {
 
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    void testUnauthenticatedUserWithFakeToken() {
+    void testUnauthenticatedUserWithFakeToken(Vertx vertx) {
+        api2 = new ServiceAPI(vertx, Environment.SERVICE_API_URI, FAKE_TOKEN);
+
         await(api2.getListOfKafkas()
                 .compose(r -> Future.failedFuture("Get kafka list initially should fail!"))
                 .recover(throwable -> {
@@ -77,7 +74,9 @@ public class ServiceAPUnauthorizedAndUnauthenticatedUserTest extends TestBase {
 
     @Test
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    void testUnauthenticatedUserWithoutToken() {
+    void testUnauthenticatedUserWithoutToken(Vertx vertx) {
+        api3 = new ServiceAPI(vertx, Environment.SERVICE_API_URI, "");
+
         await(api3.getListOfKafkas()
                 .compose(r -> Future.failedFuture("Get kafka list initially should fail!"))
                 .recover(throwable -> {
