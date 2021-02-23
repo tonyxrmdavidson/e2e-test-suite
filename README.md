@@ -91,6 +91,8 @@ make PROFILE=ci test
 | SSO_SECONDARY_PASSWORD  | the secondary user password                                                   |  |
 | SSO_ALIEN_USERNAME      | a third user that is part of a different org respect the main user            |  |
 | SSO_ALIEN_PASSWORD      | the alien user password                                                       |  |
+| SSO_UNAUTHORIZED_USERNAME | a user that is not part of org						  |  |	
+| SSO_UNAUTHORIZED_PASSWORD | the unauthorized user password						  |  |
 | DEV_CLUSTER_SERVER      | the api server url of a openshift cluster with the binding operator installed | https://api.devexp.imkr.s1.devshift.org:6443 |
 | DEV_CLUSTER_NAMESPACE   | the namespace to use to install the binding operator CRs                      | mk-e2e-tests |
 | DEV_CLUSTER_TOKEN       | the cluster user token (this can also be a service account token)             |  |
@@ -103,7 +105,7 @@ make PROFILE=ci test
 | Name | Description | Required Envs |
 |------|-------------|---------------|
 | service-api               | run all tests targeting the service-api | SSO_USERNAME, SSO_PASSWORD |
-| service-api-permissions   | run all service api permissions tests   | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD, SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD |
+| service-api-permissions   | run all service api permissions tests   | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD, SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD, SSO_UNAUTHORIZED_USERNAME, SSO_UNAUTHORIZED_PASSWORD  |
 | binding-operator          | run all tests for the binding-operator  | SSO_USERNAME, SSO_PASSWORD, DEV_CLUSTER_TOKEN |
 | cli                       | run all tests for the CLI               | SSO_USERNAME, SSO_PASSWORD, BF2_GITHUB_TOKEN |
 
