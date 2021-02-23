@@ -1,7 +1,9 @@
 package io.managed.services.test.client.github;
 
 import io.managed.services.test.client.BaseVertxClient;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ResponseException;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -30,13 +32,33 @@ public class GitHub extends BaseVertxClient {
                 .setFollowRedirects(false);
     }
 
+    private Future<Release[]> getReleases(String org, String repo) {
+        String path = String.format("/repos/%s/%s/releases", org, repo);
+
+        return client.get(path)
+            .authentication(token)
+            .send()
+            .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
+            .map(r -> r.bodyAsJson(Release[].class));
+    }
+
     public Future<Release> getReleaseByTagName(String org, String repo, String name) {
         String path;
         if (name.toLowerCase(Locale.ROOT).equals("latest")) {
-            path = String.format("/repos/%s/%s/releases/latest", org, repo);
-        } else {
-            path = String.format("/repos/%s/%s/releases/tags/%s", org, repo, name);
+            var releases = TestUtils.await(this.getReleases(org, repo));
+
+            for (Release release : releases) {
+                // we don't want to test it if it is a draft release
+                if (release.draft) {
+                    continue;
+                }
+                // get the first non-draft release
+                name = release.tagName;
+                break;
+            }
         }
+
+        path = String.format("/repos/%s/%s/releases/tags/%s", org, repo, name);
 
         return client.get(path)
                 .authentication(token)
