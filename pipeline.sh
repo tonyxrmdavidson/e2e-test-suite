@@ -8,49 +8,44 @@ set -eEu -o pipefail
 # shellcheck disable=SC2154
 trap 's=$?; echo "$0: error on $0:$LINENO"; exit $s' ERR
 
-TESTCASE=${TESTCASE:-"io.managed.services.test.**"}
-PROFILE=${PROFILE:-"ci"}
-REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
-
-# change the KAFKA_POSTFIX_NAME when executing the tests on the ci
-export KAFKA_POSTFIX_NAME=${KAFKA_POSTFIX_NAME:-"ci"}
+SCRIPT=$0
 
 function info() {
-    MESSAGE="${1}"
-    echo "[INFO]  [$(date +"%T")] - ${MESSAGE}"
+  echo "$SCRIPT: info: $1" >&2
 }
 
-function error() {
-    MESSAGE="${1}"
-    echo "[ERROR] [$(date +"%T")] - ${MESSAGE}"
-    exit 1
-}
+info "Build the test container"
+#docker build -t e2e-test-suite .
+set -x
 
-function separator() {
-    echo ""
-    info "---------------------------------------------------------------------"
-    echo ""
-}
-
-function check_env_variable() {
-    X="${1}"
-    info "Checking content of variable ${X}"
-    if [[ -z "${!X}" ]]; then
-        error "Variable ${X} is not defined, exit!!!"
-    fi
-}
-
-info "1. Check env variables"
-check_env_variable "TESTCASE"
-check_env_variable "PROFILE"
-separator
-
-info "2. Running tests"
-separator
-mvn verify \
-    "-P${PROFILE}" \
-    "-Dit.test=${TESTCASE}" \
-    "-Drp.enable=true" \
-    "-Drp.uuid=${REPORTPORTAL_UUID}" \
-    --no-transfer-progress
-separator
+info "Run the test suite"
+mkdir -p test-results/failsafe-reports
+mkdir -p test-results/logs
+docker run \
+  -v "${PWD}/test-results/failsafe-reports:/home/jboss/test-suite/target/failsafe-reports" \
+  -v "${PWD}/test-results/logs:/home/jboss/test-suite/target/logs" \
+  -e TESTCASE="${TESTCASE:-}" \
+  -e PROFILE="${PROFILE:-}" \
+  -e CONFIG_PATH="${CONFIG_PATH:-}" \
+  -e SERVICE_API_URI="${SERVICE_API_URI:-}" \
+  -e SSO_REDHAT_KEYCLOAK_URI="${SSO_REDHAT_KEYCLOAK_URI:-}" \
+  -e SSO_REDHAT_REALM="${SSO_REDHAT_REALM:-}" \
+  -e SSO_REDHAT_CLIENT_ID="${SSO_REDHAT_CLIENT_ID:-}" \
+  -e SSO_REDHAT_REDIRECT_URI="${SSO_REDHAT_REDIRECT_URI:-}" \
+  -e SSO_USERNAME="${SSO_USERNAME:-}" \
+  -e SSO_PASSWORD="${SSO_PASSWORD:-}" \
+  -e SSO_SECONDARY_USERNAME="${SSO_SECONDARY_USERNAME:-}" \
+  -e SSO_SECONDARY_PASSWORD="${SSO_SECONDARY_PASSWORD:-}" \
+  -e SSO_ALIEN_USERNAME="${SSO_ALIEN_USERNAME:-}" \
+  -e SSO_ALIEN_PASSWORD="${SSO_ALIEN_PASSWORD:-}" \
+  -e DEV_CLUSTER_SERVER="${DEV_CLUSTER_SERVER:-}" \
+  -e DEV_CLUSTER_NAMESPACE="${DEV_CLUSTER_NAMESPACE:-}" \
+  -e DEV_CLUSTER_TOKEN="${DEV_CLUSTER_TOKEN:-}" \
+  -e BF2_GITHUB_TOKEN="${BF2_GITHUB_TOKEN:-}" \
+  -e CLI_VERSION="${CLI_VERSION:-}" \
+  -e CLI_ARCH="${CLI_ARCH:-}" \
+  -e REPORTPORTAL_ENABLE="${REPORTPORTAL_ENABLE:-"true"}" \
+  -e REPORTPORTAL_UUID="${REPORTPORTAL_UUID:-}" \
+  -e KAFKA_POSTFIX_NAME="${KAFKA_POSTFIX_NAME:-"ci"}" \
+  -u "$(id -u)" \
+  e2e-test-suite
