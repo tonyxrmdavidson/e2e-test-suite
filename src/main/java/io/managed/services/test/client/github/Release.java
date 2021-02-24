@@ -12,6 +12,9 @@ public class Release {
     @JsonProperty("tag_name")
     public String tagName;
     public String name;
+    public Boolean draft;
+    @JsonProperty("prerelease")
+    public Boolean preRelease;
     public List<Asset> assets;
 
     @Override
