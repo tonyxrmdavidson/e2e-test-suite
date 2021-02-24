@@ -1,7 +1,5 @@
-package io.managed.services.test.smoke;
+package io.managed.services.test;
 
-import io.managed.services.test.Environment;
-import io.managed.services.test.TestBase;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
