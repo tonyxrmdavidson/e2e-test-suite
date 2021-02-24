@@ -12,13 +12,15 @@ import java.net.HttpURLConnection;
 
 public class ServiceAPI extends BaseVertxClient {
 
-    final User user;
     final TokenCredentials token;
 
-    public ServiceAPI(Vertx vertx, String uri, User user) {
+    public ServiceAPI(Vertx vertx, String uri, String token) {
         super(vertx, uri);
-        this.user = user;
-        this.token = new TokenCredentials(KeycloakOAuth.getToken(user));
+        this.token = new TokenCredentials(token);
+    }
+
+    public ServiceAPI(Vertx vertx, String uri, User user) {
+        this(vertx, uri, KeycloakOAuth.getToken(user));
     }
 
 
