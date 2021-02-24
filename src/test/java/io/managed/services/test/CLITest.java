@@ -27,7 +27,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.io.IOException;
 
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.cli.CLIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.cli.CLIUtils.extractCLI;
+import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -58,7 +60,8 @@ public class CLITest extends TestBase {
     @AfterAll
     void clean(Vertx vertx) {
         if (cli != null) {
-            CLIUtils.deleteKafkaByName(cli, KAFKA_INSTANCE_NAME);
+            deleteKafkaByNameIfExists(cli, KAFKA_INSTANCE_NAME);
+
             LOGGER.info("log-out from the CLI");
             await(cli.logout().recover(t -> {
                 LOGGER.error("logout failed with error:", t);
@@ -154,7 +157,7 @@ public class CLITest extends TestBase {
         assertCLI();
 
         LOGGER.info("verify that we aren't logged-in");
-        await(cli.listKafkas()
+        await(cli.listKafka()
                 .compose(r -> Future.failedFuture("cli kafka list should fail because we haven't log-in yet"))
                 .recover(t -> {
                     if (t instanceof ProcessException) {
@@ -170,7 +173,7 @@ public class CLITest extends TestBase {
         await(CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
         LOGGER.info("verify that we are logged-in");
-        await(cli.listKafkas());
+        await(cli.listKafka());
         loggedIn = true;
     }
 
@@ -180,22 +183,22 @@ public class CLITest extends TestBase {
         assertLoggedIn();
 
         LOGGER.info("Create kafka cluster with name {}", KAFKA_INSTANCE_NAME);
-        kafkaInstance = await(CLIUtils.createKafkaInstance(cli, KAFKA_INSTANCE_NAME));
+        kafkaInstance = await(cli.createKafka(KAFKA_INSTANCE_NAME));
         LOGGER.info("Created kafka cluster {} with id {}", kafkaInstance.name, kafkaInstance.id);
-        waitForKafkaReady(cli, kafkaInstance.id);
+        await(waitForKafkaReady(vertx, cli, kafkaInstance.id));
         LOGGER.info("Kafka cluster {} with id {} is ready", kafkaInstance.name, kafkaInstance.id);
     }
 
     @Test
     @Order(4)
-    void testGetStatusOfKafkaInstance(Vertx vertx) {
+    void testGetStatusOfKafkaInstance() {
         assertLoggedIn();
         assertKafka();
 
-        LOGGER.info("Get kafka cluster with name {}", KAFKA_INSTANCE_NAME);
-        KafkaResponse getKafka = await(CLIUtils.getStatusOfKafka(cli, kafkaInstance.id));
+        LOGGER.info("Get kafka instance with name {}", KAFKA_INSTANCE_NAME);
+        KafkaResponse getKafka = await(cli.describeKafka(kafkaInstance.id));
         assertEquals("ready", getKafka.status);
-        LOGGER.info("Found kafka cluster {} with id {}", getKafka.name, getKafka.id);
+        LOGGER.info("Found kafka instance {} with id {}", getKafka.name, getKafka.id);
     }
 
     @Test
@@ -260,8 +263,8 @@ public class CLITest extends TestBase {
         assertLoggedIn();
         assertKafka();
 
-        LOGGER.info("Delete kafka cluster {} with id {}", kafkaInstance.name, kafkaInstance.id);
-        await(cli.deleteKafkaInstance(kafkaInstance.id));
-        CLIUtils.waitForKafkaDelete(cli, kafkaInstance.name);
+        LOGGER.info("Delete kafka instance {} with id {}", kafkaInstance.name, kafkaInstance.id);
+        await(cli.deleteKafka(kafkaInstance.id));
+        await(waitForKafkaDelete(vertx, cli, kafkaInstance.name));
     }
 }
