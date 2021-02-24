@@ -3,7 +3,6 @@ package io.managed.services.test.client.github;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ResponseException;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
