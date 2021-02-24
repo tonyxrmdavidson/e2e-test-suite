@@ -58,6 +58,7 @@ public class CLITest extends TestBase {
     @AfterAll
     void clean(Vertx vertx) {
         if (cli != null) {
+            CLIUtils.deleteKafkaByName(cli, KAFKA_INSTANCE_NAME);
             LOGGER.info("log-out from the CLI");
             await(cli.logout().recover(t -> {
                 LOGGER.error("logout failed with error:", t);
@@ -198,6 +199,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
+    @Disabled("not implemented")
     @Order(5)
     void testCreateServiceAccount(Vertx vertx) {
         //TODO
@@ -260,5 +262,6 @@ public class CLITest extends TestBase {
 
         LOGGER.info("Delete kafka cluster {} with id {}", kafkaInstance.name, kafkaInstance.id);
         await(cli.deleteKafkaInstance(kafkaInstance.id));
+        CLIUtils.waitForKafkaDelete(cli, kafkaInstance.name);
     }
 }

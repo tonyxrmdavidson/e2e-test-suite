@@ -141,6 +141,44 @@ public class CLIUtils {
         return processStdOut(KafkaListResponse.class, cli.getKafkaJsonList());
     }
 
+    public static Future<?> deleteKafkaByName(CLI cli, String name) {
+        return getKafkaByName(cli, name)
+                .compose(kafkaResponse -> {
+                    if (kafkaResponse != null) {
+                        return cli.deleteKafkaInstance(kafkaResponse.id);
+                    }
+                    return Future.succeededFuture();
+                });
+    }
+
+    public static Future<KafkaResponse> getKafkaByName(CLI cli, String name) {
+        return getKafkaList(cli)
+                .map(kafkaListResponse -> {
+                    for (KafkaResponse k : kafkaListResponse.items) {
+                        if (k.name.equals(name)) {
+                            return k;
+                        }
+                    }
+                    return null;
+                });
+    }
+
+    public static void waitForKafkaReady(CLI cli, String id) {
+        LOGGER.info("Waiting for kafka ready");
+        TestUtils.waitFor("Kafka instance ready", 10_000, Environment.WAIT_READY_MS, () -> {
+            KafkaResponse kafka = await(CLIUtils.getStatusOfKafka(cli, id));
+            return kafka.status.equals("ready");
+        });
+    }
+
+    public static void waitForKafkaDelete(CLI cli, String name) {
+        LOGGER.info("Waiting for kafka deleted");
+        TestUtils.waitFor("Kafka instance deleted", 10_000, Environment.WAIT_READY_MS, () -> {
+            KafkaResponse kafka = await(CLIUtils.getKafkaByName(cli, name));
+            return kafka == null;
+        });
+    }
+
     private static <T> Future<T> processStdOut(Class<T> clazz, Future<AsyncProcess> processing) {
         Promise<String> output = Promise.promise();
         return processing
@@ -157,12 +195,5 @@ public class CLIUtils {
                         return null;
                     }
                 });
-    }
-
-    public static void waitForKafkaReady(CLI cli, String id) {
-        TestUtils.waitFor("Kafka instance ready", 10_000, Environment.WAIT_READY_MS, () -> {
-            KafkaResponse kafka = await(CLIUtils.getStatusOfKafka(cli, id));
-            return kafka.status.equals("ready");
-        });
     }
 }
