@@ -1,4 +1,8 @@
 .idea/
+.project
+.classpath
+.factorypath
+.settings/
 **/*.iml
 **/target/*
 .DS_STORE
