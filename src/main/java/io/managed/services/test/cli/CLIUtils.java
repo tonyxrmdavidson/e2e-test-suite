@@ -30,6 +30,7 @@ import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
@@ -144,14 +145,14 @@ public class CLIUtils {
     public static Future<?> deleteKafkaByName(CLI cli, String name) {
         return getKafkaByName(cli, name)
                 .compose(kafkaResponse -> {
-                    if (kafkaResponse != null) {
-                        return cli.deleteKafkaInstance(kafkaResponse.id);
+                    if (kafkaResponse.isPresent()) {
+                        return cli.deleteKafkaInstance(kafkaResponse.get().id);
                     }
                     return Future.succeededFuture();
                 });
     }
 
-    public static Future<KafkaResponse> getKafkaByName(CLI cli, String name) {
+    public static Future<Optional<KafkaResponse>> getKafkaByName(CLI cli, String name) {
         return getKafkaList(cli)
                 .map(kafkaListResponse -> {
                     for (KafkaResponse k : kafkaListResponse.items) {
@@ -160,7 +161,8 @@ public class CLIUtils {
                         }
                     }
                     return null;
-                });
+                })
+                .map(Optional::ofNullable);
     }
 
     public static void waitForKafkaReady(CLI cli, String id) {
@@ -173,10 +175,8 @@ public class CLIUtils {
 
     public static void waitForKafkaDelete(CLI cli, String name) {
         LOGGER.info("Waiting for kafka deleted");
-        TestUtils.waitFor("Kafka instance deleted", 10_000, Environment.WAIT_READY_MS, () -> {
-            KafkaResponse kafka = await(CLIUtils.getKafkaByName(cli, name));
-            return kafka == null;
-        });
+        TestUtils.waitFor("Kafka instance deleted", 10_000, Environment.WAIT_READY_MS, () ->
+                await(CLIUtils.getKafkaByName(cli, name)).isPresent());
     }
 
     private static <T> Future<T> processStdOut(Class<T> clazz, Future<AsyncProcess> processing) {
@@ -186,13 +186,12 @@ public class CLIUtils {
                         asyncProcess.future().onComplete(result ->
                                 output.complete(asyncProcess.stdout().lines().collect(Collectors.joining()))))
                 .compose(process -> output.future())
-                .map(stdout -> {
+                .compose(stdout -> {
                     ObjectMapper mapper = new ObjectMapper();
                     try {
-                        return mapper.readValue(stdout, clazz);
+                        return Future.succeededFuture(mapper.readValue(stdout, clazz));
                     } catch (JsonProcessingException e) {
-                        e.printStackTrace();
-                        return null;
+                        return Future.failedFuture(String.format("stdout: %s \n exception: %s", stdout, e.getMessage()));
                     }
                 });
     }
