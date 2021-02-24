@@ -45,7 +45,7 @@ import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@Tag(TestTag.CI)
+
 @Tag(TestTag.BINDING_OPERATOR)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

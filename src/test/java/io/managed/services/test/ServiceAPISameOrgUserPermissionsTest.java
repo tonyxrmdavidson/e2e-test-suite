@@ -41,8 +41,8 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUnt
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@Tag(TestTag.CI)
-@Tag(TestTag.SERVICE_API)
+
+@Tag(TestTag.SERVICE_API_PERMISSIONS)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ServiceAPISameOrgUserPermissionsTest extends TestBase {

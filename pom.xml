@@ -262,9 +262,9 @@
     </build>
     <profiles>
         <profile>
-            <id>ci</id>
+            <id>default</id>
             <properties>
-                <groups>ci</groups>
+                <groups>service-api,service-api-permissions,binding-operator,cli</groups>
             </properties>
         </profile>
         <profile>

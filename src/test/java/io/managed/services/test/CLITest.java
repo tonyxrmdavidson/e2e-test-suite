@@ -34,7 +34,7 @@ import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@Tag(TestTag.CI)
+
 @Tag(TestTag.CLI)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

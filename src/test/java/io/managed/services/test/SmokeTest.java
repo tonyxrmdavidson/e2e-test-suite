@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+
 @Tag(TestTag.SMOKE)
 public class SmokeTest extends TestBase {
 
