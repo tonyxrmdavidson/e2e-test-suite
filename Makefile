@@ -33,7 +33,7 @@ ifdef PROFILE
 endif
 
 ifdef TESTCASE
-	TESTCASE_ARGS = "-Dtest=$(TESTCASE)"
+	TESTCASE_ARGS = "-Dit.test=$(TESTCASE)"
 endif
 
 clean:
