@@ -91,7 +91,7 @@ make PROFILE=ci test
 | SSO_SECONDARY_PASSWORD  | the secondary user password                                                   |  |
 | SSO_ALIEN_USERNAME      | a third user that is part of a different org respect the main user            |  |
 | SSO_ALIEN_PASSWORD      | the alien user password                                                       |  |
-| SSO_UNAUTHORIZED_USERNAME | a user that is not part of org						  |  |	
+| SSO_UNAUTHORIZED_USERNAME | a user that is not authorized to create kafka instances 	  |  |	
 | SSO_UNAUTHORIZED_PASSWORD | the unauthorized user password						  |  |
 | DEV_CLUSTER_SERVER      | the api server url of a openshift cluster with the binding operator installed | https://api.devexp.imkr.s1.devshift.org:6443 |
 | DEV_CLUSTER_NAMESPACE   | the namespace to use to install the binding operator CRs                      | mk-e2e-tests |
@@ -143,4 +143,3 @@ rp.api.key=ff7fd6a5-4985-4260-805f-bfeeca919536 rp.launch=mk-e2e-test-suite rp.p
 
 * David Kornel <dkornel@redhat.com>
 * Davide Bizzarri <dbizzarr@redhat.com>
-
