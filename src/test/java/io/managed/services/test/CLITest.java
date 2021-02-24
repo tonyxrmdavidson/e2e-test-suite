@@ -246,6 +246,9 @@ public class CLITest extends TestBase {
     @Test
     @Order(11)
     void testCreateAlreadyCreatedKafka() {
+        assertLoggedIn();
+        assertKafka();
+
         await(cli.createKafka(KAFKA_INSTANCE_NAME)
                 .compose(r -> Future.failedFuture("Create kafka with same name should fail"))
                 .recover(throwable -> {
