@@ -18,4 +18,5 @@ info "Build the test container"
 make image/build
 
 info "Run the test suite"
-make container/test
+make container/test \
+  REPORTPORTAL_ENABLE=true
