@@ -1,7 +1,5 @@
-package io.managed.services.test.smoke;
+package io.managed.services.test;
 
-import io.managed.services.test.Environment;
-import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
@@ -53,7 +51,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
-@Tag(TestTag.CI)
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

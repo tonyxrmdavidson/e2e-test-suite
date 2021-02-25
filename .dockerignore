@@ -1,0 +1,8 @@
+.git/
+.idea/
+**/*.iml
+target/
+**/.DS_STORE
+config.json
+Dockerfile
+test-results/

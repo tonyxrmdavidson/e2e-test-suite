@@ -1,7 +1,5 @@
-package io.managed.services.test.smoke;
+package io.managed.services.test;
 
-import io.managed.services.test.Environment;
-import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaUtils;
@@ -42,8 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
-@Tag(TestTag.CI)
-@Tag(TestTag.SERVICE_API)
+@Tag(TestTag.SERVICE_API_PERMISSIONS)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
