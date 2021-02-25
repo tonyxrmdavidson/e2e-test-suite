@@ -244,10 +244,21 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Disabled("not implemented")
     @Order(11)
-    void testCreateAlreadyCreatedKafka(Vertx vertx) {
-        //TODO
+    void testCreateAlreadyCreatedKafka() {
+        assertLoggedIn();
+        assertKafka();
+
+        await(cli.createKafka(KAFKA_INSTANCE_NAME)
+                .compose(r -> Future.failedFuture("Create kafka with same name should fail"))
+                .recover(throwable -> {
+                    if (throwable instanceof Exception) {
+                        LOGGER.info("Create kafka with already exists name failed");
+                        return Future.succeededFuture();
+                    }
+                    return Future.failedFuture(throwable);
+                })
+        );
     }
 
     @Test
