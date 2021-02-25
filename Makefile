@@ -2,6 +2,12 @@ ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 DOCKER ?= docker
 KUBECONFIG ?= $(HOME)/.kube/config
 
+IMAGE_REGISTRY ?= quay.io
+IMAGE_REPO ?= bf2
+IMAGE_NAME ?= e2e-test-suite
+IMAGE_TAG ?= latest
+IMAGE = "${IMAGE_REGISTRY}/${IMAGE_REPO}/${IMAGE_NAME}:${IMAGE_TAG}"
+
 # Test ENVs
 TESTCASE ?=
 PROFILE ?=
@@ -26,6 +32,7 @@ DEV_CLUSTER_TOKEN ?=
 BF2_GITHUB_TOKEN ?=
 CLI_VERSION ?=
 CLI_ARCH ?=
+REPORTPORTAL_ENABLE ?=
 REPORTPORTAL_UUID ?=
 
 ifdef PROFILE
@@ -45,19 +52,17 @@ build:
 test:
 	mvn test $(TESTCASE_ARGS) $(PROFILE_ARGS)
 
-pipeline:
-	./pipeline.sh
+image/build:
+	$(DOCKER) build -t ${IMAGE} .
 
-ci/pipeline:
-	$(DOCKER) pull quay.io/app-sre/mk-ci-tools:latest
-	$(DOCKER) run -v $(ROOT_DIR):/opt/mk-e2e-test-suite \
-		-w /opt/mk-e2e-test-suite \
-		-e HOME=/tmp \
-		-v $(KUBECONFIG):/tmp/.kube/config \
-		-e GOPATH=/tmp \
+container/test:
+	mkdir -p test-results/failsafe-reports
+	mkdir -p test-results/logs
+	$(DOCKER) run \
+		-v "${ROOT_DIR}/test-results/failsafe-reports:/home/jboss/test-suite/target/failsafe-reports" \
+		-v "${ROOT_DIR}/test-results/logs:/home/jboss/test-suite/target/logs" \
 		-e TESTCASE=${TESTCASE} \
 		-e PROFILE=${PROFILE} \
-		-e LOG_DIR=${LOG_DIR} \
 		-e CONFIG_PATH=${CONFIG_PATH} \
 		-e SERVICE_API_URI=${SERVICE_API_URI} \
 		-e SSO_REDHAT_KEYCLOAK_URI=${SSO_REDHAT_KEYCLOAK_URI} \
@@ -67,19 +72,21 @@ ci/pipeline:
 		-e SSO_USERNAME=${SSO_USERNAME} \
 		-e SSO_PASSWORD=${SSO_PASSWORD} \
 		-e SSO_SECONDARY_USERNAME=${SSO_SECONDARY_USERNAME} \
-        -e SSO_SECONDARY_PASSWORD=${SSO_SECONDARY_PASSWORD} \
-        -e SSO_ALIEN_USERNAME=${SSO_ALIEN_USERNAME} \
-        -e SSO_ALIEN_PASSWORD=${SSO_ALIEN_PASSWORD} \
-        -e SSO_UNAUTHORIZED_USERNAME=${SSO_UNAUTHORIZED_USERNAME} \
+		-e SSO_SECONDARY_PASSWORD=${SSO_SECONDARY_PASSWORD} \
+		-e SSO_ALIEN_USERNAME=${SSO_ALIEN_USERNAME} \
+		-e SSO_ALIEN_PASSWORD=${SSO_ALIEN_PASSWORD} \
+		-e SSO_UNAUTHORIZED_USERNAME=${SSO_UNAUTHORIZED_USERNAME} \
         -e SSO_UNAUTHORIZED_PASSWORD=${SSO_UNAUTHORIZED_PASSWORD} \
         -e DEV_CLUSTER_SERVER=${DEV_CLUSTER_SERVER} \
-        -e DEV_CLUSTER_NAMESPACE=${DEV_CLUSTER_NAMESPACE} \
-        -e DEV_CLUSTER_TOKEN=${DEV_CLUSTER_TOKEN} \
-        -e BF2_GITHUB_TOKEN=${BF2_GITHUB_TOKEN} \
-        -e CLI_VERSION=${CLI_VERSION} \
-        -e CLI_ARCH=${CLI_ARCH} \
+		-e DEV_CLUSTER_NAMESPACE=${DEV_CLUSTER_NAMESPACE} \
+		-e DEV_CLUSTER_TOKEN=${DEV_CLUSTER_TOKEN} \
+		-e BF2_GITHUB_TOKEN=${BF2_GITHUB_TOKEN} \
+		-e CLI_VERSION=${CLI_VERSION} \
+		-e CLI_ARCH=${CLI_ARCH} \
+		-e REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE} \
 		-e REPORTPORTAL_UUID=${REPORTPORTAL_UUID} \
-		-u $(shell id -u) \
-		quay.io/app-sre/mk-ci-tools:latest make pipeline
+		-e KAFKA_POSTFIX_NAME=${KAFKA_POSTFIX_NAME} \
+		-u "$(shell id -u)" \
+		${IMAGE}
 
-.PHONY: clean build test
+.PHONY: clean build test image/build container/test
