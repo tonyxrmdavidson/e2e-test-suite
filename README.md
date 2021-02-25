@@ -42,7 +42,7 @@ make test
 maven
 
 ```
-mvn test -Dtest=ClassName#testName
+mvn test -Dit.test=ClassName#testName
 ```
 
 make
