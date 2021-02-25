@@ -1,7 +1,5 @@
-package io.managed.services.test.smoke;
+package io.managed.services.test;
 
-import io.managed.services.test.Environment;
-import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
@@ -18,14 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.await;
 
-
-import java.net.HttpURLConnection;
-
-@Tag(TestTag.CI)
 @Tag(TestTag.SERVICE_API)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
