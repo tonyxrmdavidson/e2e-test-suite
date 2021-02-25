@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.await;
 
-@Tag(TestTag.SERVICE_API)
+@Tag(TestTag.SERVICE_API_PERMISSIONS)
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ServiceAPUnauthorizedAndUnauthenticatedUserTest extends TestBase {
