@@ -35,6 +35,12 @@ CLI_ARCH ?=
 REPORTPORTAL_ENABLE ?=
 REPORTPORTAL_UUID ?=
 
+ifeq (${DOCKER}, podman)
+	DOCKER_RUN = ${DOCKER} run -u "0"
+else
+	DOCKER_RUN = ${DOCKER} run -u "$(shell id -u)"
+endif
+
 ifdef PROFILE
 	PROFILE_ARGS = "-P$(PROFILE)"
 endif
@@ -58,9 +64,9 @@ image/build:
 container/test:
 	mkdir -p test-results/failsafe-reports
 	mkdir -p test-results/logs
-	$(DOCKER) run \
-		-v "${ROOT_DIR}/test-results/failsafe-reports:/home/jboss/test-suite/target/failsafe-reports" \
-		-v "${ROOT_DIR}/test-results/logs:/home/jboss/test-suite/target/logs" \
+	${DOCKER_RUN} \
+		-v "${ROOT_DIR}/test-results/failsafe-reports:/home/jboss/test-suite/target/failsafe-reports:z" \
+		-v "${ROOT_DIR}/test-results/logs:/home/jboss/test-suite/target/logs:z" \
 		-e TESTCASE=${TESTCASE} \
 		-e PROFILE=${PROFILE} \
 		-e CONFIG_PATH=${CONFIG_PATH} \
@@ -86,7 +92,6 @@ container/test:
 		-e REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE} \
 		-e REPORTPORTAL_UUID=${REPORTPORTAL_UUID} \
 		-e KAFKA_POSTFIX_NAME=${KAFKA_POSTFIX_NAME} \
-		-u "$(shell id -u)" \
 		${IMAGE}
 
 .PHONY: clean build test image/build container/test
