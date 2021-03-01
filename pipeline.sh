@@ -19,4 +19,5 @@ make image/build
 
 info "Run the test suite"
 make container/test \
-  REPORTPORTAL_ENABLE=true
+  REPORTPORTAL_ENABLE=true \
+  KAFKA_POSTFIX_NAME=ci
