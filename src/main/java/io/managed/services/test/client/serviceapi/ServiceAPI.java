@@ -85,6 +85,14 @@ public class ServiceAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(ServiceAccountList.class)));
     }
 
+    public Future<ServiceAccount> resetCredentialsServiceAccount(String id) {
+        return retry(() -> client.post(String.format("/api/managed-services-api/v1/serviceaccounts/%s/reset-credentials", id))
+                .authentication(token)
+                .send()
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
+                .map(r -> r.bodyAsJson(ServiceAccount.class)));
+    }
+
     public Future<Void> deleteServiceAccount(String id) {
         return retry(() -> client.delete(String.format("/api/managed-services-api/v1/serviceaccounts/%s", id))
                 .authentication(token)

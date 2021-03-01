@@ -52,6 +52,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 public class BindingOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(BindingOperatorTest.class);
 
+    // ust the kafka long living instance
+    static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
+
     User user;
 
     ServiceAPI api;
@@ -71,10 +74,10 @@ public class BindingOperatorTest extends TestBase {
         assumeTrue(Environment.DEV_CLUSTER_TOKEN != null, "the DEV_CLUSTER_TOKEN env is null");
 
         KeycloakOAuth auth = new KeycloakOAuth(vertx,
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID);
+                Environment.SSO_REDHAT_KEYCLOAK_URI,
+                Environment.SSO_REDHAT_REDIRECT_URI,
+                Environment.SSO_REDHAT_REALM,
+                Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         this.user = await(auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
@@ -82,10 +85,10 @@ public class BindingOperatorTest extends TestBase {
 
 
         Config config = new ConfigBuilder()
-            .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
-            .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
-            .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
-            .build();
+                .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
+                .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
+                .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+                .build();
 
         LOGGER.info("initialize kubernetes client");
         this.client = new DefaultKubernetesClient(config);
@@ -159,8 +162,7 @@ public class BindingOperatorTest extends TestBase {
         a = OperatorUtils.managedServiceAccountRequest(client).create(a);
         LOGGER.info("created ManagedServiceAccountRequest: {}", Json.encode(a));
 
-        IsReady<ManagedServiceAccountRequest> ready = last ->
-            Future.succeededFuture(OperatorUtils.managedServiceAccountRequest(client).withName(MANAGED_SERVICE_ACCOUNT_REQUEST_NAME).get())
+        IsReady<ManagedServiceAccountRequest> ready = last -> Future.succeededFuture(OperatorUtils.managedServiceAccountRequest(client).withName(MANAGED_SERVICE_ACCOUNT_REQUEST_NAME).get())
                 .map(r -> {
 
                     LOGGER.info("ManagedServiceAccountRequest status is: {}", Json.encode(r.getStatus()));
@@ -192,8 +194,7 @@ public class BindingOperatorTest extends TestBase {
         k = OperatorUtils.managedServicesRequest(client).create(k);
         LOGGER.info("created ManagedServicesRequest: {}", Json.encode(k));
 
-        IsReady<ManagedServicesRequest> ready = last ->
-            Future.succeededFuture(OperatorUtils.managedServicesRequest(client).withName(MANAGED_KAFKA_REQUEST_NAME).get())
+        IsReady<ManagedServicesRequest> ready = last -> Future.succeededFuture(OperatorUtils.managedServicesRequest(client).withName(MANAGED_KAFKA_REQUEST_NAME).get())
                 .map(r -> {
 
                     LOGGER.info("ManagedServicesRequest status is: {}", Json.encode(r.getStatus()));
@@ -222,13 +223,12 @@ public class BindingOperatorTest extends TestBase {
         assumeTrue(managedServicesRequest.getStatus() != null, "the ManagedServicesRequest status is null");
 
         var userKafka = managedServicesRequest.getStatus().getUserKafkas().stream()
-            .filter(k -> k.getName().equals(Environment.LONG_LIVED_KAFKA_NAME))
-            .findFirst();
+                .filter(k -> k.getName().equals(KAFKA_INSTANCE_NAME))
+                .findFirst();
 
         if (userKafka.isEmpty()) {
             LOGGER.info("ManagedServicesRequest: {}", Json.encode(managedServicesRequest));
-            fail(String.format("failed to find the user kafka instance %s in the ManagedServicesRequest %s",
-                Environment.LONG_LIVED_KAFKA_NAME, MANAGED_KAFKA_REQUEST_NAME));
+            fail(String.format("failed to find the user kafka instance %s in the ManagedServicesRequest %s", KAFKA_INSTANCE_NAME, MANAGED_KAFKA_REQUEST_NAME));
         }
 
         var c = new ManagedKafkaConnection();
@@ -242,8 +242,7 @@ public class BindingOperatorTest extends TestBase {
         c = OperatorUtils.managedKafkaConnection(client).create(c);
         LOGGER.info("created ManagedKafkaConnection: {}", Json.encode(c));
 
-        IsReady<ManagedKafkaConnection> ready = last ->
-            Future.succeededFuture(OperatorUtils.managedKafkaConnection(client).withName(MANAGED_KAFKA_CONNECTION_NAME).get())
+        IsReady<ManagedKafkaConnection> ready = last -> Future.succeededFuture(OperatorUtils.managedKafkaConnection(client).withName(MANAGED_KAFKA_CONNECTION_NAME).get())
                 .map(r -> {
 
                     LOGGER.info("ManagedKafkaConnection status is: {}", Json.encode(r.getStatus()));
