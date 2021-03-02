@@ -1,7 +1,6 @@
 package io.managed.services.test.executor;
 
 import io.fabric8.kubernetes.api.model.EnvVar;
-import io.managed.services.test.k8s.exception.KubeClusterException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,15 +25,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.String.join;
 
 public class Exec {
     private static final Logger LOGGER = LogManager.getLogger(Exec.class);
-    private static final Pattern ERROR_PATTERN = Pattern.compile("Error from server \\(([a-zA-Z0-9]+)\\):");
-    private static final Pattern INVALID_PATTERN = Pattern.compile("The ([a-zA-Z0-9]+) \"([a-z0-9.-]+)\" is invalid:");
     private static final Pattern PATH_SPLITTER = Pattern.compile(System.getProperty("path.separator"));
     private static final int MAXIMUM_EXEC_LOG_CHARACTER_SIZE = Integer.parseInt(System.getenv().getOrDefault("STRIMZI_EXEC_MAX_LOG_OUTPUT_CHARACTERS", "20000"));
     private static final Object LOCK = new Object();
@@ -102,7 +98,7 @@ public class Exec {
      * @param command arguments for command
      * @return execution results
      */
-    public static ExecResult exec(String... command) {
+    public static ExecResult exec(String... command) throws Exception {
         return exec(Arrays.asList(command));
     }
 
@@ -112,7 +108,7 @@ public class Exec {
      * @param command arguments for command
      * @return execution results
      */
-    public static ExecResult exec(boolean logToOutput, String... command) {
+    public static ExecResult exec(boolean logToOutput, String... command) throws Exception {
         List<String> commands = new ArrayList<>(Arrays.asList(command));
         return exec(null, commands, 0, logToOutput);
     }
@@ -123,7 +119,7 @@ public class Exec {
      * @param command arguments for command
      * @return execution results
      */
-    public static ExecResult exec(List<String> command) {
+    public static ExecResult exec(List<String> command) throws Exception {
         return exec(null, command, 0, false);
     }
 
@@ -133,7 +129,7 @@ public class Exec {
      * @param command arguments for command
      * @return execution results
      */
-    public static ExecResult exec(String input, List<String> command) {
+    public static ExecResult exec(String input, List<String> command) throws Exception {
         return exec(input, command, 0, false);
     }
 
@@ -145,7 +141,7 @@ public class Exec {
      * @param logToOutput log output or not
      * @return execution results
      */
-    public static ExecResult exec(String input, List<String> command, int timeout, boolean logToOutput) {
+    public static ExecResult exec(String input, List<String> command, int timeout, boolean logToOutput) throws Exception {
         return exec(input, command, Collections.emptySet(), timeout, logToOutput, true);
     }
 
@@ -157,7 +153,7 @@ public class Exec {
      * @param throwErrors throw error if exec fail
      * @return results
      */
-    public static ExecResult exec(String input, List<String> command, int timeout, boolean logToOutput, boolean throwErrors) {
+    public static ExecResult exec(String input, List<String> command, int timeout, boolean logToOutput, boolean throwErrors) throws Exception {
         return exec(input, command, Collections.emptySet(), timeout, logToOutput, throwErrors);
     }
 
@@ -172,7 +168,7 @@ public class Exec {
      * @param throwErrors look for errors in output and throws exception if true
      * @return execution results
      */
-    public static ExecResult exec(String input, List<String> command, Set<EnvVar> envVars, int timeout, boolean logToOutput, boolean throwErrors) {
+    public static ExecResult exec(String input, List<String> command, Set<EnvVar> envVars, int timeout, boolean logToOutput, boolean throwErrors) throws Exception {
         int ret = 1;
         ExecResult execResult;
         try {
@@ -195,42 +191,12 @@ public class Exec {
                 }
             }
 
-            execResult = new ExecResult(ret, executor.out(), executor.err());
-
-            if (throwErrors && ret != 0) {
-                String msg = "`" + join(" ", command) + "` got status code " + ret + " and stderr:\n------\n" + executor.stdErr + "\n------\nand stdout:\n------\n" + executor.stdOut + "\n------";
-
-                Matcher matcher = ERROR_PATTERN.matcher(executor.err());
-                KubeClusterException t = null;
-
-                if (matcher.find()) {
-                    switch (matcher.group(1)) {
-                        case "NotFound":
-                            t = new KubeClusterException.NotFound(execResult, msg);
-                            break;
-                        case "AlreadyExists":
-                            t = new KubeClusterException.AlreadyExists(execResult, msg);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                matcher = INVALID_PATTERN.matcher(executor.err());
-                if (matcher.find()) {
-                    t = new KubeClusterException.InvalidResource(execResult, msg);
-                }
-                if (t == null) {
-                    t = new KubeClusterException(execResult, msg);
-                }
-                throw t;
-            }
             return new ExecResult(ret, executor.out(), executor.err());
-
         } catch (IOException | ExecutionException e) {
-            throw new KubeClusterException(e);
+            throw new Exception(e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new KubeClusterException(e);
+            throw new Exception(e);
         }
     }
 

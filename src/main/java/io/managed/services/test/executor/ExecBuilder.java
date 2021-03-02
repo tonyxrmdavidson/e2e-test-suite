@@ -50,7 +50,7 @@ public class ExecBuilder {
         return this;
     }
 
-    public ExecResult exec() {
+    public ExecResult exec() throws Exception {
         return Exec.exec(input, command, envVars, timeout, logToOutput, throwErrors);
     }
 }

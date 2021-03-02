@@ -15,6 +15,7 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.vertx.core.Future;
@@ -33,7 +34,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -92,6 +95,8 @@ public class BindingOperatorTest extends TestBase {
 
         LOGGER.info("initialize kubernetes client");
         this.client = new DefaultKubernetesClient(config);
+
+
     }
 
     @AfterAll
@@ -130,7 +135,14 @@ public class BindingOperatorTest extends TestBase {
         }
     }
 
-    // TODO: Collect the operator logs AfterAll
+    @AfterAll
+    void collectOperatorLogs(ExtensionContext context) throws IOException {
+        LogCollector.saveDeploymentLog(
+                TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
+                client,
+                "openshift-operators",
+                "service-binding-operator");
+    }
 
     @Test
     @Order(1)

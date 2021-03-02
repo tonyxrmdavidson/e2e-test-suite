@@ -15,30 +15,25 @@ public class TestExceptionCallbackListener implements TestExecutionExceptionHand
     @Override
     public void handleTestExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
         LOGGER.error("Test failed at {} : {}", "Test execution", throwable.getMessage(), throwable);
-        LogCollector.saveKubernetesState(context, throwable);
     }
 
     @Override
     public void handleBeforeAllMethodExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
         LOGGER.error("Test failed at {} : {}", "Test before all", throwable.getMessage(), throwable);
-        LogCollector.saveKubernetesState(context, throwable);
     }
 
     @Override
     public void handleBeforeEachMethodExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
         LOGGER.error("Test failed at {} : {}", "Test before each", throwable.getMessage(), throwable);
-        LogCollector.saveKubernetesState(context, throwable);
     }
 
     @Override
     public void handleAfterEachMethodExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
         LOGGER.error("Test failed at {} : {}", "Test after each", throwable.getMessage(), throwable);
-        LogCollector.saveKubernetesState(context, throwable);
     }
 
     @Override
     public void handleAfterAllMethodExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
         LOGGER.error("Test failed at {} : {}", "Test after all", throwable.getMessage(), throwable);
-        LogCollector.saveKubernetesState(context, throwable);
     }
 }

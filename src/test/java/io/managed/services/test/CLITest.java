@@ -24,8 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.io.IOException;
-
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.cli.CLIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.cli.CLIUtils.extractCLI;
@@ -106,7 +104,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(1)
-    void testDownloadCLI(Vertx vertx) throws IOException {
+    void testDownloadCLI(Vertx vertx) throws Exception {
         assertCredentials();
 
         workdir = await(vertx.fileSystem().createTempDirectory("cli"));
