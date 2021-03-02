@@ -26,9 +26,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 /**
  * Test utils contains static help methods
@@ -48,11 +50,11 @@ public class TestUtils {
      * @return A Future that will be completed once the lambda function returns true
      */
     public static <T> Future<T> waitFor(
-        Vertx vertx,
-        String description,
-        Duration interval,
-        Duration timeout,
-        IsReady<T> isReady) {
+            Vertx vertx,
+            String description,
+            Duration interval,
+            Duration timeout,
+            IsReady<T> isReady) {
 
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
         Exception e = new Exception(String.format("timeout after %s waiting for %s", timeout.toString(), description));
@@ -62,31 +64,31 @@ public class TestUtils {
     }
 
     static <T> Future<T> waitFor(
-        Vertx vertx,
-        String description,
-        Duration interval,
-        Instant deadline,
-        Exception timeout,
-        IsReady<T> isReady) {
+            Vertx vertx,
+            String description,
+            Duration interval,
+            Instant deadline,
+            Exception timeout,
+            IsReady<T> isReady) {
 
         boolean last = Instant.now().isAfter(deadline);
 
         LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
         return isReady.apply(last)
-            .compose(r -> {
-                if (r.getValue0()) {
-                    return Future.succeededFuture(r.getValue1());
-                }
+                .compose(r -> {
+                    if (r.getValue0()) {
+                        return Future.succeededFuture(r.getValue1());
+                    }
 
-                // if the last request after the timeout didn't succeed fail with the timeout error
-                if (last) {
-                    LOGGER.error(ExceptionUtils.readStackTrace(timeout));
-                    return Future.failedFuture(timeout);
-                }
+                    // if the last request after the timeout didn't succeed fail with the timeout error
+                    if (last) {
+                        LOGGER.error(ExceptionUtils.readStackTrace(timeout));
+                        return Future.failedFuture(timeout);
+                    }
 
-                return sleep(vertx, interval)
-                    .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
-            });
+                    return sleep(vertx, interval)
+                            .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
+                });
     }
 
     /**
@@ -142,6 +144,24 @@ public class TestUtils {
             }
         });
         return promise.future();
+    }
+
+    /**
+     * Similar to Iterable.forEach but it will wait for the Future returned by the action to complete before processing
+     * the next item and return on the first Error.
+     *
+     * @param iterator Iterator
+     * @param action Lambda
+     * @param <T> T
+     * @return a completed future once the forEach complete
+     */
+    public static <T> Future<Void> forEach(Iterator<T> iterator, Function<T, Future<Void>> action) {
+        if (!iterator.hasNext()) {
+            return Future.succeededFuture();
+        }
+
+        return action.apply(iterator.next())
+                .compose(r -> forEach(iterator, action));
     }
 
 
@@ -231,8 +251,8 @@ public class TestUtils {
             String yaml = sb.toString();
             yaml = yaml.replaceAll("namespace: .*", "namespace: " + namespace);
             yaml = yaml.replace("securityContext:\n" +
-                "        runAsNonRoot: true\n" +
-                "        runAsUser: 65534", "");
+                    "        runAsNonRoot: true\n" +
+                    "        runAsUser: 65534", "");
             osw.write(yaml);
             return yamlFile;
 

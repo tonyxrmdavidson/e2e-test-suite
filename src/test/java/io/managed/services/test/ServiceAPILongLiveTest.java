@@ -26,16 +26,19 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static io.managed.services.test.TestUtils.await;
-import static io.managed.services.test.client.kafka.KafkaUtils.getTopicByName;
+import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
+import static java.text.MessageFormat.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -48,7 +51,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String TOPIC_NAME = "ll-test-topic";
+    static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
 
     ServiceAPI api;
 
@@ -134,7 +137,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
     @Test
     @Order(3)
-    void testPresenceOfTopic() {
+    void testPresenceOfTopics() {
         assertServiceAccount();
 
         String bootstrapHost = kafka.bootstrapServerHost;
@@ -144,23 +147,11 @@ class ServiceAPILongLiveTest extends TestBase {
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
-        LOGGER.info("get the topic by name: {}", TOPIC_NAME);
-        var optionalTopic = await(getTopicByName(admin, TOPIC_NAME));
+        LOGGER.info("apply topics: {}", TOPICS);
+        var missingTopics = await(applyTopics(admin, Set.of(TOPICS)));
 
-        if (optionalTopic.isEmpty()) {
-            LOGGER.error("topic is not present: {}", TOPIC_NAME);
-
-            LOGGER.info("try to recreate the topic: {}", TOPIC_NAME);
-            await(admin.createTopic(TOPIC_NAME));
-
-            topic = TOPIC_NAME;
-
-            fail(String.format("for some reason the long living topic: %s in the kafka instance: %s didn't exists anymore but we have recreate it",
-                    KAFKA_INSTANCE_NAME, TOPIC_NAME));
-        }
-
-        LOGGER.info("topic is present :{}", TOPIC_NAME);
-        topic = TOPIC_NAME;
+        // log failure if we had to recreate some topics
+        assertTrue(missingTopics.isEmpty(), format("the topics: {1} where missing and has been created", missingTopics));
     }
 
     @Test
