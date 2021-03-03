@@ -1,5 +1,6 @@
 package io.managed.services.test.client.kafka;
 
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.producer.KafkaProducer;
@@ -9,43 +10,37 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class KafkaProducerClient {
     private static final Logger LOGGER = LogManager.getLogger(KafkaProducerClient.class);
-    private Vertx vertx;
-    private String topic;
-    private String bootstrapHost;
-    private String clientID;
-    private String clientSecret;
-    private KafkaProducer<String, String> producer;
+    private final Vertx vertx;
+    private final KafkaProducer<String, String> producer;
 
-    public KafkaProducerClient(Vertx vertx, String topicName, String bootstrapHost, String clientID, String clientSecret) {
+    public KafkaProducerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
         this.vertx = vertx;
-        this.topic = topicName;
-        this.bootstrapHost = bootstrapHost;
-        this.clientID = clientID;
-        this.clientSecret = clientSecret;
-    }
 
-    public void sendAsync(String... messages) {
-        sendAsync(Arrays.asList(messages));
-    }
-
-    public List<Future<RecordMetadata>> sendAsync(List<String> messages) {
-        List<Future<RecordMetadata>> sentRecors = new LinkedList<>();
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         producer = createProducer(vertx, bootstrapHost, clientID, clientSecret);
+    }
 
-        messages.forEach(message -> {
-            LOGGER.debug("send messgae {} to topic: {}", message, topic);
-            sentRecors.add(producer.send(KafkaProducerRecord.create(topic, message)));
-        });
-        return sentRecors;
+    public Future<List<RecordMetadata>> sendAsync(String topicName, String... messages) {
+        return sendAsync(topicName, Arrays.asList(messages));
+    }
+
+    public Future<List<RecordMetadata>> sendAsync(String topicName, List<String> messages) {
+
+        List<Future> sent = messages.stream()
+                .map(message -> producer.send(KafkaProducerRecord.create(topicName, message)))
+                .collect(Collectors.toList());
+
+        return CompositeFuture.all(sent)
+                .onComplete(__ -> LOGGER.info("successfully sent {} messages to topic: {}", messages.size(), topicName))
+                .map(c -> c.list());
     }
 
     static public KafkaProducer<String, String> createProducer(

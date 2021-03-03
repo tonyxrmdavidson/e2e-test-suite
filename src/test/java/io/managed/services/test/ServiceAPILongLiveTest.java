@@ -1,8 +1,6 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
@@ -10,11 +8,9 @@ import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
-import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,19 +21,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.TestUtils.forEach;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static java.text.MessageFormat.format;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -51,13 +45,13 @@ class ServiceAPILongLiveTest extends TestBase {
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
+    static final Set<String> TOPICS = Set.of("ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd");
 
     ServiceAPI api;
 
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
-    String topic;
+    boolean topic;
 
     @BeforeAll
     void bootstrap(Vertx vertx) {
@@ -77,7 +71,7 @@ class ServiceAPILongLiveTest extends TestBase {
     }
 
     void assertTopic() {
-        assumeTrue(topic != null, "topic is null because the testPresenceOfTopic has failed to create the Topic");
+        assumeTrue(topic, "topic is null because the testPresenceOfTopic has failed to create the Topic");
     }
 
     @Test
@@ -148,7 +142,9 @@ class ServiceAPILongLiveTest extends TestBase {
         var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
         LOGGER.info("apply topics: {}", TOPICS);
-        var missingTopics = await(applyTopics(admin, Set.of(TOPICS)));
+        var missingTopics = await(applyTopics(admin, TOPICS));
+
+        topic = true;
 
         // log failure if we had to recreate some topics
         assertTrue(missingTopics.isEmpty(), format("the topics: {1} where missing and has been created", missingTopics));
@@ -162,30 +158,11 @@ class ServiceAPILongLiveTest extends TestBase {
         String bootstrapHost = kafka.bootstrapServerHost;
         String clientID = serviceAccount.clientID;
         String clientSecret = serviceAccount.clientSecret;
-        String topicName = topic;
 
-        int msgCount = 1000;
-        List<String> messages = IntStream.range(0, msgCount).boxed().map(i -> "hello-world-" + i).collect(Collectors.toList());
-
-        KafkaConsumerClient consumer = new KafkaConsumerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
-        KafkaProducerClient producer = new KafkaProducerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
-
-        //subscribe receiver
-        Future<List<KafkaConsumerRecord<String, String>>> received = consumer.receiveAsync(msgCount);
-
-        // Produce Kafka messages
-        producer.sendAsync(messages);
-
-        // Wait for the message
-        LOGGER.info("wait for messages");
-        List<KafkaConsumerRecord<String, String>> recvMessages = await(received);
-
-        LOGGER.info("Received {} messages", recvMessages.size());
-        assertEquals(msgCount, recvMessages.size());
-
-        LOGGER.info("close kafka producer and consumer");
-        await(producer.close());
-        await(consumer.close());
+        await(forEach(TOPICS.iterator(), topic -> {
+            LOGGER.info("start testing topic: {}", topic);
+            return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, 1, 10);
+        }));
     }
 }
 
