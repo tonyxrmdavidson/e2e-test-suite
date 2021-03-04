@@ -273,6 +273,12 @@
             </properties>
         </profile>
         <profile>
+            <id>cli</id>
+            <properties>
+                <groups>cli</groups>
+            </properties>
+        </profile>
+        <profile>
             <id>smoke</id>
             <properties>
                 <groups>smoke</groups>
