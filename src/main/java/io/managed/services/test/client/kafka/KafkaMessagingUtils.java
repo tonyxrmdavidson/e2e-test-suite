@@ -9,7 +9,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -39,12 +38,13 @@ public class KafkaMessagingUtils {
             String clientSecret,
             String topicName,
             int messageCount,
+            int minMessageSize,
             int maxMessageSize) {
 
         // generate random strings to send as messages
         var messages = IntStream.range(0, messageCount)
                 .boxed()
-                .map(v -> RandomStringUtils.random(new Random().nextInt(maxMessageSize), true, true))
+                .map(v -> RandomStringUtils.random(random(minMessageSize, maxMessageSize), true, true))
                 .collect(Collectors.toList());
 
         return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, messages)
@@ -104,5 +104,9 @@ public class KafkaMessagingUtils {
         var message = format("failed to send all messages or/and received some extra messages;"
                 + " not-received-messages: {}, extra-received-messages: {}", expectedMessages, extraReceivedMessages).getMessage();
         return Future.failedFuture(new Exception(message));
+    }
+
+    public static int random(int from, int to) {
+        return (int) (Math.random() * ((to - from) + 1)) + from;
     }
 }

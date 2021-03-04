@@ -146,6 +146,10 @@ public class TestUtils {
         return promise.future();
     }
 
+    public static <T> Future<Void> forEach(Iterable<T> iterable, Function<T, Future<Void>> action) {
+        return forEach(iterable.iterator(), action);
+    }
+
     /**
      * Similar to Iterable.forEach but it will wait for the Future returned by the action to complete before processing
      * the next item and return on the first Error.

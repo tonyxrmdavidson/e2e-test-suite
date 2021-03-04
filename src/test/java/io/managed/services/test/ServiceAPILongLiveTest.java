@@ -43,9 +43,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class ServiceAPILongLiveTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
-    static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
-    static final Set<String> TOPICS = Set.of("ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd");
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
 
     ServiceAPI api;
 
@@ -141,8 +141,9 @@ class ServiceAPILongLiveTest extends TestBase {
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
-        LOGGER.info("apply topics: {}", TOPICS);
-        var missingTopics = await(applyTopics(admin, TOPICS));
+        var topics = Set.of(TOPICS);
+        LOGGER.info("apply topics: {}", topics);
+        var missingTopics = await(applyTopics(admin, topics));
 
         topic = true;
 
@@ -159,9 +160,10 @@ class ServiceAPILongLiveTest extends TestBase {
         String clientID = serviceAccount.clientID;
         String clientSecret = serviceAccount.clientSecret;
 
-        await(forEach(TOPICS.iterator(), topic -> {
+
+        await(forEach(Set.of(TOPICS), topic -> {
             LOGGER.info("start testing topic: {}", topic);
-            return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, 1, 10);
+            return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, 10, 7, 10);
         }));
     }
 }

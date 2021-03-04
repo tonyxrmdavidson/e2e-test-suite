@@ -159,7 +159,7 @@ class ServiceAPITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        await(testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 100));
+        await(testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100));
     }
 
     @Test

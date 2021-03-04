@@ -139,7 +139,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         LOGGER.info("create kafka topic: {}", topicName);
         await(admin.createTopic(topicName));
 
-        await(testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100));
+        await(testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100));
     }
 
     @Test
