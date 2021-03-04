@@ -28,6 +28,7 @@ public class KafkaMessagingUtils {
      * @param clientSecret   Service Account Secret
      * @param topicName      Topic Name
      * @param messageCount   Number of Messages to send
+     * @param minMessageSize The min number of characters to use when generating the random messages
      * @param maxMessageSize The max number of characters to use when generating the random messages
      * @return Future
      */
@@ -44,7 +45,7 @@ public class KafkaMessagingUtils {
         // generate random strings to send as messages
         var messages = IntStream.range(0, messageCount)
                 .boxed()
-                .map(v -> RandomStringUtils.random(random(minMessageSize, maxMessageSize), true, true))
+                .map(v -> RandomStringUtils.random((int) random(minMessageSize, maxMessageSize), true, true))
                 .collect(Collectors.toList());
 
         return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, messages)
@@ -106,7 +107,7 @@ public class KafkaMessagingUtils {
         return Future.failedFuture(new Exception(message));
     }
 
-    public static int random(int from, int to) {
-        return (int) (Math.random() * ((to - from) + 1)) + from;
+    public static long random(long from, long to) {
+        return (long) (Math.random() * ((to - from) + 1)) + from;
     }
 }
