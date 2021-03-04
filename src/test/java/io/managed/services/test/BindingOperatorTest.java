@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 public class BindingOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(BindingOperatorTest.class);
 
-    // ust the kafka long living instance
+    // use the kafka long living instance
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
 
     User user;
