@@ -139,4 +139,29 @@ public class ServiceAPIUtils {
 
         return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
     }
+
+    /**
+     * If the service account with the passed name doesn't exists, recreate it, otherwise reset the credentials
+     * and return the ServiceAccount with clientSecret
+     *
+     * @param api ServiceAPI
+     * @param name Service Account Name
+     * @return ServiceAccount with clientSecret
+     */
+    public static Future<ServiceAccount> applyServiceAccount(ServiceAPI api, String name) {
+
+        return getServiceAccountByName(api, name)
+                .compose(o -> o
+                        .map(v -> {
+                            LOGGER.info("reset credentials for service account: {}", name);
+                            return api.resetCredentialsServiceAccount(v.id);
+                        })
+                        .orElseGet(() -> {
+                            LOGGER.warn("create service account: {}", name);
+
+                            var serviceAccountPayload = new CreateServiceAccountPayload();
+                            serviceAccountPayload.name = name;
+                            return api.createServiceAccount(serviceAccountPayload);
+                        }));
+    }
 }

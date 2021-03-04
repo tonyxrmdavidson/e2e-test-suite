@@ -1,9 +1,14 @@
 package io.managed.services.test.client.serviceapi;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 
 public class KafkaUserMetricItem {
 
     public KafkaUserMetric metric;
-    public List<KafkaUserMetricValue> values;
+
+    @JsonProperty("Timestamp")
+    public Double timestamp;
+    @JsonProperty("Value")
+    public Double value;
 }
