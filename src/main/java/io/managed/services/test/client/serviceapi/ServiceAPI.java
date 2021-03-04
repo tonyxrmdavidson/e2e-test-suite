@@ -100,6 +100,14 @@ public class ServiceAPI extends BaseVertxClient {
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_NO_CONTENT))
                 .map(r -> r.bodyAsJson(Void.class)));
     }
+
+    public Future<KafkaUserMetricsResponse> queryMetrics(String kafkaId) {
+        return retry(() -> client.get(String.format("/api/managed-services-api/v1/kafkas/%s/metrics/query", kafkaId))
+                .authentication(token)
+                .send()
+                .compose(r -> assertResponse(r, 200))
+                .map(r -> r.bodyAsJson(KafkaUserMetricsResponse.class)));
+    }
 }
 
 
