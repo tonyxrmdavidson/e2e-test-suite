@@ -2,8 +2,6 @@ package io.managed.services.test;
 
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
@@ -17,7 +15,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
-import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -35,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.await;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -141,23 +139,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         LOGGER.info("create kafka topic: {}", topicName);
         await(admin.createTopic(topicName));
 
-        KafkaConsumerClient consumer = new KafkaConsumerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
-        KafkaProducerClient producer = new KafkaProducerClient(vertx, topicName, bootstrapHost, clientID, clientSecret);
-
-        //subscribe receiver
-        Future<List<KafkaConsumerRecord<String, String>>> received = consumer.receiveAsync(1);
-
-        // Produce Kafka messages
-        producer.sendAsync("hello world");
-
-        // Wait for the message
-        LOGGER.info("wait for messages");
-        List<KafkaConsumerRecord<String, String>> recvMessages = await(received);
-
-        LOGGER.info("Received {} messages", recvMessages.size());
-        recvMessages.forEach(record -> assertEquals("hello world", record.value()));
-        await(producer.close());
-        await(consumer.close());
+        await(testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100));
     }
 
     @Test
