@@ -148,12 +148,12 @@
         <dependency>
             <groupId>com.epam.reportportal</groupId>
             <artifactId>agent-java-junit5</artifactId>
-            <version>4.0.3</version>
+            <version>5.0.4</version>
         </dependency>
         <dependency>
             <groupId>com.epam.reportportal</groupId>
             <artifactId>logger-java-log4j</artifactId>
-            <version>4.0.2</version>
+            <version>5.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.openshift.cloud</groupId>
