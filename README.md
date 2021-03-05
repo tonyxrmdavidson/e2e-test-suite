@@ -116,11 +116,11 @@ envs:
 
 | Name | Description | Default value |
 |------|-------------|---------------|
-| rp.endpoint | ReportPortal URL                            | https://reportportal-cloud-services.cloud.paas.psi.redhat.com |
-| rp.uuid     | The Access Token                            |  |
-| rp.launch   | The launch name to user                     | mk-e2e-test-suite |
-| rp.project  | The project where to report the result      | rhosak |
-| rp.enable   | Must be set to true to enable ReportPortal  | false |
+| rp_endpoint | ReportPortal URL                            | https://reportportal-reportportal.apps.chiron.intlyqe.com/ |
+| rp_uuid     | The Access Token                            |  |
+| rp_launch   | The launch name to user                     | mk-e2e-test-suite |
+| rp_project  | The project where to report the result      | rhosak |
+| rp_enable   | Must be set to true to enable ReportPortal  | false |
 
 rp.endpoint=https://reportportal-reportportal.apps.chiron.intlyqe.com/
 rp.api.key=ff7fd6a5-4985-4260-805f-bfeeca919536 rp.launch=mk-e2e-test-suite rp.project=default_personal rp.enable=false
