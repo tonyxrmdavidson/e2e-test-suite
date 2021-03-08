@@ -12,6 +12,7 @@ import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.OpenOptions;
+import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
@@ -24,6 +25,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.cli.CLIUtils.deleteKafkaByNameIfExists;
@@ -152,6 +155,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(2)
+    @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
     void testLogin(Vertx vertx, VertxTestContext context) {
         assertCLI();
 
