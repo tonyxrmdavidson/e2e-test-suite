@@ -13,6 +13,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -151,11 +152,11 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(2)
-    void testLogin(Vertx vertx) {
+    void testLogin(Vertx vertx, VertxTestContext context) {
         assertCLI();
 
         LOGGER.info("verify that we aren't logged-in");
-        await(cli.listKafka()
+        cli.listKafka()
                 .compose(r -> Future.failedFuture("cli kafka list should fail because we haven't log-in yet"))
                 .recover(t -> {
                     if (t instanceof ProcessException) {
@@ -165,14 +166,24 @@ public class CLITest extends TestBase {
                         }
                     }
                     return Future.failedFuture(t);
-                }));
+                })
 
-        LOGGER.info("login the CLI");
-        await(CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+                .compose(__ -> {
+                    LOGGER.info("login the CLI");
+                    return CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+                })
 
-        LOGGER.info("verify that we are logged-in");
-        await(cli.listKafka());
-        loggedIn = true;
+                .compose(__ -> {
+
+                    LOGGER.info("verify that we are logged-in");
+                    return cli.listKafka();
+                })
+
+                .onSuccess(__ -> {
+                    loggedIn = true;
+                })
+
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
