@@ -2,6 +2,7 @@ package io.managed.services.test.cli;
 
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
+import io.managed.services.test.client.serviceapi.ServiceAccountList;
 import io.vertx.core.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,5 +87,18 @@ public class CLI {
                 .map(p -> ProcessUtils.stderr(p).contains("No Kafka instances were found") ?
                         new KafkaListResponse() :
                         stdoutAsJson(p, KafkaListResponse.class));
+    }
+
+    public Future<ServiceAccountList> listServiceAccountAsJson() {
+        return exec("serviceaccount", "list", "-o", "json")
+                .map(p -> stdoutAsJson(p, ServiceAccountList.class));
+    }
+
+    public Future<Process> deleteServiceAccount(String id) {
+        return exec("serviceaccount", "delete", "--id", id, "-f");
+    }
+
+    public Future<Process> createServiceAccount(String name) {
+        return exec("serviceaccount", "create", "--name", name, "--file-format", "json", "--overwrite");
     }
 }

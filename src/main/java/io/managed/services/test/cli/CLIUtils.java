@@ -5,6 +5,7 @@ import io.managed.services.test.IsReady;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.oauth.KeycloakOAuthUtils;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
+import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -130,7 +131,6 @@ public class CLIUtils {
     }
 
     public static Future<?> deleteKafkaByNameIfExists(CLI cli, String name) {
-
         return getKafkaByName(cli, name)
                 .compose(o -> o.map(k -> {
                     LOGGER.info("delete kafka instance: {}", k.id);
@@ -164,5 +164,26 @@ public class CLIUtils {
                 .map(k -> Pair.with(k.isEmpty(), null));
 
         return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
+    }
+
+    public static Future<Optional<ServiceAccount>> getServiceAccountByName(CLI cli, String name) {
+        return cli.listServiceAccountAsJson()
+                .map(r -> r.items.stream().filter(sa -> sa.name.equals(name)).findFirst());
+    }
+
+    public static Future<?> deleteServiceAccountByNameIfExists(CLI cli, String name) {
+        return getServiceAccountByName(cli, name)
+                .compose(o -> o.map(k -> {
+                    LOGGER.info("delete serviceaccount {} instance: {}", k.name, k.id);
+                    return cli.deleteServiceAccount(k.id);
+                }).orElseGet(() -> {
+                    LOGGER.warn("serviceaccount '{}' not found", name);
+                    return Future.succeededFuture();
+                }));
+    }
+
+    public static Future<Optional<ServiceAccount>> createServiceAccount(CLI cli, String name) {
+        return cli.createServiceAccount(name)
+                .compose(p -> getServiceAccountByName(cli, name));
     }
 }

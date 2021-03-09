@@ -26,10 +26,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.cli.CLIUtils.deleteKafkaByNameIfExists;
+import static io.managed.services.test.cli.CLIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.cli.CLIUtils.extractCLI;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
@@ -62,6 +64,7 @@ public class CLITest extends TestBase {
     @AfterAll
     void clean(Vertx vertx) {
         if (cli != null) {
+            deleteServiceAccountByNameIfExists(cli, SERVICE_ACCOUNT_NAME);
             deleteKafkaByNameIfExists(cli, KAFKA_INSTANCE_NAME);
 
             LOGGER.info("log-out from the CLI");
@@ -192,8 +195,21 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(3)
+    void testCreateServiceAccount(Vertx vertx, VertxTestContext context) throws IOException {
+        assertLoggedIn();
+        CLIUtils.createServiceAccount(cli, SERVICE_ACCOUNT_NAME)
+                .onSuccess(sa -> {
+                    serviceAccount = sa.get();
+                    LOGGER.info("Created serviceaccount {} with id {}", serviceAccount.name, serviceAccount.id);
+                })
+                .onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Order(4)
     void testCreateKafkaInstance(Vertx vertx) {
         assertLoggedIn();
+        assertServiceAccount();
 
         LOGGER.info("Create kafka cluster with name {}", KAFKA_INSTANCE_NAME);
         kafkaInstance = await(cli.createKafka(KAFKA_INSTANCE_NAME));
@@ -203,7 +219,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void testGetStatusOfKafkaInstance() {
         assertLoggedIn();
         assertKafka();
@@ -212,13 +228,6 @@ public class CLITest extends TestBase {
         KafkaResponse getKafka = await(cli.describeKafka(kafkaInstance.id));
         assertEquals("ready", getKafka.status);
         LOGGER.info("Found kafka instance {} with id {}", getKafka.name, getKafka.id);
-    }
-
-    @Test
-    @Disabled("not implemented")
-    @Order(5)
-    void testCreateServiceAccount(Vertx vertx) {
-        //TODO
     }
 
     @Test
@@ -275,10 +284,13 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Disabled("not implemented")
     @Order(12)
-    void testDeleteServiceAccount(Vertx vertx) {
-        //TODO
+    void testDeleteServiceAccount(Vertx vertx, VertxTestContext context) {
+        assertServiceAccount();
+        cli.deleteServiceAccount(serviceAccount.id)
+                .onSuccess(__ ->
+                        LOGGER.info("Serviceaccount {} with id {} deleted", serviceAccount.name, serviceAccount.id))
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
