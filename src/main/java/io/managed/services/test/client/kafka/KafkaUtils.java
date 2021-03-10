@@ -57,7 +57,7 @@ public class KafkaUtils {
     }
 
     static public Future<Optional<TopicDescription>> getTopicByName(KafkaAdmin admin, String name) {
-        return toVertxFuture(admin.getMapOfTopicNameAndDescriptionByName(name))
+        return admin.getMapOfTopicNameAndDescriptionByName(name)
                 .map(r -> r.get(name))
                 .recover(t -> {
                     LOGGER.error("topic not found:", t);
@@ -75,7 +75,7 @@ public class KafkaUtils {
 
         List<String> missingTopics = new ArrayList<>();
 
-        return toVertxFuture(admin.listTopics())
+        return admin.listTopics()
 
                 // create the missing topics
                 .compose(currentTopics -> forEach(topics.iterator(), t -> {
@@ -87,7 +87,7 @@ public class KafkaUtils {
                     missingTopics.add(t);
 
                     LOGGER.info("create missing topic: {}", t);
-                    return toVertxFuture(admin.createTopic(t));
+                    return admin.createTopic(t);
                 }).map(v -> missingTopics));
     }
 }

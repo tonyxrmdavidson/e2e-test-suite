@@ -5,7 +5,9 @@ import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Vertx;
+import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
@@ -20,8 +22,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
@@ -65,41 +67,64 @@ public class ServiceAPIUserMetricsTest extends TestBase {
 
     @Test
     @Order(1)
-    void testMessageInTotalMetric(Vertx vertx) {
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
         assertAPI();
 
         // retrieve the kafka info
-        var kafka = await(getKafkaByName(api, KAFKA_INSTANCE_NAME)).orElseThrow();
+        var kafkaF = getKafkaByName(api, KAFKA_INSTANCE_NAME)
+                .map(o -> o.orElseThrow());
 
         // retrieve service account and reset the credentials
-        var serviceAccount = await(applyServiceAccount(api, SERVICE_ACCOUNT_NAME));
+        var serviceAccountF = applyServiceAccount(api, SERVICE_ACCOUNT_NAME);
 
-        String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
+        var adminF = CompositeFuture.all(kafkaF, serviceAccountF)
+                .map(__ -> {
+                    String bootstrapHost = kafkaF.result().bootstrapServerHost;
+                    String clientID = serviceAccountF.result().clientID;
+                    String clientSecret = serviceAccountF.result().clientSecret;
 
-        var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+                    return new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+                });
 
         // ensure the topic exists
-        await(applyTopics(admin, Set.of(TOPIC_NAME)));
+        var topicF = adminF
+                .compose(admin -> applyTopics(admin, Set.of(TOPIC_NAME)));
 
         // retrieve the current in messages before sending more
-        var initialInMessages = await(api.queryMetrics(kafka.id).map(r -> collectTopicMetric(r.items, TOPIC_NAME, IN_MESSAGES_METRIC)));
-        LOGGER.info("the topic '{}' started with '{}' in messages", TOPIC_NAME, initialInMessages);
+        var initialInMessagesF = topicF
+                .compose(__ -> api.queryMetrics(kafkaF.result().id))
+                .map(r -> collectTopicMetric(r.items, TOPIC_NAME, IN_MESSAGES_METRIC))
+                .onSuccess(i -> LOGGER.info("the topic '{}' started with '{}' in messages", TOPIC_NAME, i));
 
-        LOGGER.info("send {} message to the topic: {}", MESSAGE_COUNT, TOPIC_NAME);
-        await(testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100));
+        // send n messages to the topic
+        var testTopicF = initialInMessagesF
+                .compose(__ -> {
+                    String bootstrapHost = kafkaF.result().bootstrapServerHost;
+                    String clientID = serviceAccountF.result().clientID;
+                    String clientSecret = serviceAccountF.result().clientSecret;
 
-        var inMessages = await(waitFor(vertx, "metric to be updated", ofSeconds(1), ofSeconds(10), last -> api.queryMetrics(kafka.id)
+                    LOGGER.info("send {} message to the topic: {}", MESSAGE_COUNT, TOPIC_NAME);
+                    return testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100);
+                });
+
+        // wait for the metric to be updated or fail with timeout
+        IsReady<Double> isMetricUpdated = last -> api.queryMetrics(kafkaF.result().id)
                 .map(r -> {
                     var in = collectTopicMetric(r.items, TOPIC_NAME, IN_MESSAGES_METRIC);
                     if (last) {
                         LOGGER.warn("last kafka_server_brokertopicmetrics_messages_in_total value: {}", in);
                     }
-                    return Pair.with(initialInMessages + MESSAGE_COUNT == in, in);
-                })));
 
-        LOGGER.info("final in message count for topic '{}' is: {}", TOPIC_NAME, inMessages);
-        assertEquals(inMessages, initialInMessages + MESSAGE_COUNT);
+                    var initialInMessage = initialInMessagesF.result();
+                    return Pair.with(initialInMessage + MESSAGE_COUNT == in, in);
+                });
+        var inMessagesF = testTopicF
+                .compose(__ -> waitFor(vertx, "metric to be updated", ofSeconds(1), ofSeconds(10), isMetricUpdated));
+
+        inMessagesF
+                .onSuccess(i -> LOGGER.info("final in message count for topic '{}' is: {}", TOPIC_NAME, i))
+                .onSuccess(i -> context.verify(() -> assertEquals(i, initialInMessagesF.result() + MESSAGE_COUNT)))
+                .onComplete(context.succeedingThenComplete());
     }
 }

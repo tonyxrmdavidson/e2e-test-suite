@@ -1,13 +1,12 @@
 package io.managed.services.test;
 
-import com.ea.async.Async;
-import io.managed.services.test.client.kafka.KafkaUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.apache.kafka.common.KafkaFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.MessageFactory2;
+import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.util.ExceptionUtils;
@@ -27,7 +26,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -38,6 +36,7 @@ import java.util.function.Function;
 public class TestUtils {
     private static final Logger LOGGER = LogManager.getLogger(TestUtils.class);
 
+    private static final MessageFactory2 MESSAGE_FACTORY = new ParameterizedMessageFactory();
 
     /**
      * Wait until the passed async lambda function return true
@@ -89,42 +88,6 @@ public class TestUtils {
                     return sleep(vertx, interval)
                             .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
                 });
-    }
-
-    /**
-     * Sync an async request by waiting for the passed Future do be completed
-     *
-     * @param future KafkaFuture
-     * @param <T>    The Future result Type
-     * @param <F>    Future
-     * @return The Future result
-     */
-    public static <T, F extends KafkaFuture<T>> T await(F future) {
-        return Async.await(KafkaUtils.toCompletionStage(future));
-    }
-
-    /**
-     * Sync an async request by waiting for the passed Future do be completed
-     *
-     * @param future Future
-     * @param <T>    The Future result Type
-     * @param <F>    Future
-     * @return The Future result
-     */
-    public static <T, F extends Future<T>> T await(F future) {
-        return Async.await(future.toCompletionStage());
-    }
-
-    /**
-     * Sync an async request by waiting for the passed Future do be completed
-     *
-     * @param future Future
-     * @param <T>    The Future result Type
-     * @param <F>    Future
-     * @return The Future result
-     */
-    public static <T, F extends CompletableFuture<T>> T await(F future) {
-        return Async.await(future);
     }
 
     /**
@@ -188,6 +151,17 @@ public class TestUtils {
         Promise<Void> p = Promise.promise();
         x.setTimer(d.toMillis(), l -> p.complete());
         return p.future();
+    }
+
+    /**
+     * Format the message like log4j
+     *
+     * @param message String format
+     * @param params  Objects
+     * @return String
+     */
+    public static String message(String message, Object... params) {
+        return MESSAGE_FACTORY.newMessage(message, params).getFormattedMessage();
     }
 
     public static long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready) {

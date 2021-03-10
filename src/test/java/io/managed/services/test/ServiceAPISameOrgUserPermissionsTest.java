@@ -1,20 +1,17 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
-import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -26,12 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
@@ -55,22 +50,32 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
     KafkaResponse kafka;
 
     @BeforeAll
-    void bootstrap(Vertx vertx) {
+    void bootstrapApi1(Vertx vertx, VertxTestContext context) {
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        api1 = await(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD)
+                .onSuccess(api -> api1 = api)
+                .onComplete(context.succeedingThenComplete());
+    }
 
+    @BeforeAll
+    void bootstrapApi2(Vertx vertx, VertxTestContext context) {
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_SECONDARY_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        api2 = await(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD));
+        ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD)
+                .onSuccess(api -> api2 = api)
+                .onComplete(context.succeedingThenComplete());
+
     }
 
     @AfterAll
-    void deleteKafkaInstance() {
-        await(deleteKafkaByNameIfExists(api1, KAFKA_INSTANCE_NAME));
+    void deleteKafkaInstance(VertxTestContext context) {
+        deleteKafkaByNameIfExists(api1, KAFKA_INSTANCE_NAME)
+                .onComplete(context.succeedingThenComplete());
     }
 
     @AfterAll
-    void deleteServiceAccount() {
-        await(deleteServiceAccountByNameIfExists(api1, SERVICE_ACCOUNT_NAME));
+    void deleteServiceAccount(VertxTestContext context) {
+        deleteServiceAccountByNameIfExists(api1, SERVICE_ACCOUNT_NAME)
+                .onComplete(context.succeedingThenComplete());
     }
 
     void assertAPI() {
@@ -85,7 +90,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
     @Test
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @Order(1)
-    void testUser1CreateKafkaInstance(Vertx vertx) {
+    void testUser1CreateKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertAPI();
 
         // Create Kafka Instance
@@ -97,27 +102,34 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         kafkaPayload.region = "us-east-1";
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-        KafkaResponse k = await(api1.createKafka(kafkaPayload, true));
-        kafka = await(waitUntilKafkaIsReady(vertx, api1, k.id));
+        api1.createKafka(kafkaPayload, true)
+                .compose(k -> waitUntilKafkaIsReady(vertx, api1, k.id))
+                .onSuccess(k -> kafka = k)
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Order(2)
-    void testUser2ListKafkaInstances() {
+    void testUser2ListKafkaInstances(VertxTestContext context) {
         assertKafka();
 
         // Get kafka instance list by another user with same org
-        KafkaListResponse kafkaList = await(api2.getListOfKafkas());
-        LOGGER.info("fetch list of kafka instance for another user same org");
-        List<KafkaResponse> filteredKafka = kafkaList.items.stream().filter(k -> k.id.equals(kafka.id)).collect(Collectors.toList());
+        api2.getListOfKafkas()
+                .onSuccess(kafkaList -> context.verify(() -> {
+                    LOGGER.info("fetch list of kafka instance for another user same org");
+                    List<KafkaResponse> filteredKafka = kafkaList.items.stream()
+                            .filter(k -> k.id.equals(kafka.id)).collect(Collectors.toList());
 
-        LOGGER.info("Kafka instance response is: {}", Json.encode(filteredKafka));
-        assertEquals(1, filteredKafka.size(), "Kafka is not present for another user with same org");
+                    LOGGER.info("kafka instance response is: {}", Json.encode(filteredKafka));
+                    assertEquals(1, filteredKafka.size(), "kafka is not present for another user with same org");
+                }))
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Order(2)
-    void testUser2ProduceAndConsumeKafkaMessages(Vertx vertx) {
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    void testUser2ProduceAndConsumeKafkaMessages(Vertx vertx, VertxTestContext context) {
         assertKafka();
 
         // Create Service Account by another user
@@ -125,38 +137,32 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
         serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
 
         LOGGER.info("create service account by another user with same org: {}", serviceAccountPayload.name);
-        ServiceAccount serviceAccount = await(api2.createServiceAccount(serviceAccountPayload));
+        api2.createServiceAccount(serviceAccountPayload)
+                .compose(serviceAccount -> {
 
-        String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
+                    String bootstrapHost = kafka.bootstrapServerHost;
+                    String clientID = serviceAccount.clientID;
+                    String clientSecret = serviceAccount.clientSecret;
 
-        // Create Kafka topic by another user
-        LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        KafkaAdmin admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+                    // Create Kafka topic by another user
+                    LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
+                    KafkaAdmin admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
-        String topicName = "test-topic";
-        LOGGER.info("create kafka topic: {}", topicName);
-        await(admin.createTopic(topicName));
+                    String topicName = "test-topic";
+                    LOGGER.info("create kafka topic: {}", topicName);
+                    return admin.createTopic(topicName)
+                            .compose(__ -> testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100));
+                })
 
-        await(testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100));
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Order(3)
-    void testUser2DeleteKafkaInstance() {
+    void testUser2DeleteKafkaInstance(VertxTestContext context) {
 
         // Delete kafka instance by another user with same org
-        await(api2.deleteKafka(kafka.id, true)
-                .compose(r -> Future.failedFuture("Request should Ideally failed!"))
-                .recover(throwable -> {
-                    if (throwable instanceof ResponseException) {
-                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                            LOGGER.info("another user is not authorised to delete kafka instance");
-                            return Future.succeededFuture();
-                        }
-                    }
-                    return Future.failedFuture(throwable);
-                }));
+        api2.deleteKafka(kafka.id, true)
+                .onComplete(context.failingThenComplete());
     }
 }

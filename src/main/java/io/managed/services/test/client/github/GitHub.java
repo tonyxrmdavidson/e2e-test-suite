@@ -1,7 +1,6 @@
 package io.managed.services.test.client.github;
 
 import io.managed.services.test.client.BaseVertxClient;
-import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -13,7 +12,10 @@ import io.vertx.ext.web.codec.BodyCodec;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.util.List;
 import java.util.Locale;
+
+import static org.slf4j.helpers.MessageFormatter.format;
 
 public class GitHub extends BaseVertxClient {
 
@@ -31,34 +33,32 @@ public class GitHub extends BaseVertxClient {
                 .setFollowRedirects(false);
     }
 
-    private Future<Release[]> getReleases(String org, String repo) {
+    private Future<List<Release>> getReleases(String org, String repo) {
         String path = String.format("/repos/%s/%s/releases", org, repo);
 
         return client.get(path)
-            .authentication(token)
-            .send()
-            .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-            .map(r -> r.bodyAsJson(Release[].class));
+                .authentication(token)
+                .send()
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
+                .map(r -> r.bodyAsJson(Release[].class))
+                .map(r -> List.of(r));
+    }
+
+    public Future<Release> getLatestRelease(String org, String repo) {
+        return this.getReleases(org, repo)
+                // get the first non-draft release
+                .map(releases -> releases.stream().filter(r -> !r.draft).findFirst())
+                .compose(o -> o
+                        .map(r -> Future.succeededFuture(r))
+                        .orElseGet(() -> Future.failedFuture(format("latest release not found in repository: {}/{}", org, repo).getMessage())));
     }
 
     public Future<Release> getReleaseByTagName(String org, String repo, String name) {
-        String path;
         if (name.toLowerCase(Locale.ROOT).equals("latest")) {
-            var releases = TestUtils.await(this.getReleases(org, repo));
-
-            for (Release release : releases) {
-                // we don't want to test it if it is a draft release
-                if (release.draft) {
-                    continue;
-                }
-                // get the first non-draft release
-                name = release.tagName;
-                break;
-            }
+            return getLatestRelease(org, repo);
         }
 
-        path = String.format("/repos/%s/%s/releases/tags/%s", org, repo, name);
-
+        var path = String.format("/repos/%s/%s/releases/tags/%s", org, repo, name);
         return client.get(path)
                 .authentication(token)
                 .send()

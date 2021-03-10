@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Optional;
 
+import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
@@ -182,8 +183,11 @@ public class CLIUtils {
                 }));
     }
 
-    public static Future<Optional<ServiceAccount>> createServiceAccount(CLI cli, String name) {
+    public static Future<ServiceAccount> createServiceAccount(CLI cli, String name) {
         return cli.createServiceAccount(name)
-                .compose(p -> getServiceAccountByName(cli, name));
+                .compose(p -> getServiceAccountByName(cli, name))
+                .compose(o -> o
+                        .map(Future::succeededFuture)
+                        .orElseGet(() -> Future.failedFuture(message("failed to find created service account: {}", name))));
     }
 }

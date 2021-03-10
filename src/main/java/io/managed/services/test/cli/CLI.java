@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static io.managed.services.test.cli.ProcessUtils.stdout;
 import static io.managed.services.test.cli.ProcessUtils.stdoutAsJson;
 
 public class CLI {
@@ -57,6 +58,11 @@ public class CLI {
 
     public Future<Process> logout() {
         return exec("logout");
+    }
+
+    public Future<String> help() {
+        return exec("--help")
+                .map(p -> stdout(p));
     }
 
     public Future<Process> listKafka() {

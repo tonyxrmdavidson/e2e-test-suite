@@ -61,6 +61,7 @@ public class Environment {
     private static final String BF2_GITHUB_TOKEN_ENV = "BF2_GITHUB_TOKEN";
 
     private static final String CLI_VERSION_ENV = "CLI_VERSION";
+    private static final String CLI_PLATFORM_ENV = "CLI_PLATFORM";
     private static final String CLI_ARCH_ENV = "CLI_ARCH";
 
     private static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
@@ -106,7 +107,8 @@ public class Environment {
     public static final String BF2_GITHUB_TOKEN = getOrDefault(BF2_GITHUB_TOKEN_ENV, null);
 
     public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "latest");
-    public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, Platform.getArch().toString() + "_amd64");
+    public static final String CLI_PLATFORM = getOrDefault(CLI_PLATFORM_ENV, Platform.getArch().toString());
+    public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
 
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
     public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);

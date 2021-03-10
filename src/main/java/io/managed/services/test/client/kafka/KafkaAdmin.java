@@ -1,15 +1,17 @@
 package io.managed.services.test.client.kafka;
 
+import io.vertx.core.Future;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.KafkaFuture;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static io.managed.services.test.client.kafka.KafkaUtils.toVertxFuture;
 
 public class KafkaAdmin {
 
@@ -24,25 +26,25 @@ public class KafkaAdmin {
         admin = Admin.create(conf);
     }
 
-    public KafkaFuture<Void> createTopic(String name) {
+    public Future<Void> createTopic(String name) {
         return createTopic(name, null, null);
     }
 
-    public KafkaFuture<Void> createTopic(String name, Integer partitions, Short replicas) {
+    public Future<Void> createTopic(String name, Integer partitions, Short replicas) {
         NewTopic topic = new NewTopic(name, Optional.ofNullable(partitions), Optional.ofNullable(replicas));
-        return admin.createTopics(Collections.singleton(topic)).all();
+        return toVertxFuture(admin.createTopics(Collections.singleton(topic)).all());
     }
 
-    public KafkaFuture<Set<String>> listTopics() {
-        return admin.listTopics().names();
+    public Future<Set<String>> listTopics() {
+        return toVertxFuture(admin.listTopics().names());
     }
 
-    public KafkaFuture<Map<String, TopicDescription>> getMapOfTopicNameAndDescriptionByName(String name) {
-        return admin.describeTopics(Collections.singleton(name)).all();
+    public Future<Map<String, TopicDescription>> getMapOfTopicNameAndDescriptionByName(String name) {
+        return toVertxFuture(admin.describeTopics(Collections.singleton(name)).all());
     }
 
-    public KafkaFuture<Void> deleteTopic(String name) {
-        return admin.deleteTopics(Collections.singleton(name)).all();
+    public Future<Void> deleteTopic(String name) {
+        return toVertxFuture(admin.deleteTopics(Collections.singleton(name)).all());
     }
 }
 
