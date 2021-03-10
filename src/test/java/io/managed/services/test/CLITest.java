@@ -61,31 +61,26 @@ public class CLITest extends TestBase {
 
                     // delete service account by name if it exists
                     LOGGER.info("delete service account with name: {}", SERVICE_ACCOUNT_NAME);
-                    return context.assertFailure(deleteServiceAccountByNameIfExists(cli, SERVICE_ACCOUNT_NAME))
-
+                    return context.assertComplete(deleteServiceAccountByNameIfExists(cli, SERVICE_ACCOUNT_NAME))
                             // delete kafka instance by name if it exists
                             .eventually(__ -> {
                                 LOGGER.info("delete kafka instance with name: {}", KAFKA_INSTANCE_NAME);
                                 return context.assertComplete(deleteKafkaByNameIfExists(cli, KAFKA_INSTANCE_NAME));
                             })
-
                             .eventually(__ -> {
                                 LOGGER.info("log-out from the CLI");
                                 return context.assertComplete(cli.logout());
                             })
-
                             .eventually(__ -> Future.succeededFuture());
                 })
                 .orElse(Future.succeededFuture());
-
 
         var workdirF = cliF.compose(__ ->
                 Optional.ofNullable(workdir)
                         .map(workdir -> {
                             LOGGER.info("delete workdir: {}", workdir);
                             return context.assertComplete(vertx.fileSystem().deleteRecursive(workdir, true))
-
-                                    .eventually(___ -> Future.succeededFuture());
+                                    .compose(___ -> Future.succeededFuture());
                         })
                         .orElse(Future.succeededFuture()));
 
@@ -184,6 +179,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(3)
     void testCreateServiceAccount(VertxTestContext context) {
         assertLoggedIn();
@@ -197,6 +193,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(4)
     void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();
@@ -287,6 +284,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
+    @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
     @Order(12)
     void testDeleteServiceAccount(Vertx vertx, VertxTestContext context) {
         assertServiceAccount();
@@ -297,6 +295,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(13)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();
