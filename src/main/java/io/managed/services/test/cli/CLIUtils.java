@@ -83,14 +83,25 @@ public class CLIUtils {
                 .compose(process -> {
 
                     LOGGER.info("start oauth login against CLI");
-                    var oauthFuture = parseSSOUrl(vertx, process.stdout())
+                    var oauthFuture = parseUrl(vertx, process.stdout(), "https://sso.redhat.com/auth/.*")
                             .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
                             .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
                             .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))
                             .compose(r -> BaseVertxClient.followRedirect(session, r))
                             .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
                             .map(v -> {
-                                LOGGER.info("oauth login completed");
+                                LOGGER.info("first oauth login completed");
+                                return null;
+                            });
+
+                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), "https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org.*")
+                            .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
+                            .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
+                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))
+                            .compose(r -> BaseVertxClient.followRedirect(session, r))
+                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
+                            .map(v -> {
+                                LOGGER.info("second oauth login completed");
                                 return null;
                             });
 
@@ -100,12 +111,12 @@ public class CLIUtils {
                                 return null;
                             });
 
-                    return CompositeFuture.all(oauthFuture, cliFuture);
+                    return CompositeFuture.all(oauthFuture, edgeSSOFuture, cliFuture);
                 })
                 .map(n -> null);
     }
 
-    private static Future<String> parseSSOUrl(Vertx vertx, BufferedReader stdout) {
+    private static Future<String> parseUrl(Vertx vertx, BufferedReader stdout, String urlRegex) {
 
         return vertx.executeBlocking(h -> {
             var full = new ArrayList<String>();
@@ -117,7 +128,7 @@ public class CLIUtils {
                         return;
                     }
 
-                    if (l.matches("https://sso.redhat.com/auth/.*")) {
+                    if (l.matches(urlRegex)) {
                         h.complete(l);
                         return;
                     }

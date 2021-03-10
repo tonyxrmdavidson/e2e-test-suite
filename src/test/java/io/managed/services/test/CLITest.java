@@ -143,7 +143,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(2)
-    @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     void testLogin(Vertx vertx, VertxTestContext context) {
         assertCLI();
 
