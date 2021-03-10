@@ -87,5 +87,5 @@ exec mvn verify \
     "-P${PROFILE}" \
     "-Dit.test=${TESTCASE}" \
     "-Drp.enable=${REPORTPORTAL_ENABLE}" \
-    "-Drp.uuid=${REPORTPORTAL_UUID}" \
+    "-Drp.api.key=${REPORTPORTAL_UUID}" \
     --no-transfer-progress
