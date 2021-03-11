@@ -160,6 +160,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
     @Test
     @Order(3)
     void testUser2DeleteKafkaInstance(VertxTestContext context) {
+        assertKafka();
 
         // Delete kafka instance by another user with same org
         api2.deleteKafka(kafka.id, true)
