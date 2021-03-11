@@ -20,10 +20,13 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.opentest4j.TestAbortedException;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
@@ -44,6 +47,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
 
     private static final String IN_MESSAGES_METRIC = "kafka_server_brokertopicmetrics_messages_in_total";
     private static final int MESSAGE_COUNT = 17;
+    private static final Duration WAIT_FOR_METRIC_TIMEOUT = Duration.ofSeconds(20);
 
     // use the kafka long living instance
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
@@ -73,7 +77,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
 
         // retrieve the kafka info
         var kafkaF = getKafkaByName(api, KAFKA_INSTANCE_NAME)
-                .map(o -> o.orElseThrow());
+                .map(o -> o.orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", KAFKA_INSTANCE_NAME))));
 
         // retrieve service account and reset the credentials
         var serviceAccountF = applyServiceAccount(api, SERVICE_ACCOUNT_NAME);
@@ -120,7 +124,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                     return Pair.with(initialInMessage + MESSAGE_COUNT == in, in);
                 });
         var inMessagesF = testTopicF
-                .compose(__ -> waitFor(vertx, "metric to be updated", ofSeconds(1), ofSeconds(10), isMetricUpdated));
+                .compose(__ -> waitFor(vertx, "metric to be updated", ofSeconds(1), WAIT_FOR_METRIC_TIMEOUT, isMetricUpdated));
 
         inMessagesF
                 .onSuccess(i -> LOGGER.info("final in message count for topic '{}' is: {}", TOPIC_NAME, i))
