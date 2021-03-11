@@ -1,1 +1,1 @@
-com.epam.reportportal.junit5.ReportPortalExtension
+io.managed.services.test.framework.CustomReportPortalExtension
