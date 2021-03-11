@@ -75,6 +75,8 @@ public class ServiceAPIUserMetricsTest extends TestBase {
     void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
         assertAPI();
 
+        LOGGER.info("start testing message in total metric");
+
         // retrieve the kafka info
         var kafkaF = getKafkaByName(api, KAFKA_INSTANCE_NAME)
                 .map(o -> o.orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", KAFKA_INSTANCE_NAME))));
@@ -93,7 +95,10 @@ public class ServiceAPIUserMetricsTest extends TestBase {
 
         // ensure the topic exists
         var topicF = adminF
-                .compose(admin -> applyTopics(admin, Set.of(TOPIC_NAME)));
+                .compose(admin -> {
+                    LOGGER.info("ensure the topic {} exists", TOPIC_NAME);
+                    return applyTopics(admin, Set.of(TOPIC_NAME));
+                });
 
         // retrieve the current in messages before sending more
         var initialInMessagesF = topicF
