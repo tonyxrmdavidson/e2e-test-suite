@@ -4,6 +4,7 @@ import io.managed.services.test.IsReady;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.logging.log4j.LogManager;
@@ -14,9 +15,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofSeconds;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class KafkaConsumerClient {
     private static final Logger LOGGER = LogManager.getLogger(KafkaConsumerClient.class);
@@ -35,13 +36,18 @@ public class KafkaConsumerClient {
         Promise<List<KafkaConsumerRecord<String, String>>> promise = Promise.promise();
         List<KafkaConsumerRecord<String, String>> messages = new LinkedList<>();
 
+        var close = new Close();
         consumer.handler(record -> {
             synchronized (lock) {
+                if (close.isClosed()) {
+                    LOGGER.warn("received record while/after unsubscribe from topic");
+                    return;
+                }
                 messages.add(record);
                 if (messages.size() == expectedMessages) {
+                    close.close();
                     LOGGER.info("successfully received {} messages from topic: {}", expectedMessages, topicName);
-                    consumer.commit()
-                            .compose(__ -> consumer.unsubscribe())
+                    consumer.unsubscribe()
                             .map(__ -> messages)
                             .onComplete(promise);
                 }
@@ -51,18 +57,25 @@ public class KafkaConsumerClient {
         LOGGER.info("subscribe to topic: {}", topicName);
         return consumer.subscribe(topicName)
                 .compose(__ -> waitForConsumerToSubscribe(topicName))
-                .onComplete(__ -> LOGGER.info("consumer successfully subscribed to topic: {}", topicName))
-                .map(__ -> promise.future());
+                .compose(p -> resetTopicPartitionToEndOffset(p))
+                .map(__ -> {
+                    LOGGER.info("consumer successfully subscribed to topic: {}", topicName);
+                    return promise.future();
+                });
     }
 
-    public Future<Void> waitForConsumerToSubscribe(String topicName) {
+    public Future<TopicPartition> waitForConsumerToSubscribe(String topicName) {
 
-        IsReady<Void> isReady = last -> consumer.assignment().map(partitions -> {
-            var ready = partitions.stream().anyMatch(p -> p.getTopic().equals(topicName));
-            return Pair.with(ready, null);
+        IsReady<TopicPartition> isReady = last -> consumer.assignment().map(partitions -> {
+            var o = partitions.stream().filter(p -> p.getTopic().equals(topicName)).findFirst();
+            return Pair.with(o.isPresent(), o.orElse(null));
         });
 
-        return waitFor(vertx, "consumer to subscribe to topic", ofSeconds(1), ofSeconds(20), isReady);
+        return waitFor(vertx, message("consumer to subscribe to topic: {}", topicName), ofSeconds(1), ofSeconds(20), isReady);
+    }
+
+    public Future<Void> resetTopicPartitionToEndOffset(TopicPartition partition) {
+        return consumer.seekToEnd(partition);
     }
 
     public static KafkaConsumer<String, String> createConsumer(
@@ -81,9 +94,21 @@ public class KafkaConsumerClient {
     public Future<Void> close() {
         if (vertx != null && consumer != null) {
             return consumer.close()
-                    .onSuccess(v -> LOGGER.info("Producer closed"))
-                    .onFailure(cause -> fail("Producer not closed", cause));
+                    .onSuccess(v -> LOGGER.info("KafkaConsumerClient closed"))
+                    .onFailure(c -> LOGGER.error("failed to close KafkaConsumerClient", c));
         }
         return Future.succeededFuture(null);
+    }
+
+    final private class Close {
+        private boolean close = false;
+
+        synchronized private boolean isClosed() {
+            return this.close;
+        }
+
+        synchronized private void close() {
+            close = true;
+        }
     }
 }

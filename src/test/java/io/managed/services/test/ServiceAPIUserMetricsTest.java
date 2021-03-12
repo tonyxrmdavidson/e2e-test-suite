@@ -71,7 +71,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
 
     @Test
     @Order(1)
-    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
         assertAPI();
 
