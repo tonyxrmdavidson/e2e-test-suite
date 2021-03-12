@@ -2,11 +2,13 @@ package io.managed.services.test.framework;
 
 import com.epam.reportportal.junit5.ItemType;
 import com.epam.reportportal.junit5.ReportPortalExtension;
+import com.epam.reportportal.listeners.ItemStatus;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.opentest4j.IncompleteExecutionException;
 
 import javax.annotation.Nonnull;
 import java.util.Date;
@@ -30,5 +32,18 @@ public class CustomReportPortalExtension extends ReportPortalExtension {
         }).collect(Collectors.toList());
 
         super.startTestItem(context, cleanedArguments, itemType, description, startTime);
+    }
+
+    @Override
+    protected ItemStatus getExecutionStatus(@Nonnull final ExtensionContext context) {
+        var exception = context.getExecutionException();
+        if (exception.isPresent()) {
+            var e = exception.get();
+            if (e instanceof IncompleteExecutionException) {
+                sendStackTraceToRP(e);
+                return ItemStatus.SKIPPED;
+            }
+        }
+        return super.getExecutionStatus(context);
     }
 }
