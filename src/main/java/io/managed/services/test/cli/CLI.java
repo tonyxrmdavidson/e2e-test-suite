@@ -29,6 +29,10 @@ public class CLI {
         this.cmd = String.format("./%s", name);
     }
 
+    public String getWorkdir() {
+        return this.workdir;
+    }
+
     private ProcessBuilder builder(String... command) {
         var cmd = new ArrayList<String>();
         cmd.add(this.cmd);

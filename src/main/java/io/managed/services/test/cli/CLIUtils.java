@@ -2,6 +2,7 @@ package io.managed.services.test.cli;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.oauth.KeycloakOAuthUtils;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
@@ -201,15 +202,15 @@ public class CLIUtils {
     }
 
     public static Future<ServiceAccount> createServiceAccount(CLI cli, String name) {
-        return cli.createServiceAccount(name, Paths.get("/tmp", name + ".json"))
+        return cli.createServiceAccount(name, Paths.get(cli.getWorkdir(), name + ".json"))
                 .compose(p -> getServiceAccountByName(cli, name))
                 .compose(o -> o
                         .map(Future::succeededFuture)
                         .orElseGet(() -> Future.failedFuture(message("failed to find created service account: {}", name))));
     }
 
-    public static ServiceAccountSecret getServiceAccountSecret(String secretName) throws IOException {
-        return ProcessUtils.asJson(ServiceAccountSecret.class, Files.readString(Paths.get("/tmp", secretName + ".json")));
+    public static ServiceAccountSecret getServiceAccountSecret(CLI cli, String secretName) throws IOException {
+        return TestUtils.asJson(ServiceAccountSecret.class, Files.readString(Paths.get(cli.getWorkdir(), secretName + ".json")));
     }
 
     public static Future<Void> waitForTopicDelete(Vertx vertx, CLI cli, String topicName) {

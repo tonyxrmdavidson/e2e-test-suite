@@ -62,7 +62,6 @@ public class CLITest extends TestBase {
 
     @AfterAll
     void clean(Vertx vertx, VertxTestContext context) {
-
         var cliF = Optional.ofNullable(cli)
                 .map(cli -> {
 
@@ -194,10 +193,10 @@ public class CLITest extends TestBase {
                 .onSuccess(sa -> {
                     serviceAccount = sa;
                     try {
-                        ServiceAccountSecret secret = CLIUtils.getServiceAccountSecret(sa.name);
+                        ServiceAccountSecret secret = CLIUtils.getServiceAccountSecret(cli, sa.name);
                         sa.clientSecret = secret.password;
                     } catch (IOException e) {
-                        context.failNow(e.getMessage());
+                        context.failNow(e);
                     }
                     LOGGER.info("Created serviceaccount {} with id {} and secret {}",
                             serviceAccount.name,
