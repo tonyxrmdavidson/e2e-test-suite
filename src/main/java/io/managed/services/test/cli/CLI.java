@@ -3,6 +3,8 @@ package io.managed.services.test.cli;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAccountList;
+import io.managed.services.test.client.serviceapi.TopicListResponse;
+import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.vertx.core.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -75,7 +77,7 @@ public class CLI {
     }
 
     public Future<Process> deleteKafka(String id) {
-        return exec("kafka", "delete", "--id", id, "-f");
+        return exec("kafka", "delete", "--id", id, "-y");
     }
 
     public Future<KafkaResponse> describeKafka(String id) {
@@ -101,10 +103,33 @@ public class CLI {
     }
 
     public Future<Process> deleteServiceAccount(String id) {
-        return exec("serviceaccount", "delete", "--id", id, "-f");
+        return exec("serviceaccount", "delete", "--id", id, "-y");
     }
 
     public Future<Process> createServiceAccount(String name) {
         return exec("serviceaccount", "create", "--name", name, "--file-format", "json", "--overwrite");
+    }
+
+    public Future<TopicResponse> createTopic(String topicName) {
+        return exec("kafka", "topic", "create", topicName, "-o", "json").map(p -> stdoutAsJson(p, TopicResponse.class));
+    }
+
+    public Future<Process> deleteTopic(String topicName) {
+        return exec("kafka", "topic", "delete", topicName, "-y");
+    }
+
+    public Future<TopicListResponse> listTopics() {
+        return exec("kafka", "topic", "list", "-o", "json")
+                .map(p -> stdoutAsJson(p, TopicListResponse.class));
+    }
+
+    public Future<TopicResponse> describeTopic(String topicName) {
+        return exec("kafka", "topic", "describe", topicName, "-o", "json")
+                .map(p -> stdoutAsJson(p, TopicResponse.class));
+    }
+
+    public Future<TopicResponse> updateTopic(String topicName, String retentionTime) {
+        return exec("kafka", "topic", "update", topicName, "--retention-ms", retentionTime, "-o", "json")
+                .map(p -> stdoutAsJson(p, TopicResponse.class));
     }
 }

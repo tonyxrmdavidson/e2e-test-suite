@@ -6,6 +6,7 @@ import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.oauth.KeycloakOAuthUtils;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -153,6 +154,10 @@ public class CLIUtils {
                 }));
     }
 
+    public static Future<Optional<TopicResponse>> getTopicByName(CLI cli, String topicName) {
+        return cli.listTopics().map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
+    }
+
     public static Future<Optional<KafkaResponse>> getKafkaByName(CLI cli, String name) {
         return cli.listKafkaByNameAsJson(name)
                 .map(r -> r.items != null ? r.items.stream().findFirst() : Optional.empty());
@@ -201,4 +206,11 @@ public class CLIUtils {
                         .map(Future::succeededFuture)
                         .orElseGet(() -> Future.failedFuture(message("failed to find created service account: {}", name))));
     }
+
+    public static Future<Void> waitForTopicDelete(Vertx vertx, CLI cli, String topicName) {
+        IsReady<Void> isDeleted = last -> getTopicByName(cli, topicName)
+                .map(k -> Pair.with(k.isEmpty(), null));
+        return waitFor(vertx, "kafka topic to be deleted", ofSeconds(10), ofSeconds(Environment.WAIT_READY_MS), isDeleted);
+    }
+
 }

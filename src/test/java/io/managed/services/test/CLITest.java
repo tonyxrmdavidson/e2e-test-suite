@@ -6,6 +6,8 @@ import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.cli.ProcessException;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.client.serviceapi.TopicConfig;
+import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -30,6 +32,7 @@ import static io.managed.services.test.cli.CLIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.cli.CLIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
+import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -45,13 +48,15 @@ public class CLITest extends TestBase {
     static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TOPIC_NAME = "cli-e2e-test-topic";
+    // This needs to be changed to 3 after newer version of kafka_admin_server
+    static final int DEFAULT_PARTITIONS = 1;
 
     String workdir;
     CLI cli;
     boolean loggedIn;
     KafkaResponse kafkaInstance;
     ServiceAccount serviceAccount;
-    String topic;
+    TopicResponse topic;
 
     @AfterAll
     void clean(Vertx vertx, VertxTestContext context) {
@@ -159,7 +164,6 @@ public class CLITest extends TestBase {
                     }
                     return Future.failedFuture(t);
                 })
-
                 .compose(__ -> {
                     LOGGER.info("login the CLI");
                     return CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
@@ -230,10 +234,19 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Disabled("not implemented")
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(6)
-    void testCreateKafkaTopic(Vertx vertx) {
-        //TODO
+    void testCreateKafkaTopic(VertxTestContext context) {
+        assertLoggedIn();
+        assertKafka();
+        LOGGER.info("Create kafka topic with name {}", KAFKA_INSTANCE_NAME);
+        cli.createTopic(TOPIC_NAME)
+                .onSuccess(testTopic -> context.verify(() -> {
+                    assertEquals(testTopic.name, TOPIC_NAME);
+                    assertEquals(testTopic.partitions.size(), DEFAULT_PARTITIONS);
+                    topic = testTopic;
+                }))
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -244,28 +257,67 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Disabled("not implemented")
     @Order(8)
-    void testUpdateKafkaTopic(Vertx vertx) {
-        //TODO
+    void testUpdateKafkaTopic(VertxTestContext context) {
+        assertTopic();
+        String retentionTime = "4";
+        String retentionKey = "retention.ms";
+        LOGGER.info("Update kafka topic with name {}", TOPIC_NAME);
+        cli.updateTopic(TOPIC_NAME, retentionTime)
+                .onSuccess(testTopic -> context.verify(() -> {
+                    Optional<TopicConfig> retentionValue = testTopic.config.stream().filter(conf -> conf.key.equals(retentionKey))
+                            .findFirst();
+                    if (retentionValue.isPresent()) {
+                        assertEquals(retentionValue.get().value, retentionTime);
+                    } else {
+                        context.failNow("Updated config not found");
+                    }
+                    topic = testTopic;
+                }))
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
-    @Disabled("not implemented")
     @Order(9)
-    void testMessagingOnUpdatedTopic(Vertx vertx) {
-        //TODO
+    void testGetRetentionConfigFromTopic(VertxTestContext context) {
+        assertTopic();
+        String retentionTime = "4";
+        String retentionKey = "retention.ms";
+        LOGGER.info("Describe kafka topic with name {}", TOPIC_NAME);
+        cli.describeTopic(TOPIC_NAME)
+                .onSuccess(testTopic -> context.verify(() -> {
+                    assertEquals(testTopic.name, TOPIC_NAME);
+                    assertEquals(testTopic.partitions.size(), topic.partitions.size());
+                    Optional<TopicConfig> retentionValue = testTopic.config.stream().filter(conf -> conf.key.equals(retentionKey))
+                            .findFirst();
+                    if (retentionValue.isPresent()) {
+                        assertEquals(retentionValue.get().value, retentionTime);
+                    } else {
+                        context.failNow("Updated config not found");
+                    }
+                }))
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Disabled("not implemented")
     @Order(10)
-    void testDeleteTopic(Vertx vertx) {
+    void testMessagingOnUpdatedTopic(Vertx vertx) {
         //TODO
     }
 
     @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(11)
+    void testDeleteTopic(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+        cli.deleteTopic(TOPIC_NAME)
+                .compose(__ -> waitForTopicDelete(vertx, cli, TOPIC_NAME))
+                .onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Order(12)
     void testCreateAlreadyCreatedKafka(VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
@@ -285,7 +337,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
-    @Order(12)
+    @Order(13)
     void testDeleteServiceAccount(Vertx vertx, VertxTestContext context) {
         assertServiceAccount();
         cli.deleteServiceAccount(serviceAccount.id)
@@ -296,7 +348,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    @Order(13)
+    @Order(14)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
