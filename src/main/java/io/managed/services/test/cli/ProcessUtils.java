@@ -1,7 +1,6 @@
 package io.managed.services.test.cli;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.codec.impl.BodyCodecImpl;
+import io.managed.services.test.TestUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -21,7 +20,7 @@ public class ProcessUtils {
     }
 
     static <T> T stdoutAsJson(Process process, Class<T> c) {
-        return asJson(c, stdout(process));
+        return TestUtils.asJson(c, stdout(process));
     }
 
     /**
@@ -40,10 +39,6 @@ public class ProcessUtils {
 
     static BufferedReader buffer(InputStream stream) {
         return new BufferedReader(new InputStreamReader(stream));
-    }
-
-    private static <T> T asJson(Class<T> c, String s) {
-        return BodyCodecImpl.jsonDecoder(c).apply(Buffer.buffer(s));
     }
 
     static String toError(Process process) {

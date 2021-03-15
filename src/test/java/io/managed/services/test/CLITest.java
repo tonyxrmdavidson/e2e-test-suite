@@ -6,6 +6,7 @@ import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.cli.ProcessException;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
 import io.managed.services.test.client.serviceapi.TopicConfig;
 import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.managed.services.test.framework.TestTag;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -60,7 +62,6 @@ public class CLITest extends TestBase {
 
     @AfterAll
     void clean(Vertx vertx, VertxTestContext context) {
-
         var cliF = Optional.ofNullable(cli)
                 .map(cli -> {
 
@@ -191,7 +192,16 @@ public class CLITest extends TestBase {
         CLIUtils.createServiceAccount(cli, SERVICE_ACCOUNT_NAME)
                 .onSuccess(sa -> {
                     serviceAccount = sa;
-                    LOGGER.info("Created serviceaccount {} with id {}", serviceAccount.name, serviceAccount.id);
+                    try {
+                        ServiceAccountSecret secret = CLIUtils.getServiceAccountSecret(cli, sa.name);
+                        sa.clientSecret = secret.password;
+                    } catch (IOException e) {
+                        context.failNow(e);
+                    }
+                    LOGGER.info("Created serviceaccount {} with id {} and secret {}",
+                            serviceAccount.name,
+                            serviceAccount.id,
+                            serviceAccount.clientSecret);
                 })
                 .onComplete(context.succeedingThenComplete());
     }

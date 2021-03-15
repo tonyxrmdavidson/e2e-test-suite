@@ -3,6 +3,8 @@ package io.managed.services.test;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.codec.impl.BodyCodecImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.MessageFactory2;
@@ -282,5 +284,9 @@ public class TestUtils {
         LOGGER.info("=======================================================================");
         LOGGER.info(pattern, text);
         LOGGER.info("=======================================================================");
+    }
+
+    public static <T> T asJson(Class<T> c, String s) {
+        return BodyCodecImpl.jsonDecoder(c).apply(Buffer.buffer(s));
     }
 }
