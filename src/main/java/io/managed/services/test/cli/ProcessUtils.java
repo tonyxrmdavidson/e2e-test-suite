@@ -42,7 +42,7 @@ public class ProcessUtils {
         return new BufferedReader(new InputStreamReader(stream));
     }
 
-    private static <T> T asJson(Class<T> c, String s) {
+    public static <T> T asJson(Class<T> c, String s) {
         return BodyCodecImpl.jsonDecoder(c).apply(Buffer.buffer(s));
     }
 

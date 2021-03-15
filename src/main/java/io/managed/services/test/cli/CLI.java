@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -106,8 +107,8 @@ public class CLI {
         return exec("serviceaccount", "delete", "--id", id, "-y");
     }
 
-    public Future<Process> createServiceAccount(String name) {
-        return exec("serviceaccount", "create", "--name", name, "--file-format", "json", "--overwrite");
+    public Future<Process> createServiceAccount(String name, Path path) {
+        return exec("serviceaccount", "create", "--name", name, "--file-format", "json", "--file-location", path.toString(), "--overwrite");
     }
 
     public Future<TopicResponse> createTopic(String topicName) {
