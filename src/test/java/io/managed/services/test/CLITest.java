@@ -18,7 +18,6 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -35,6 +34,7 @@ import static io.managed.services.test.cli.CLIUtils.deleteServiceAccountByNameIf
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -50,7 +50,7 @@ public class CLITest extends TestBase {
     static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TOPIC_NAME = "cli-e2e-test-topic";
-    // This needs to be changed to 3 after newer version of kafka_admin_server
+    // TODO This needs to be changed to 3 after newer version of kafka_admin_server
     static final int DEFAULT_PARTITIONS = 1;
 
     String workdir;
@@ -218,12 +218,11 @@ public class CLITest extends TestBase {
                 .compose(kafka -> {
                     LOGGER.info("created kafka instance {} with id {}", kafka.name, kafka.id);
                     return waitForKafkaReady(vertx, cli, kafka.id)
-                            .onSuccess(__ -> {
+                            .onSuccess(k -> {
                                 LOGGER.info("kafka instance {} with id {} is ready", kafka.name, kafka.id);
-                                kafkaInstance = kafka;
+                                kafkaInstance = k;
                             });
                 })
-
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -260,10 +259,17 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Disabled("not implemented")
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(7)
-    void testKafkaMessaging(Vertx vertx) {
-        //TODO
+    void testKafkaMessaging(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+
+        var bootstrapHost = kafkaInstance.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
+
+        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -310,10 +316,16 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Disabled("not implemented")
     @Order(10)
-    void testMessagingOnUpdatedTopic(Vertx vertx) {
-        //TODO
+    void testMessagingOnUpdatedTopic(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+
+        var bootstrapHost = kafkaInstance.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
+
+        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
