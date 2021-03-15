@@ -157,7 +157,7 @@ class ServiceAPITest extends TestBase {
 
     @Test
     @Order(3)
-    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Timeout(value = 3, timeUnit = TimeUnit.MINUTES)
     void testProduceAndConsumeKafkaMessages(Vertx vertx, VertxTestContext context) {
         assertTopic();
 

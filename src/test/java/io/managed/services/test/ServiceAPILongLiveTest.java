@@ -33,6 +33,7 @@ import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
+import static java.time.Duration.ofMinutes;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -175,10 +176,9 @@ class ServiceAPILongLiveTest extends TestBase {
         String clientID = serviceAccount.clientID;
         String clientSecret = serviceAccount.clientSecret;
 
-
         forEach(Set.of(TOPICS), topic -> {
             LOGGER.info("start testing topic: {}", topic);
-            return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, 10, 7, 10);
+            return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, ofMinutes(1), 10, 7, 10);
         }).onComplete(context.succeedingThenComplete());
     }
 }

@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 public class KafkaProducerClient {
     private static final Logger LOGGER = LogManager.getLogger(KafkaProducerClient.class);
     private final Vertx vertx;
@@ -57,8 +55,8 @@ public class KafkaProducerClient {
     public Future<Void> close() {
         if (vertx != null && producer != null) {
             return producer.close()
-                    .onSuccess(v -> LOGGER.info("Producer closed"))
-                    .onFailure(cause -> fail("Producer not closed", cause));
+                    .onSuccess(v -> LOGGER.info("KafkaProducerClient closed"))
+                    .onFailure(c -> LOGGER.error("failed to close KafkaProducerClient", c));
         }
         return Future.succeededFuture(null);
     }
