@@ -145,28 +145,28 @@ public class CLIUtils {
         });
     }
 
-    public static Future<?> deleteKafkaByNameIfExists(CLI cli, String name) {
-        return getKafkaByName(cli, name)
+    public static Future<?> deleteKafkaByNameIfExists(Vertx vertx, CLI cli, String name) {
+        return getKafkaByName(vertx, cli, name)
                 .compose(o -> o.map(k -> {
                     LOGGER.info("delete kafka instance: {}", k.id);
-                    return cli.deleteKafka(k.id);
+                    return cli.deleteKafka(vertx, k.id);
                 }).orElseGet(() -> {
                     LOGGER.warn("kafka instance '{}' not found", name);
                     return Future.succeededFuture();
                 }));
     }
 
-    public static Future<Optional<TopicResponse>> getTopicByName(CLI cli, String topicName) {
-        return cli.listTopics().map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
+    public static Future<Optional<TopicResponse>> getTopicByName(Vertx vertx, CLI cli, String topicName) {
+        return cli.listTopics(vertx).map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
     }
 
-    public static Future<Optional<KafkaResponse>> getKafkaByName(CLI cli, String name) {
-        return cli.listKafkaByNameAsJson(name)
+    public static Future<Optional<KafkaResponse>> getKafkaByName(Vertx vertx, CLI cli, String name) {
+        return cli.listKafkaByNameAsJson(vertx, name)
                 .map(r -> r.items != null ? r.items.stream().findFirst() : Optional.empty());
     }
 
     public static Future<KafkaResponse> waitForKafkaReady(Vertx vertx, CLI cli, String id) {
-        IsReady<KafkaResponse> isReady = last -> cli.describeKafka(id).map(r -> {
+        IsReady<KafkaResponse> isReady = last -> cli.describeKafka(vertx, id).map(r -> {
             LOGGER.info("kafka instance status is: {}", r.status);
 
             if (last) {
@@ -179,31 +179,31 @@ public class CLIUtils {
     }
 
     public static Future<Void> waitForKafkaDelete(Vertx vertx, CLI cli, String name) {
-        IsReady<Void> isDeleted = last -> getKafkaByName(cli, name)
+        IsReady<Void> isDeleted = last -> getKafkaByName(vertx, cli, name)
                 .map(k -> Pair.with(k.isEmpty(), null));
 
         return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
     }
 
-    public static Future<Optional<ServiceAccount>> getServiceAccountByName(CLI cli, String name) {
-        return cli.listServiceAccountAsJson()
+    public static Future<Optional<ServiceAccount>> getServiceAccountByName(Vertx vertx, CLI cli, String name) {
+        return cli.listServiceAccountAsJson(vertx)
                 .map(r -> r.items.stream().filter(sa -> sa.name.equals(name)).findFirst());
     }
 
-    public static Future<?> deleteServiceAccountByNameIfExists(CLI cli, String name) {
-        return getServiceAccountByName(cli, name)
+    public static Future<?> deleteServiceAccountByNameIfExists(Vertx vertx, CLI cli, String name) {
+        return getServiceAccountByName(vertx, cli, name)
                 .compose(o -> o.map(k -> {
                     LOGGER.info("delete serviceaccount {} instance: {}", k.name, k.id);
-                    return cli.deleteServiceAccount(k.id);
+                    return cli.deleteServiceAccount(vertx, k.id);
                 }).orElseGet(() -> {
                     LOGGER.warn("serviceaccount '{}' not found", name);
                     return Future.succeededFuture();
                 }));
     }
 
-    public static Future<ServiceAccount> createServiceAccount(CLI cli, String name) {
-        return cli.createServiceAccount(name, Paths.get(cli.getWorkdir(), name + ".json"))
-                .compose(p -> getServiceAccountByName(cli, name))
+    public static Future<ServiceAccount> createServiceAccount(Vertx vertx, CLI cli, String name) {
+        return cli.createServiceAccount(vertx, name, Paths.get(cli.getWorkdir(), name + ".json"))
+                .compose(p -> getServiceAccountByName(vertx, cli, name))
                 .compose(o -> o
                         .map(Future::succeededFuture)
                         .orElseGet(() -> Future.failedFuture(message("failed to find created service account: {}", name))));
@@ -214,7 +214,7 @@ public class CLIUtils {
     }
 
     public static Future<Void> waitForTopicDelete(Vertx vertx, CLI cli, String topicName) {
-        IsReady<Void> isDeleted = last -> getTopicByName(cli, topicName)
+        IsReady<Void> isDeleted = last -> getTopicByName(vertx, cli, topicName)
                 .map(k -> Pair.with(k.isEmpty(), null));
         return waitFor(vertx, "kafka topic to be deleted", ofSeconds(10), ofSeconds(Environment.WAIT_READY_MS), isDeleted);
     }
