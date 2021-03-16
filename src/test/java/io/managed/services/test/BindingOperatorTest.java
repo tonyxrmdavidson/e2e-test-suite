@@ -14,10 +14,10 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -38,7 +38,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,9 +60,8 @@ public class BindingOperatorTest extends TestBase {
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
 
     User user;
-
-    ServiceAPI api;
     KubernetesClient client;
+    boolean accessToken;
 
     final static String ACCESS_TOKEN_SECRET_NAME = "mk-e2e-api-accesstoken";
     final static String CLOUD_SERVICE_ACCOUNT_REQUEST_NAME = "mk-e2e-service-account-request";
@@ -72,11 +70,25 @@ public class BindingOperatorTest extends TestBase {
     final static String CLOUD_SERVICES_REQUEST_NAME = "mk-e2e-kafka-request";
     final static String KAFKA_CONNECTION_NAME = "mk-e2e-kafka-connection";
 
-    @BeforeAll
-    void bootstrap(Vertx vertx, VertxTestContext context) {
+    private void assertENVs() {
         assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
         assumeTrue(Environment.SSO_PASSWORD != null, "the SSO_PASSWORD env is null");
         assumeTrue(Environment.DEV_CLUSTER_TOKEN != null, "the DEV_CLUSTER_TOKEN env is null");
+    }
+
+    private void assertClient() {
+        assumeTrue(client != null, "client is null because the bootstrap method has failed");
+    }
+
+    private void assertUser() {
+        assumeTrue(user != null, "user is null because the bootstrap method has failed");
+    }
+
+    private void assertAccessToken() {
+        assumeTrue(accessToken, "accessToken is false because the createAccessTokenSecret method has failed");
+    }
+
+    private Future<Void> bootstrapUser(Vertx vertx) {
 
         KeycloakOAuth auth = new KeycloakOAuth(vertx,
                 Environment.SSO_REDHAT_KEYCLOAK_URI,
@@ -85,73 +97,115 @@ public class BindingOperatorTest extends TestBase {
                 Environment.SSO_REDHAT_CLIENT_ID);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD)
-                .onSuccess(user -> {
-                    this.user = user;
-                    this.api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
+        return auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD)
+                .onSuccess(u -> user = u)
+                .map(__ -> null);
+    }
 
-                    Config config = new ConfigBuilder()
-                            .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
-                            .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
-                            .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
-                            .build();
+    private void bootstrapK8sClient() {
 
-                    LOGGER.info("initialize kubernetes client");
-                    this.client = new DefaultKubernetesClient(config);
-                })
+        Config config = new ConfigBuilder()
+                .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
+                .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
+                .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+                .build();
 
+        LOGGER.info("initialize kubernetes client");
+        client = new DefaultKubernetesClient(config);
+    }
+
+    @BeforeAll
+    void bootstrap(Vertx vertx, VertxTestContext context) {
+        assertENVs();
+
+        bootstrapUser(vertx)
+                .onSuccess(__ -> bootstrapK8sClient())
                 .onComplete(context.succeedingThenComplete());
     }
 
-    @AfterAll
-    void cleanAccessTokenSecret() {
-        Secret s = client.secrets().withName(ACCESS_TOKEN_SECRET_NAME).get();
-        if (s != null) {
-            LOGGER.info("clean secret: {}", s.getMetadata().getName());
-            client.secrets().delete(s);
+    private Future<Void> cleanAccessTokenSecret() {
+        try {
+            Secret s = client.secrets().withName(ACCESS_TOKEN_SECRET_NAME).get();
+            if (s != null) {
+                LOGGER.info("clean secret: {}", s.getMetadata().getName());
+                client.secrets().delete(s);
+            }
+        } catch (Exception e) {
+            return Future.failedFuture(e);
         }
+        return Future.succeededFuture();
+    }
+
+    private Future<Void> cleanCloudServiceAccountRequest() {
+        try {
+            var a = OperatorUtils.cloudServiceAccountRequest(client).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get();
+            if (a != null) {
+                LOGGER.info("clean CloudServiceAccountRequest: {}", a.getMetadata().getName());
+                OperatorUtils.cloudServiceAccountRequest(client).delete(a);
+            }
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+        return Future.succeededFuture();
+    }
+
+    private Future<Void> cleanCloudServicesRequest() {
+        try {
+            var k = OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get();
+            if (k != null) {
+                LOGGER.info("clean CloudServicesRequest: {}", k.getMetadata().getName());
+                OperatorUtils.cloudServicesRequest(client).delete(k);
+            }
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+        return Future.succeededFuture();
+    }
+
+    private Future<Void> cleanManagedKafkaConnection() {
+        try {
+            var c = OperatorUtils.kafkaConnection(client).withName(KAFKA_CONNECTION_NAME).get();
+            if (c != null) {
+                LOGGER.info("clean ManagedKafkaConnection: {}", c.getMetadata().getName());
+                OperatorUtils.kafkaConnection(client).delete(c);
+            }
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+        return Future.succeededFuture();
+    }
+
+    private Future<Void> collectOperatorLogs(ExtensionContext context) {
+        try {
+            LogCollector.saveDeploymentLog(
+                    TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
+                    client,
+                    "openshift-operators",
+                    "service-binding-operator");
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+        return Future.succeededFuture();
     }
 
     @AfterAll
-    void cleanCloudServiceAccountRequest() {
-        var a = OperatorUtils.cloudServiceAccountRequest(client).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get();
-        if (a != null) {
-            LOGGER.info("clean CloudServiceAccountRequest: {}", a.getMetadata().getName());
-            OperatorUtils.cloudServiceAccountRequest(client).delete(a);
-        }
-    }
+    void teardown(VertxTestContext context, ExtensionContext testContext) {
+        CompositeFuture.join(
+                cleanManagedKafkaConnection(),
+                cleanCloudServicesRequest(),
+                cleanCloudServiceAccountRequest(),
+                cleanAccessTokenSecret())
 
-    @AfterAll
-    void cleanCloudServicesRequest() {
-        var k = OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get();
-        if (k != null) {
-            LOGGER.info("clean CloudServicesRequest: {}", k.getMetadata().getName());
-            OperatorUtils.cloudServicesRequest(client).delete(k);
-        }
-    }
+                .eventually(__ -> collectOperatorLogs(testContext))
 
-    @AfterAll
-    void cleanManagedKafkaConnection() {
-        var c = OperatorUtils.kafkaConnection(client).withName(KAFKA_CONNECTION_NAME).get();
-        if (c != null) {
-            LOGGER.info("clean ManagedKafkaConnection: {}", c.getMetadata().getName());
-            OperatorUtils.kafkaConnection(client).delete(c);
-        }
-    }
-
-    @AfterAll
-    void collectOperatorLogs(ExtensionContext context) throws IOException {
-        LogCollector.saveDeploymentLog(
-                TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
-                client,
-                "openshift-operators",
-                "service-binding-operator");
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Order(1)
     void createAccessTokenSecret() {
-        assumeTrue(client != null, "the global client is null");
+        assertClient();
+        assertUser();
 
         // Create Secret
         Map<String, String> data = new HashMap<>();
@@ -159,13 +213,15 @@ public class BindingOperatorTest extends TestBase {
 
         LOGGER.info("create access token secret with name: {}", ACCESS_TOKEN_SECRET_NAME);
         client.secrets().create(OperatorUtils.buildSecret(ACCESS_TOKEN_SECRET_NAME, data));
+
+        accessToken = true;
     }
 
     @Test
     @Order(2)
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     void createCloudServiceAccountRequest(Vertx vertx, VertxTestContext context) {
-        assumeTrue(client != null, "the global client is null");
+        assertAccessToken();
 
         var a = new CloudServiceAccountRequest();
         a.getMetadata().setName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME);
@@ -201,7 +257,7 @@ public class BindingOperatorTest extends TestBase {
     @Test
     @Order(2)
     void createCloudServicesRequest(Vertx vertx, VertxTestContext context) {
-        assumeTrue(client != null, "the global client is null");
+        assertAccessToken();
 
         var k = new CloudServicesRequest();
         k.getMetadata().setName(CLOUD_SERVICES_REQUEST_NAME);
@@ -238,7 +294,7 @@ public class BindingOperatorTest extends TestBase {
     @Test
     @Order(3)
     void createManagedKafkaConnection(Vertx vertx, VertxTestContext context) {
-        assumeTrue(client != null, "the global client is null");
+        assertAccessToken();
 
         var cloudServicesRequest = OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get();
         assumeTrue(cloudServicesRequest != null, "the CloudServicesRequest is null");
