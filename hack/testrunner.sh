@@ -83,9 +83,10 @@ env
 info "----------------"
 
 exec mvn verify \
-    --offline \
-    "-P${PROFILE}" \
-    "-Dit.test=${TESTCASE}" \
-    "-Drp.enable=${REPORTPORTAL_ENABLE}" \
-    "-Drp.api.key=${REPORTPORTAL_UUID}" \
-    --no-transfer-progress
+  --offline \
+  "-P${PROFILE}" \
+  "-Dit.test=${TESTCASE}" \
+  "-Drp.enable=${REPORTPORTAL_ENABLE}" \
+  "-Drp.api.key=${REPORTPORTAL_UUID}" \
+  "-Drp.description=Build: ${BUILD_URL:-"null"}" \
+  --no-transfer-progress
