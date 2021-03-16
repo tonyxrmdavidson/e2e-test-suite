@@ -36,6 +36,10 @@ echo "Token:"
 echo
 echo "${TOKEN}"
 echo
+echo "API Server:"
+echo
+echo "${OPENSHIFT_API_URL}"
+echo
 echo "Login:"
 echo
 echo "oc login --server '${OPENSHIFT_API_URL}' --token '${TOKEN}'"
