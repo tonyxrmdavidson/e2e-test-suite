@@ -48,6 +48,11 @@ public class Environment {
     private static final String SSO_REDHAT_CLIENT_ID_ENV = "SSO_REDHAT_CLIENT_ID";
     private static final String SSO_REDHAT_REDIRECT_URI_ENV = "SSO_REDHAT_REDIRECT_URI";
 
+    private static final String MAS_SSO_REDHAT_KEYCLOAK_URI_ENV = "MAS_SSO_REDHAT_KEYCLOAK_URI";
+    private static final String MAS_SSO_REDHAT_REALM_ENV = "MAS_SSO_REDHAT_REALM_ENV";
+    private static final String MAS_SSO_REDHAT_CLIENT_ID_ENV = "MAS_SSO_REDHAT_CLIENT_ID_ENV";
+    private static final String MAS_SSO_REDHAT_REDIRECT_URI_ENV = "MAS_SSO_REDHAT_REDIRECT_URI_ENV";
+
     private static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
 
     private static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
@@ -114,6 +119,11 @@ public class Environment {
     public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
     public static final int API_CALL_THRESHOLD = getOrDefault(API_CALL_THRESHOLD_ENV, Integer::parseInt, 10);
+
+    public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org");
+    public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "mas-sso-staging");
+    public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
+    public static final String MAS_SSO_REDHAT_REDIRECT_URI = getOrDefault(MAS_SSO_REDHAT_REDIRECT_URI_ENV, "https://qaprodauth.cloud.redhat.com/beta/application-services/openshift-streams");
 
     private Environment() {
     }
