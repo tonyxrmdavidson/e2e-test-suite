@@ -236,7 +236,6 @@ class ServiceAPITest extends TestBase {
 
     @Test
     @Order(5)
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertKafka();
 

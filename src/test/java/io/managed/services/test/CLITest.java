@@ -207,7 +207,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @Order(4)
     void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();

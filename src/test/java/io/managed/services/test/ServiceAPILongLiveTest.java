@@ -168,7 +168,6 @@ class ServiceAPILongLiveTest extends TestBase {
 
     @Test
     @Order(4)
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     void testProduceAndConsumeKafkaMessages(Vertx vertx, VertxTestContext context) {
         assertTopic();
 

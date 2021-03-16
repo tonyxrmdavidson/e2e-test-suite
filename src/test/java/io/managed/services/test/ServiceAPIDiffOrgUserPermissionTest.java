@@ -149,7 +149,6 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
      * A user in org A is not allowed to create topic to produce and consume messages on a kafka instance in org B
      */
     @Test
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     @Order(2)
     @Disabled("Known issue: https://issues.redhat.com/browse/MGDSTRM-1439")
     void testOrg2UserCreateTopic(VertxTestContext context) {
@@ -194,7 +193,6 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
 
 
     @Test
-    @Timeout(value = 10, timeUnit = TimeUnit.MINUTES)
     @Order(3)
     void testOrg2UserDeleteKafkaInstance(VertxTestContext context) {
         assertKafka();
