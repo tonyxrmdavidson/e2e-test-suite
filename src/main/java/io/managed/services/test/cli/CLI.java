@@ -1,11 +1,13 @@
 package io.managed.services.test.cli;
 
+import io.managed.services.test.Environment;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAccountList;
 import io.managed.services.test.client.serviceapi.TopicListResponse;
 import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,9 +16,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.cli.ProcessUtils.stdout;
 import static io.managed.services.test.cli.ProcessUtils.stdoutAsJson;
+import static java.time.Duration.ofSeconds;
 
 public class CLI {
     private static final Logger LOGGER = LogManager.getLogger(CLI.class);
@@ -73,68 +79,98 @@ public class CLI {
     }
 
     public Future<Process> listKafka() {
-        return exec("kafka", "list");
+        return retry(() -> exec("kafka", "list"));
     }
 
     public Future<KafkaResponse> createKafka(String name) {
-        return exec("kafka", "create", name)
-                .map(p -> stdoutAsJson(p, KafkaResponse.class));
+        return retry(() -> exec("kafka", "create", name)
+                .map(p -> stdoutAsJson(p, KafkaResponse.class)));
     }
 
     public Future<Process> deleteKafka(String id) {
-        return exec("kafka", "delete", "--id", id, "-y");
+        return retry(() -> exec("kafka", "delete", "--id", id, "-y"));
     }
 
     public Future<KafkaResponse> describeKafka(String id) {
-        return exec("kafka", "describe", "--id", id)
-                .map(p -> stdoutAsJson(p, KafkaResponse.class));
+        return retry(() -> exec("kafka", "describe", "--id", id)
+                .map(p -> stdoutAsJson(p, KafkaResponse.class)));
     }
 
     public Future<KafkaListResponse> listKafkaAsJson() {
-        return exec("kafka", "list", "-o", "json")
-                .map(p -> stdoutAsJson(p, KafkaListResponse.class));
+        return retry(() -> exec("kafka", "list", "-o", "json")
+                .map(p -> stdoutAsJson(p, KafkaListResponse.class)));
     }
 
     public Future<KafkaListResponse> listKafkaByNameAsJson(String name) {
-        return exec("kafka", "list", "--search", name, "-o", "json")
+        return retry(() -> exec("kafka", "list", "--search", name, "-o", "json")
                 .map(p -> ProcessUtils.stderr(p).contains("No Kafka instances were found") ?
                         new KafkaListResponse() :
-                        stdoutAsJson(p, KafkaListResponse.class));
+                        stdoutAsJson(p, KafkaListResponse.class)));
     }
 
     public Future<ServiceAccountList> listServiceAccountAsJson() {
-        return exec("serviceaccount", "list", "-o", "json")
-                .map(p -> stdoutAsJson(p, ServiceAccountList.class));
+        return retry(() -> exec("serviceaccount", "list", "-o", "json")
+                .map(p -> stdoutAsJson(p, ServiceAccountList.class)));
     }
 
     public Future<Process> deleteServiceAccount(String id) {
-        return exec("serviceaccount", "delete", "--id", id, "-y");
+        return retry(() -> exec("serviceaccount", "delete", "--id", id, "-y"));
     }
 
     public Future<Process> createServiceAccount(String name, Path path) {
-        return exec("serviceaccount", "create", "--name", name, "--file-format", "json", "--file-location", path.toString(), "--overwrite");
+        return retry(() -> exec("serviceaccount", "create", "--name", name, "--file-format", "json", "--file-location", path.toString(), "--overwrite"));
     }
 
     public Future<TopicResponse> createTopic(String topicName) {
-        return exec("kafka", "topic", "create", topicName, "-o", "json").map(p -> stdoutAsJson(p, TopicResponse.class));
+        return retry(() -> exec("kafka", "topic", "create", topicName, "-o", "json").map(p -> stdoutAsJson(p, TopicResponse.class)));
     }
 
     public Future<Process> deleteTopic(String topicName) {
-        return exec("kafka", "topic", "delete", topicName, "-y");
+        return retry(() -> exec("kafka", "topic", "delete", topicName, "-y"));
     }
 
     public Future<TopicListResponse> listTopics() {
-        return exec("kafka", "topic", "list", "-o", "json")
-                .map(p -> stdoutAsJson(p, TopicListResponse.class));
+        return retry(() -> exec("kafka", "topic", "list", "-o", "json")
+                .map(p -> stdoutAsJson(p, TopicListResponse.class)));
     }
 
     public Future<TopicResponse> describeTopic(String topicName) {
-        return exec("kafka", "topic", "describe", topicName, "-o", "json")
-                .map(p -> stdoutAsJson(p, TopicResponse.class));
+        return retry(() -> exec("kafka", "topic", "describe", topicName, "-o", "json")
+                .map(p -> stdoutAsJson(p, TopicResponse.class)));
     }
 
     public Future<TopicResponse> updateTopic(String topicName, String retentionTime) {
-        return exec("kafka", "topic", "update", topicName, "--retention-ms", retentionTime, "-o", "json")
-                .map(p -> stdoutAsJson(p, TopicResponse.class));
+        return retry(() -> exec("kafka", "topic", "update", topicName, "--retention-ms", retentionTime, "-o", "json")
+                .map(p -> stdoutAsJson(p, TopicResponse.class)));
+    }
+
+    public <T> Future<T> retry(Supplier<Future<T>> call) {
+        return retry(Vertx.vertx(), call, Environment.API_CALL_THRESHOLD);
+    }
+
+    public <T> Future<T> retry(Vertx vertx, Supplier<Future<T>> call, int attempts) {
+
+        Function<Throwable, Future<T>> retry = t -> {
+            LOGGER.error("skip error: ", t);
+
+            // retry the CLI call
+            return sleep(vertx, ofSeconds(1))
+                    .compose(r -> retry(vertx, call, attempts - 1));
+        };
+
+        return call.get().recover(t -> {
+            if (attempts <= 0) {
+                // no more attempts remaining
+                return Future.failedFuture(t);
+            }
+
+            if (t instanceof ProcessException) {
+                if (t.getMessage().contains("504") || t.getMessage().contains("500")) {
+                    return retry.apply(t);
+                }
+            }
+
+            return Future.failedFuture(t);
+        });
     }
 }
