@@ -169,6 +169,7 @@
             <artifactId>rhoas-operator-parent</artifactId>
             <version>1.0.0-SNAPSHOT</version>
             <scope>system</scope>
+            <!-- See 'Update the rhoas-model dependency' in the README.md on how to build and update the rhoas-model -->
             <systemPath>${basedir}/lib/rhoas-model-1.0.0-SNAPSHOT.jar</systemPath>
         </dependency>
         <dependency>

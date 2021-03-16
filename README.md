@@ -91,8 +91,8 @@ make PROFILE=ci test
 | SSO_SECONDARY_PASSWORD  | the secondary user password                                                   |  |
 | SSO_ALIEN_USERNAME      | a third user that is part of a different org respect the main user            |  |
 | SSO_ALIEN_PASSWORD      | the alien user password                                                       |  |
-| SSO_UNAUTHORIZED_USERNAME | a user that is not authorized to create kafka instances 	  |  |	
-| SSO_UNAUTHORIZED_PASSWORD | the unauthorized user password						  |  |
+| SSO_UNAUTHORIZED_USERNAME | a user that is not authorized to create kafka instances      |  |	
+| SSO_UNAUTHORIZED_PASSWORD | the unauthorized user password                          |  |
 | DEV_CLUSTER_SERVER      | the api server url of a openshift cluster with the binding operator installed | https://api.devexp.imkr.s1.devshift.org:6443 |
 | DEV_CLUSTER_NAMESPACE   | the namespace to use to install the binding operator CRs                      | mk-e2e-tests |
 | DEV_CLUSTER_TOKEN       | the cluster user token (this can also be a service account token)             |  |
@@ -125,7 +125,7 @@ envs:
 rp.endpoint=https://reportportal-reportportal.apps.chiron.intlyqe.com/
 rp.api.key=ff7fd6a5-4985-4260-805f-bfeeca919536 rp.launch=mk-e2e-test-suite rp.project=default_personal rp.enable=false
 
-## Troubleshooting
+## Short guides
 
 #### Recreate the mk-e2e-tests namespace in the dev cluster
 
@@ -137,7 +137,44 @@ rp.api.key=ff7fd6a5-4985-4260-805f-bfeeca919536 rp.launch=mk-e2e-test-suite rp.p
     ```
    ./hack/bootstrap-mk-e2e-tests-namespace.sh
     ```
-3. Update the [vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/staging) with the new dev cluster token
+3. Update the [vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/staging)
+   with the new dev cluster token
+
+#### Update the rhoas-model dependency
+
+1. Clone the operator the bf2/operator from here:https://github.com/bf2fc6cc711aee1a0c2a/operator
+    ```
+   git clone https://github.com/bf2fc6cc711aee1a0c2a/operator.git
+   cd operator
+   ```
+
+2. Checkout the right version you want to update to
+
+   **Example:**
+   ```
+   git checkout 0.5.0
+   ```
+
+3. Build the all the JARs (See operator README.md for the required maven and java versions)
+   ```
+   mvn package
+   ```
+
+4. Copy the built **rhoas-model.VERSION.jar** to the e2e-test-suite **lib/** directory
+
+   **Example:**
+   ```
+   cp source/model/target/rhoas-model-1.0.0-SNAPSHOT.jar ../e2e-test-suite/lib
+   ```
+
+6. If the rhoas-model version has changed you need to update the pom.xml in the e2e-test-suite repository
+
+5. Switch then to the e2e-test-suite repo and verify the build
+   ```
+   mvn verify -Psmoke
+   ```
+
+6. If the build pass, commit the changes and open a PR, otherwise fix the issues and then open a PR
 
 ## Maintainers
 
