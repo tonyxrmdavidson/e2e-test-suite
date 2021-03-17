@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.CLI)
 @ExtendWith(VertxExtension.class)
+@Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class CLITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(CLITest.class);
@@ -176,9 +177,7 @@ public class CLITest extends TestBase {
                     return cli.listKafka(vertx);
                 })
 
-                .onSuccess(__ -> {
-                    loggedIn = true;
-                })
+                .onSuccess(__ -> loggedIn = true)
 
                 .onComplete(context.succeedingThenComplete());
     }

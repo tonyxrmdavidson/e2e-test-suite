@@ -52,6 +52,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.BINDING_OPERATOR)
 @ExtendWith(VertxExtension.class)
+@Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class BindingOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(BindingOperatorTest.class);
