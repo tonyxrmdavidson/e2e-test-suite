@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.SERVICE_API_PERMISSIONS)
 @ExtendWith(VertxExtension.class)
+@Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPISameOrgUserPermissionsTest.class);
