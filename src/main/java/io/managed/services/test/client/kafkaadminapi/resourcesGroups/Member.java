@@ -1,4 +1,4 @@
-package io.managed.services.test.client.restapi.resourcesGroups;
+package io.managed.services.test.client.kafkaadminapi.resourcesGroups;
 
 import java.util.List;
 

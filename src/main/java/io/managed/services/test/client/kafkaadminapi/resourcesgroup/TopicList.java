@@ -1,10 +1,10 @@
-package io.managed.services.test.client.restapi.resources;
+package io.managed.services.test.client.kafkaadminapi.resourcesgroup;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-public class Topics {
+public class TopicList {
     @JsonProperty("items")
     public List<Topic> topics;
     public int offset;

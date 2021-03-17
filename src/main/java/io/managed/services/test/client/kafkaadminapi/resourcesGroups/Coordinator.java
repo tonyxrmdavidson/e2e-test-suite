@@ -1,4 +1,4 @@
-package io.managed.services.test.client.restapi.resourcesGroups;
+package io.managed.services.test.client.kafkaadminapi.resourcesGroups;
 
 public class Coordinator{
     public boolean hasRack;
@@ -8,4 +8,3 @@ public class Coordinator{
     public Object rack;
     public boolean empty;
 }
-
