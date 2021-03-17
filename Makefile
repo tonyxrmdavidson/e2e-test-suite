@@ -34,6 +34,8 @@ CLI_VERSION ?=
 CLI_ARCH ?=
 REPORTPORTAL_ENABLE ?=
 REPORTPORTAL_UUID ?=
+KAFKA_POSTFIX_NAME ?=
+BUILD_URL ?=
 
 ifeq (${DOCKER}, podman)
 	DOCKER_RUN = ${DOCKER} run -u "0"
@@ -92,6 +94,7 @@ container/test:
 		-e REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE} \
 		-e REPORTPORTAL_UUID=${REPORTPORTAL_UUID} \
 		-e KAFKA_POSTFIX_NAME=${KAFKA_POSTFIX_NAME} \
+		-e BUILD_URL=${BUILD_URL} \
 		${IMAGE}
 
 .PHONY: clean build test image/build container/test
