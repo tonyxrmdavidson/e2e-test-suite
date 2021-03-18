@@ -95,7 +95,11 @@ public abstract class BaseVertxClient {
             }
 
             if (t instanceof ResponseException) {
-                if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_INTERNAL_ERROR) {
+                var r = ((ResponseException) t).response;
+                // retry request in case of error 500 or 504
+                if (r.statusCode() == HttpURLConnection.HTTP_INTERNAL_ERROR
+                        || r.statusCode() == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
+                ) {
                     return retry.apply(t);
                 }
             }
