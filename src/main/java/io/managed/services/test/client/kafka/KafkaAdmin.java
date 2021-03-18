@@ -5,6 +5,7 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +46,10 @@ public class KafkaAdmin {
 
     public Future<Void> deleteTopic(String name) {
         return toVertxFuture(admin.deleteTopics(Collections.singleton(name)).all());
+    }
+
+    public void close() {
+        admin.close(Duration.ofSeconds(3));
     }
 }
 

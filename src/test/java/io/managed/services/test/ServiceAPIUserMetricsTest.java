@@ -97,7 +97,9 @@ public class ServiceAPIUserMetricsTest extends TestBase {
         var topicF = adminF
                 .compose(admin -> {
                     LOGGER.info("ensure the topic {} exists", TOPIC_NAME);
-                    return applyTopics(admin, Set.of(TOPIC_NAME));
+                    return applyTopics(admin, Set.of(TOPIC_NAME))
+
+                            .onComplete(__ -> admin.close());
                 });
 
         // retrieve the current in messages before sending more

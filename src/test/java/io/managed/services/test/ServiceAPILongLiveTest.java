@@ -163,6 +163,8 @@ class ServiceAPILongLiveTest extends TestBase {
                     assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
                 }))
 
+                .onComplete(__ -> admin.close())
+
                 .onComplete(context.succeedingThenComplete());
     }
 
