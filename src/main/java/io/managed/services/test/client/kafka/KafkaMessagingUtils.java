@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static io.managed.services.test.TestUtils.message;
-import static io.managed.services.test.TestUtils.sleep;
 import static org.slf4j.helpers.MessageFormatter.format;
 
 
@@ -98,13 +97,16 @@ public class KafkaMessagingUtils {
             var produceFuture = producer.sendAsync(topicName, messages);
 
             var timeoutPromise = Promise.promise();
-            sleep(vertx, timeout).onComplete(__ -> {
+            var timeoutTimer = vertx.setTimer(timeout.toMillis(), __ -> {
                 LOGGER.error("timeout after {} waiting for {} messages", timeout, messages.size());
                 timeoutPromise.fail(message("timeout after {} waiting for {} messages; host: {}; topic: {}", timeout, messages.size(), bootstrapHost, topicName));
             });
 
-            var completeFuture = CompositeFuture.all(produceFuture, consumeFuture)
-                    .onSuccess(__ -> timeoutPromise.tryComplete());
+            var completeFuture = CompositeFuture.join(produceFuture, consumeFuture)
+                    .onComplete(__ -> {
+                        vertx.cancelTimer(timeoutTimer);
+                        timeoutPromise.tryComplete();
+                    });
 
             var completeOrTimeoutFuture = CompositeFuture.all(completeFuture, timeoutPromise.future());
 
@@ -112,7 +114,7 @@ public class KafkaMessagingUtils {
                     .eventually(__ -> {
                         // close the producer and consumer in any case
                         LOGGER.info("close the consumer and the producer");
-                        return CompositeFuture.all(producer.close(), consumer.close())
+                        return CompositeFuture.join(producer.close(), consumer.close())
 
                                 // whatever the close fails or succeed the final result is given from the completeOrTimeoutFuture
                                 .eventually(___ -> completeOrTimeoutFuture);
