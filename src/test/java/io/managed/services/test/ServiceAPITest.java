@@ -10,6 +10,7 @@ import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -32,12 +33,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDeleted;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
+import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -68,15 +71,28 @@ class ServiceAPITest extends TestBase {
                 .onComplete(context.succeedingThenComplete());
     }
 
-    @AfterAll
-    void deleteKafkaInstance(VertxTestContext context) {
-        deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME)
-                .onComplete(context.succeedingThenComplete());
+    private Future<Void> deleteKafkaInstance() {
+        return deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
+    }
+
+    private Future<Void> deleteServiceAccount() {
+        return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
 
     @AfterAll
-    void deleteServiceAccount(VertxTestContext context) {
-        deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME)
+    void teardown(Vertx vertx, VertxTestContext context) {
+
+        // close KafkaAdmin
+        if (admin != null) admin.close();
+
+        // delete kafka instance
+        var dk = deleteKafkaInstance();
+
+        // delete service account
+        var ds = deleteServiceAccount();
+
+        CompositeFuture.join(dk, ds)
+                .compose(__ -> sleep(vertx, ofSeconds(60)))
                 .onComplete(context.succeedingThenComplete());
     }
 

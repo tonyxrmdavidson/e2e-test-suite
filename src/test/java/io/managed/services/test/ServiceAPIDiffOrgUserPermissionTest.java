@@ -185,7 +185,9 @@ class ServiceAPIDiffOrgUserPermissionTest extends TestBase {
                                     return Future.succeededFuture();
                                 }
                                 return Future.failedFuture(t);
-                            });
+                            })
+
+                            .onComplete(__ -> admin.close());
                 })
 
                 .onComplete(context.succeedingThenComplete());
