@@ -17,7 +17,6 @@ import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -28,7 +27,6 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -38,6 +36,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -124,82 +123,79 @@ public class BindingOperatorTest extends TestBase {
                 .onComplete(context.succeedingThenComplete());
     }
 
-    private Future<Void> cleanAccessTokenSecret() {
-        try {
-            Secret s = client.secrets().withName(ACCESS_TOKEN_SECRET_NAME).get();
-            if (s != null) {
-                LOGGER.info("clean secret: {}", s.getMetadata().getName());
-                client.secrets().delete(s);
-            }
-        } catch (Exception e) {
-            return Future.failedFuture(e);
+    private void cleanAccessTokenSecret() {
+        Secret s = client.secrets().withName(ACCESS_TOKEN_SECRET_NAME).get();
+        if (s != null) {
+            LOGGER.info("clean secret: {}", s.getMetadata().getName());
+            client.secrets().delete(s);
         }
-        return Future.succeededFuture();
     }
 
-    private Future<Void> cleanCloudServiceAccountRequest() {
-        try {
-            var a = OperatorUtils.cloudServiceAccountRequest(client).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get();
-            if (a != null) {
-                LOGGER.info("clean CloudServiceAccountRequest: {}", a.getMetadata().getName());
-                OperatorUtils.cloudServiceAccountRequest(client).delete(a);
-            }
-        } catch (Exception e) {
-            return Future.failedFuture(e);
+    private void cleanCloudServiceAccountRequest() {
+        var a = OperatorUtils.cloudServiceAccountRequest(client).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get();
+        if (a != null) {
+            LOGGER.info("clean CloudServiceAccountRequest: {}", a.getMetadata().getName());
+            OperatorUtils.cloudServiceAccountRequest(client).delete(a);
         }
-        return Future.succeededFuture();
     }
 
-    private Future<Void> cleanCloudServicesRequest() {
-        try {
-            var k = OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get();
-            if (k != null) {
-                LOGGER.info("clean CloudServicesRequest: {}", k.getMetadata().getName());
-                OperatorUtils.cloudServicesRequest(client).delete(k);
-            }
-        } catch (Exception e) {
-            return Future.failedFuture(e);
+    private void cleanCloudServicesRequest() {
+        var k = OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get();
+        if (k != null) {
+            LOGGER.info("clean CloudServicesRequest: {}", k.getMetadata().getName());
+            OperatorUtils.cloudServicesRequest(client).delete(k);
         }
-        return Future.succeededFuture();
     }
 
-    private Future<Void> cleanManagedKafkaConnection() {
-        try {
-            var c = OperatorUtils.kafkaConnection(client).withName(KAFKA_CONNECTION_NAME).get();
-            if (c != null) {
-                LOGGER.info("clean ManagedKafkaConnection: {}", c.getMetadata().getName());
-                OperatorUtils.kafkaConnection(client).delete(c);
-            }
-        } catch (Exception e) {
-            return Future.failedFuture(e);
+    private void cleanKafkaConnection() {
+        var c = OperatorUtils.kafkaConnection(client).withName(KAFKA_CONNECTION_NAME).get();
+        if (c != null) {
+            LOGGER.info("clean ManagedKafkaConnection: {}", c.getMetadata().getName());
+            OperatorUtils.kafkaConnection(client).delete(c);
         }
-        return Future.succeededFuture();
     }
 
-    private Future<Void> collectOperatorLogs(ExtensionContext context) {
-        try {
-            LogCollector.saveDeploymentLog(
-                    TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
-                    client,
-                    "openshift-operators",
-                    "service-binding-operator");
-        } catch (Exception e) {
-            return Future.failedFuture(e);
-        }
-        return Future.succeededFuture();
+    private void collectOperatorLogs(ExtensionContext context) throws IOException {
+        LogCollector.saveDeploymentLog(
+                TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
+                client,
+                "openshift-operators",
+                "service-binding-operator");
+
     }
 
-    @AfterAll
-    void teardown(VertxTestContext context, ExtensionContext testContext) {
-        CompositeFuture.join(
-                cleanManagedKafkaConnection(),
-                cleanCloudServicesRequest(),
-                cleanCloudServiceAccountRequest(),
-                cleanAccessTokenSecret())
+    @Test
+    void teardown(ExtensionContext context) {
 
-                .eventually(__ -> collectOperatorLogs(testContext))
+        try {
+            cleanKafkaConnection();
+        } catch (Exception e) {
+            LOGGER.error("clean kafka connection error: ", e);
+        }
 
-                .onComplete(context.succeedingThenComplete());
+        try {
+            cleanCloudServicesRequest();
+        } catch (Exception e) {
+            LOGGER.error("clean cloud services request error: ", e);
+        }
+
+        try {
+            cleanCloudServiceAccountRequest();
+        } catch (Exception e) {
+            LOGGER.error("clean cloud service account request error: ", e);
+        }
+
+        try {
+            cleanAccessTokenSecret();
+        } catch (Exception e) {
+            LOGGER.error("clean access token secret error: ", e);
+        }
+
+        try {
+            collectOperatorLogs(context);
+        } catch (Exception e) {
+            LOGGER.error("collect operator logs error: ", e);
+        }
     }
 
     @Test
