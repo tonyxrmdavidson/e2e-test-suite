@@ -33,49 +33,55 @@ public class KafkaConsumerClient {
     }
 
     public Future<Future<List<KafkaConsumerRecord<String, String>>>> receiveAsync(String topicName, int expectedMessages) {
-        Promise<List<KafkaConsumerRecord<String, String>>> promise = Promise.promise();
-        List<KafkaConsumerRecord<String, String>> messages = new LinkedList<>();
 
-        var close = new Close();
-        consumer.handler(record -> {
-            synchronized (lock) {
-                if (close.isClosed()) {
-                    LOGGER.warn("received record while/after unsubscribe from topic");
-                    return;
-                }
-                messages.add(record);
-                if (messages.size() == expectedMessages) {
-                    close.close();
-                    LOGGER.info("successfully received {} messages from topic: {}", expectedMessages, topicName);
-                    consumer.unsubscribe()
-                            .map(__ -> messages)
-                            .onComplete(promise);
-                }
-            }
+        // set a void handler
+        consumer.handler(__ -> {
         });
 
         LOGGER.info("subscribe to topic: {}", topicName);
         return consumer.subscribe(topicName)
+
                 .compose(__ -> waitForConsumerToSubscribe(topicName))
-                .compose(p -> resetTopicPartitionToEndOffset(p))
+
+                // move the offset to the end of the partition
+                .compose(partition -> consumer.seekToEnd(partition))
+
                 .map(__ -> {
                     LOGGER.info("consumer successfully subscribed to topic: {}", topicName);
-                    return promise.future();
+
+                    // set the real handler and consume the expected messages
+                    return consumeMessages(expectedMessages);
                 });
+    }
+
+    private Future<List<KafkaConsumerRecord<String, String>>> consumeMessages(int expectedMessages) {
+        Promise<List<KafkaConsumerRecord<String, String>>> promise = Promise.promise();
+        List<KafkaConsumerRecord<String, String>> messages = new LinkedList<>();
+
+        consumer.handler(record -> {
+            messages.add(record);
+            if (messages.size() == expectedMessages) {
+                // set a fake handler to stop receiving messages on this handler
+                consumer.handler(__ -> {
+                });
+                LOGGER.info("successfully received {} messages", expectedMessages);
+                consumer.unsubscribe()
+                        .map(__ -> messages)
+                        .onComplete(promise);
+            }
+        });
+
+        return promise.future();
     }
 
     public Future<TopicPartition> waitForConsumerToSubscribe(String topicName) {
 
         IsReady<TopicPartition> isReady = last -> consumer.assignment().map(partitions -> {
-            var o = partitions.stream().filter(p -> p.getTopic().equals(topicName)).findFirst();
+            var o = partitions.stream().filter(p -> p.getTopic().equals(topicName)).findAny();
             return Pair.with(o.isPresent(), o.orElse(null));
         });
 
         return waitFor(vertx, message("consumer to subscribe to topic: {}", topicName), ofSeconds(1), ofSeconds(20), isReady);
-    }
-
-    public Future<Void> resetTopicPartitionToEndOffset(TopicPartition partition) {
-        return consumer.seekToEnd(partition);
     }
 
     public static KafkaConsumer<String, String> createConsumer(
@@ -98,17 +104,5 @@ public class KafkaConsumerClient {
                     .onFailure(c -> LOGGER.error("failed to close KafkaConsumerClient", c));
         }
         return Future.succeededFuture(null);
-    }
-
-    final private class Close {
-        private boolean close = false;
-
-        synchronized private boolean isClosed() {
-            return this.close;
-        }
-
-        synchronized private void close() {
-            close = true;
-        }
     }
 }

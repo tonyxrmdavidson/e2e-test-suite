@@ -68,10 +68,7 @@ public class KafkaMessagingUtils {
             int maxMessageSize) {
 
         // generate random strings to send as messages
-        var messages = IntStream.range(0, messageCount)
-                .boxed()
-                .map(v -> RandomStringUtils.random((int) random(minMessageSize, maxMessageSize), true, true))
-                .collect(Collectors.toList());
+        var messages = generateRandomMessages(messageCount, minMessageSize, maxMessageSize);
 
         return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, timeout, messages)
                 .compose(records -> assertMessages(messages, records));
@@ -90,15 +87,15 @@ public class KafkaMessagingUtils {
         var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret);
         var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret);
 
-        LOGGER.info("start listening for {} messages", messages.size());
+        LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
         return consumer.receiveAsync(topicName, messages.size()).compose(consumeFuture -> {
 
-            LOGGER.info("start sending {} messages", messages.size());
+            LOGGER.info("start sending {} messages on topic {}", messages.size(), topicName);
             var produceFuture = producer.sendAsync(topicName, messages);
 
             var timeoutPromise = Promise.promise();
             var timeoutTimer = vertx.setTimer(timeout.toMillis(), __ -> {
-                LOGGER.error("timeout after {} waiting for {} messages", timeout, messages.size());
+                LOGGER.error("timeout after {} waiting for {} messages on topic {}", timeout, messages.size(), topicName);
                 timeoutPromise.fail(message("timeout after {} waiting for {} messages; host: {}; topic: {}", timeout, messages.size(), bootstrapHost, topicName));
             });
 
@@ -113,21 +110,28 @@ public class KafkaMessagingUtils {
             return completeOrTimeoutFuture
                     .eventually(__ -> {
                         // close the producer and consumer in any case
-                        LOGGER.info("close the consumer and the producer");
+                        LOGGER.info("close the consumer and the producer for topic {}", topicName);
                         return CompositeFuture.join(producer.close(), consumer.close())
 
                                 // whatever the close fails or succeed the final result is given from the completeOrTimeoutFuture
                                 .eventually(___ -> completeOrTimeoutFuture);
                     })
                     .map(__ -> {
-                        LOGGER.info("producer and consumer has complete");
+                        LOGGER.info("producer and consumer has complete for topic {}", topicName);
 
                         List<KafkaConsumerRecord<String, String>> records = consumeFuture.result();
-                        LOGGER.info("received {} messages", records.size());
+                        LOGGER.info("received {} messages on topic {}", records.size(), topicName);
 
                         return records.stream().map(r -> r.value()).collect(Collectors.toList());
                     });
         });
+    }
+
+    public static List<String> generateRandomMessages(int messageCount, int minMessageSize, int maxMessageSize) {
+        return IntStream.range(0, messageCount)
+                .boxed()
+                .map(v -> RandomStringUtils.random((int) random(minMessageSize, maxMessageSize), true, true))
+                .collect(Collectors.toList());
     }
 
     private static Future<Void> assertMessages(List<String> expectedMessages, List<String> receivedMessages) {
