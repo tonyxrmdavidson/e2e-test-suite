@@ -119,6 +119,7 @@ class ServiceAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @Order(1)
     void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
+
         assertAPI();
 
         // Create Kafka Instance
