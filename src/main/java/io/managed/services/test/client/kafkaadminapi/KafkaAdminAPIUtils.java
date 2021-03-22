@@ -7,7 +7,11 @@ import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import static io.managed.services.test.Environment.*;
+import static io.managed.services.test.Environment.MAS_SSO_REDHAT_CLIENT_ID;
+import static io.managed.services.test.Environment.MAS_SSO_REDHAT_KEYCLOAK_URI;
+import static io.managed.services.test.Environment.MAS_SSO_REDHAT_REALM;
+import static io.managed.services.test.Environment.MAS_SSO_REDHAT_REDIRECT_URI;
+
 
 public class KafkaAdminAPIUtils  {
     private static final Logger LOGGER = LogManager.getLogger(io.managed.services.test.client.serviceapi.ServiceAPIUtils.class);

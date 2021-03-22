@@ -28,11 +28,11 @@ public class KafkaAdminAPI extends BaseVertxClient {
     }
 
 
-    public Future<Topic> createTopic(CreateTopicPayload payload ) {
+    public Future<Topic> createTopic(CreateTopicPayload payload) {
         return retry(() -> client.post("/rest/topics")
                 .authentication(token)
                 .sendJson(payload)
-                .compose(r -> assertResponse(r,HttpURLConnection.HTTP_CREATED))
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_CREATED))
                 .map(r -> r.bodyAsJson(Topic.class)));
     }
 
@@ -63,7 +63,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
         return retry(() -> client.get("/rest/groups")
                 .authentication(token).send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(GroupResponse[].class )));
+                .map(r -> r.bodyAsJson(GroupResponse[].class)));
     }
 
     public Future<GroupResponse> getSingleGroupByName(String topicName) {

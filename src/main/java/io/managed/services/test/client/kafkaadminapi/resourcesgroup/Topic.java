@@ -27,7 +27,7 @@ public  class Topic {
         }
     }
 
-    public static class Config{
+    public static class Config {
         public String key;
         public String value;
     }

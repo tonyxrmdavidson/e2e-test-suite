@@ -9,16 +9,21 @@ import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.*;
+
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.HttpURLConnection;
@@ -40,7 +45,7 @@ public class KafkaAdminAPITest extends TestBase {
 
     KafkaAdminAPI kafkaAdminAPI;
     ServiceAPI api;
-    String topic ;
+    String topic;
     String group;
 
 
@@ -68,19 +73,17 @@ public class KafkaAdminAPITest extends TestBase {
                     api = apiResponse;
                     return api.createKafka(kafkaPayload, true);
                 })
-                .compose(kafkaResponse -> waitUntilKafkaIsReady(vertx, api, kafkaResponse.id ))
+                .compose(kafkaResponse -> waitUntilKafkaIsReady(vertx, api, kafkaResponse.id))
                 .compose(kafkaReadyResponse -> {
                     String completeUrl = String.format("https://admin-server-%s", kafkaReadyResponse.bootstrapServerHost);
                     return KafkaAdminAPIUtils.restApi(vertx, completeUrl);
                 })
                 .onSuccess(restApiResponse -> kafkaAdminAPI = restApiResponse)
-                .onComplete(  context.succeedingThenComplete()
-
-                );
+                .onComplete(context.succeedingThenComplete());
 
         // 14 minutes is the upper bound, execution will continue once Tokens, kafka instance, and connection are created (3-7 minutes approx.). (default: 30sec)
         try {
-            context.awaitCompletion( 14, TimeUnit.MINUTES);
+            context.awaitCompletion(14, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -109,18 +112,18 @@ public class KafkaAdminAPITest extends TestBase {
         kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Getting test-topic should fail in 1st test"))
                 .recover(throwable -> {
-                    if ( (throwable instanceof ResponseException ) && ( ((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND ) ){
-                            LOGGER.info("Topic not found : {}", TEST_TOPIC_NAME);
-                            return Future.succeededFuture();
+                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
+                        LOGGER.info("Topic not found : {}", TEST_TOPIC_NAME);
+                        return Future.succeededFuture();
                     }
                     return Future.failedFuture(throwable);
                 })
-                .compose( a ->  kafkaAdminAPI.createTopic(topicPayload))
-                .onSuccess(createTopicResponse -> context.verify( () -> {
+                .compose(a ->  kafkaAdminAPI.createTopic(topicPayload))
+                .onSuccess(createTopicResponse -> context.verify(() -> {
                     assertEquals(TEST_TOPIC_NAME, createTopicResponse.name);
                     topic = createTopicResponse.name;
-                }) )
-                .onComplete(context.succeedingThenComplete() );
+                }))
+                .onComplete(context.succeedingThenComplete());
 
 
     }
@@ -136,7 +139,7 @@ public class KafkaAdminAPITest extends TestBase {
                 .compose(r -> Future.failedFuture("Create existing topic should fail"))
                 .recover(throwable -> {
                     if (throwable instanceof ResponseException) {
-                        if ( ((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_CONFLICT ) {
+                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_CONFLICT) {
                             LOGGER.info("Existing topic cannot be created again : {}", topicPayload.name);
                             return Future.succeededFuture();
                         }
@@ -153,7 +156,7 @@ public class KafkaAdminAPITest extends TestBase {
         assertRestAPI();
         assertTopic();
         kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
-                .onSuccess(topic -> context.verify( () -> assertEquals(TEST_TOPIC_NAME, topic.name) ) )
+                .onSuccess(topic -> context.verify(() -> assertEquals(TEST_TOPIC_NAME, topic.name)))
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -166,7 +169,7 @@ public class KafkaAdminAPITest extends TestBase {
                 .compose(r -> Future.failedFuture("Get none existing topic should fail"))
                 .recover(throwable -> {
                     if (throwable instanceof ResponseException) {
-                        if ( ((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND ) {
+                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
                             LOGGER.info("Topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
                             return Future.succeededFuture();
                         }
@@ -185,8 +188,7 @@ public class KafkaAdminAPITest extends TestBase {
         assertRestAPI();
         assertTopic();
         kafkaAdminAPI.getAllTopics()
-                .onSuccess(topics -> context.verify( () ->
-                {
+                .onSuccess(topics -> context.verify(() -> {
                     List<Topic> filteredTopics = topics.topics.stream().filter(k -> k.name.equals(TEST_TOPIC_NAME) || k.name.equals("strimzi-canary")).collect(Collectors.toList());
                     assertEquals(2, filteredTopics.size());
                 }))
@@ -200,10 +202,10 @@ public class KafkaAdminAPITest extends TestBase {
     void testDeleteTopicByName(VertxTestContext context) {
         assertRestAPI();
         kafkaAdminAPI.deleteTopicByName(TEST_TOPIC_NAME)
-                .compose( r -> kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME))
+                .compose(r -> kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME))
                 .compose(r -> Future.failedFuture("Getting test-topic should fail due to topic being deleted in current test"))
                 .recover(throwable -> {
-                    if ( (throwable instanceof ResponseException ) && ( ((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND ) ){
+                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
                         System.out.println(((ResponseException) throwable).response.bodyAsString());
                         LOGGER.info("Topic not found : {}", TEST_TOPIC_NAME);
                         return Future.succeededFuture();
@@ -221,9 +223,9 @@ public class KafkaAdminAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteNotExistingTopicByName(VertxTestContext context) {
         kafkaAdminAPI.deleteTopicByName(TEST_NOT_EXISTING_TOPIC_NAME)
-                .compose( __ -> Future.failedFuture("Deleting not existing topic should result in HTTP_NOT_FOUND response"))
+                .compose(__ -> Future.failedFuture("Deleting not existing topic should result in HTTP_NOT_FOUND response"))
                 .recover(throwable -> {
-                    if ( (throwable instanceof ResponseException ) && ( ((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND ) ){
+                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
                         LOGGER.info("Topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
                         return Future.succeededFuture();
                     }
@@ -238,7 +240,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetGroups(VertxTestContext context) {
         kafkaAdminAPI.getAllGroups()
-                .onSuccess(groupResponse -> context.verify( () -> {
+                .onSuccess(groupResponse -> context.verify(() -> {
                     int groupsCount =  groupResponse.length;
                     assertTrue(groupsCount >= 1);
                 }))
@@ -250,8 +252,8 @@ public class KafkaAdminAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetGroupByName(VertxTestContext context) {
         kafkaAdminAPI.getSingleGroupByName(TEST_GROUP_NAME)
-                .onSuccess(groupResponse -> context.verify( () -> {
-                    assertEquals(groupResponse.id,TEST_GROUP_NAME );
+                .onSuccess(groupResponse -> context.verify(() -> {
+                    assertEquals(groupResponse.id, TEST_GROUP_NAME);
                     assertEquals("STABLE", groupResponse.state);
                     group = groupResponse.id;
                 }))
@@ -263,7 +265,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetNotExistingGroupByName(VertxTestContext context) {
         kafkaAdminAPI.getSingleGroupByName(TEST_NOT_EXISTING_GROUP_NAME)
-                .onSuccess(groupResponse -> context.verify( () -> assertEquals("DEAD", groupResponse.state )))
+                .onSuccess(groupResponse -> context.verify(() -> assertEquals("DEAD", groupResponse.state)))
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -272,7 +274,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteGroupByName(VertxTestContext context) {
         kafkaAdminAPI.deleteGroupByName(TEST_GROUP_NAME)
-                .onSuccess(responseMessage -> context.verify( () -> assertEquals( "The group is not empty.", responseMessage))  )
+                .onSuccess(responseMessage -> context.verify(() -> assertEquals("The group is not empty.", responseMessage)))
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -281,12 +283,12 @@ public class KafkaAdminAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteNotExistingGroupByName(VertxTestContext context) {
         kafkaAdminAPI.deleteGroupByName(TEST_NOT_EXISTING_GROUP_NAME)
-                .onSuccess(responseMessage -> context.verify( () -> assertEquals( "The group id does not exist.", responseMessage)))
+                .onSuccess(responseMessage -> context.verify(() -> assertEquals("The group id does not exist.", responseMessage)))
                 .onComplete(context.succeedingThenComplete());
     }
 
 
-    CreateTopicPayload setUpTopicPayload(){
+    CreateTopicPayload setUpTopicPayload() {
         LOGGER.info("API: setting up new payload for creation of new Topic using API");
         CreateTopicPayload topicPayload = new CreateTopicPayload();
         topicPayload.name = TEST_TOPIC_NAME;

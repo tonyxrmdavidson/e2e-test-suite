@@ -12,7 +12,7 @@ public class CreateTopicPayload {
         public int replicationFactor;
         public List<Config> config;
 
-        public static class Config{
+        public static class Config {
             public String key;
             public String value;
         }
