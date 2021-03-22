@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import static io.managed.services.test.Environment.*;
 
-public class KafkaAdminAPIUtils {
+public class KafkaAdminAPIUtils  {
     private static final Logger LOGGER = LogManager.getLogger(io.managed.services.test.client.serviceapi.ServiceAPIUtils.class);
 
     public static Future<KafkaAdminAPI> restApi(Vertx vertx, String kafkaInstanceUrl) {

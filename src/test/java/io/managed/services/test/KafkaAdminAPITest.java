@@ -9,7 +9,9 @@ import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -41,7 +44,7 @@ public class KafkaAdminAPITest extends TestBase {
     String group;
 
 
-    static final String KAFKA_INSTANCE_NAME = "mk-e2e-kaa-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String KAFKA_INSTANCE_NAME = "mk-e555e-kaa-hzrncik-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TEST_TOPIC_NAME = "test-api-topic-1";
     static final String TEST_NOT_EXISTING_TOPIC_NAME = "test-api-topic-notExist";
 
@@ -65,15 +68,15 @@ public class KafkaAdminAPITest extends TestBase {
                     api = apiResponse;
                     return api.createKafka(kafkaPayload, true);
                 })
-                .compose(kafkaResponse -> ServiceAPIUtils.waitUntilKafkaIsReady(vertx, api, kafkaResponse.id ))
+                .compose(kafkaResponse -> waitUntilKafkaIsReady(vertx, api, kafkaResponse.id ))
                 .compose(kafkaReadyResponse -> {
                     String completeUrl = String.format("https://admin-server-%s", kafkaReadyResponse.bootstrapServerHost);
                     return KafkaAdminAPIUtils.restApi(vertx, completeUrl);
                 })
-                .onComplete( restApiResponse -> {
-                    kafkaAdminAPI = restApiResponse.result();
-                    context.completeNow();
-                });
+                .onSuccess(restApiResponse -> kafkaAdminAPI = restApiResponse)
+                .onComplete(  context.succeedingThenComplete()
+
+                );
 
         // 14 minutes is the upper bound, execution will continue once Tokens, kafka instance, and connection are created (3-7 minutes approx.). (default: 30sec)
         try {
@@ -97,7 +100,6 @@ public class KafkaAdminAPITest extends TestBase {
         assumeTrue(topic != null, "topic is null because the testCreateTopic has failed to create the topic on the Kafka instance");
     }
 
-
     @Test
     @Order(2)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
@@ -114,11 +116,11 @@ public class KafkaAdminAPITest extends TestBase {
                     return Future.failedFuture(throwable);
                 })
                 .compose( a ->  kafkaAdminAPI.createTopic(topicPayload))
-                .onComplete(context.succeeding(createTopicResponse -> context.verify(() -> {
+                .onSuccess(createTopicResponse -> context.verify( () -> {
                     assertEquals(TEST_TOPIC_NAME, createTopicResponse.name);
                     topic = createTopicResponse.name;
-                    context.completeNow();
-                })));
+                }) )
+                .onComplete(context.succeedingThenComplete() );
 
 
     }
