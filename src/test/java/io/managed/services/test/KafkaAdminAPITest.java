@@ -44,7 +44,7 @@ public class KafkaAdminAPITest extends TestBase {
     String group;
 
 
-    static final String KAFKA_INSTANCE_NAME = "mk-e555e-kaa-hzrncik-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String KAFKA_INSTANCE_NAME = "mk-e2e-kaa-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TEST_TOPIC_NAME = "test-api-topic-1";
     static final String TEST_NOT_EXISTING_TOPIC_NAME = "test-api-topic-notExist";
 
