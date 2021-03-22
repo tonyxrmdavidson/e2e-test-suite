@@ -246,7 +246,7 @@ public class BindingOperatorTest extends TestBase {
                     }
                     return Pair.with(false, null);
                 });
-        waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(2), ready)
+        waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(3), ready)
                 .onSuccess(r -> LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(r)))
                 .onComplete(context.succeedingThenComplete());
     }
