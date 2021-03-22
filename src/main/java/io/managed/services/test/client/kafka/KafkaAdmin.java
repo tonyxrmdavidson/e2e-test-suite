@@ -16,7 +16,7 @@ import static io.managed.services.test.client.kafka.KafkaUtils.toVertxFuture;
 
 public class KafkaAdmin {
 
-    final Admin admin;
+    public final Admin admin;
 
     public KafkaAdmin(String bootstrapHost, String clientID, String clientSecret) {
 
