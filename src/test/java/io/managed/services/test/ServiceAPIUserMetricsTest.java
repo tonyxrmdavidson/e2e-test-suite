@@ -48,7 +48,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
 
     private static final String IN_MESSAGES_METRIC = "kafka_server_brokertopicmetrics_messages_in_total";
     private static final int MESSAGE_COUNT = 17;
-    private static final Duration WAIT_FOR_METRIC_TIMEOUT = Duration.ofSeconds(20);
+    private static final Duration WAIT_FOR_METRIC_TIMEOUT = Duration.ofMinutes(2);
 
     // use the kafka long living instance
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
@@ -131,7 +131,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                     return Pair.with(initialInMessage + MESSAGE_COUNT == in, in);
                 });
         var inMessagesF = testTopicF
-                .compose(__ -> waitFor(vertx, "metric to be updated", ofSeconds(1), WAIT_FOR_METRIC_TIMEOUT, isMetricUpdated));
+                .compose(__ -> waitFor(vertx, "metric to be updated", ofSeconds(3), WAIT_FOR_METRIC_TIMEOUT, isMetricUpdated));
 
         inMessagesF
                 .onSuccess(i -> LOGGER.info("final in message count for topic '{}' is: {}", TOPIC_NAME, i))
