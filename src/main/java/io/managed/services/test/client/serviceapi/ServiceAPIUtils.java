@@ -14,6 +14,7 @@ import org.javatuples.Pair;
 
 import java.util.Optional;
 
+import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
@@ -111,16 +112,28 @@ public class ServiceAPIUtils {
      * @return KafkaResponse
      */
     public static Future<KafkaResponse> waitUntilKafkaIsReady(Vertx vertx, ServiceAPI api, String kafkaID) {
-        IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID).map(r -> {
-            LOGGER.info("kafka instance status is: {}", r.status);
-
-            if (last) {
-                LOGGER.warn("last kafka response is: {}", Json.encode(r));
-            }
-            return Pair.with(r.status.equals("ready"), r);
-        });
+        IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID)
+                .compose(r -> isKafkaReady(r, last));
 
         return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
+    }
+
+    public static Future<Pair<Boolean, KafkaResponse>> isKafkaReady(KafkaResponse kafka, boolean last) {
+        LOGGER.info("kafka instance status is: {}", kafka.status);
+
+        if (last) {
+            LOGGER.warn("last kafka response is: {}", Json.encode(kafka));
+        }
+
+        switch (kafka.status) {
+            case "failed":
+                var m = message("failed to create kafka instance; {}", Json.encode(kafka));
+                return Future.failedFuture(m);
+            case "ready":
+                return Future.succeededFuture(Pair.with(true, kafka));
+            default:
+                return Future.succeededFuture(Pair.with(false, null));
+        }
     }
 
     public static Future<Void> waitUntilKafkaIsDeleted(Vertx vertx, ServiceAPI api, String kafkaID) {
@@ -144,7 +157,7 @@ public class ServiceAPIUtils {
      * If the service account with the passed name doesn't exists, recreate it, otherwise reset the credentials
      * and return the ServiceAccount with clientSecret
      *
-     * @param api ServiceAPI
+     * @param api  ServiceAPI
      * @param name Service Account Name
      * @return ServiceAccount with clientSecret
      */

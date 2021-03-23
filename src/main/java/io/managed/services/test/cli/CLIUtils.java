@@ -6,13 +6,13 @@ import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.oauth.KeycloakOAuthUtils;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
+import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
 import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientSession;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -166,15 +166,8 @@ public class CLIUtils {
     }
 
     public static Future<KafkaResponse> waitForKafkaReady(Vertx vertx, CLI cli, String id) {
-        IsReady<KafkaResponse> isReady = last -> cli.describeKafka(vertx, id).map(r -> {
-            LOGGER.info("kafka instance status is: {}", r.status);
-
-            if (last) {
-                LOGGER.warn("last kafka response is: {}", Json.encode(r));
-            }
-            return Pair.with(r.status.equals("ready"), r);
-        });
-
+        IsReady<KafkaResponse> isReady = last -> cli.describeKafka(vertx, id)
+                .compose(r -> ServiceAPIUtils.isKafkaReady(r, last));
         return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
     }
 
