@@ -9,7 +9,6 @@ public class CreateTopicPayload {
 
     public static class Settings {
         public int numPartitions;
-        public int replicationFactor;
         public List<Config> config;
 
         public static class Config {

@@ -17,6 +17,7 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -47,9 +48,10 @@ public class KafkaAdminAPITest extends TestBase {
     ServiceAPI api;
     String topic;
     String group;
+    String bootstrapServerHost;
 
 
-    static final String KAFKA_INSTANCE_NAME = "mk-e2e-kaa-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String KAFKA_INSTANCE_NAME = "mk-e22e-kaa-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TEST_TOPIC_NAME = "test-api-topic-1";
     static final String TEST_NOT_EXISTING_TOPIC_NAME = "test-api-topic-notExist";
 
@@ -61,6 +63,15 @@ public class KafkaAdminAPITest extends TestBase {
 
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @BeforeAll
+    void bootstrap(Vertx vertx, VertxTestContext context) {
+        ServiceAPIUtils.serviceAPI(vertx)
+                .onSuccess(a -> api = a)
+                .onComplete(context.succeedingThenComplete());
+    }
+
+
+    @BeforeAll
+    @Disabled
     void createKafkaUsingServiceAPI(Vertx vertx, VertxTestContext context)  {
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
         kafkaPayload.name = KAFKA_INSTANCE_NAME;
@@ -71,36 +82,47 @@ public class KafkaAdminAPITest extends TestBase {
         ServiceAPIUtils.serviceAPI(vertx)
                 .compose(apiResponse -> {
                     api = apiResponse;
-                    return api.createKafka(kafkaPayload, true);
-                })
-                .compose(kafkaResponse -> waitUntilKafkaIsReady(vertx, api, kafkaResponse.id))
-                .compose(kafkaReadyResponse -> {
-                    String completeUrl = String.format("https://admin-server-%s", kafkaReadyResponse.bootstrapServerHost);
+                    String completeUrl = String.format("https://admin-server-%s", "mk-e--e-ka--qcfnp-iklkymanvtxuxgpj--dw.kafka.devshift.org:443");
                     return KafkaAdminAPIUtils.restApi(vertx, completeUrl);
                 })
-                .onSuccess(restApiResponse -> {
-                    System.out.println("kafhka Admin API and stuff sucessfully created");
+                        .onSuccess(restApiResponse -> {
                     kafkaAdminAPI = restApiResponse;})
                 .onFailure(msg -> {
-                    System.out.println("not sucesful");
                     System.out.println(msg.getMessage());;
                 })
                 .onComplete(context.succeedingThenComplete());
-
-        // 14 minutes is the upper bound, execution will continue once Tokens, kafka instance, and connection are created (3-7 minutes approx.). (default: 30sec)
-        try {
-            context.awaitCompletion(14, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
+//
+//                .compose(apiResponse -> {
+//                    api = apiResponse;
+//                    return api.createKafka(kafkaPayload, true);
+//                })
+//                .compose(kafkaResponse -> waitUntilKafkaIsReady(vertx, api, kafkaResponse.id))
+//                .compose(kafkaReadyResponse -> {
+//                    String completeUrl = String.format("https://admin-server-%s", kafkaReadyResponse.bootstrapServerHost);
+//                    return KafkaAdminAPIUtils.restApi(vertx, completeUrl);
+//                })
+//                .onSuccess(restApiResponse -> {
+//                    kafkaAdminAPI = restApiResponse;})
+//                .onFailure(msg -> {
+//                    System.out.println(msg.getMessage());;
+//                })
+//                .onComplete(context.succeedingThenComplete());
+//
+//        // 14 minutes is the upper bound, execution will continue once Tokens, kafka instance, and connection are created (3-7 minutes approx.). (default: 30sec)
+//        try {
+//            context.awaitCompletion(14, TimeUnit.MINUTES);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
-    @AfterAll
-    void deleteKafkaInstance(VertxTestContext context) {
-
-        ServiceAPIUtils.deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME)
-                .onComplete(context.succeedingThenComplete());
-    }
+//    @AfterAll
+//    void deleteKafkaInstance(VertxTestContext context) {
+//
+//        ServiceAPIUtils.deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME)
+//                .onComplete(context.succeedingThenComplete());
+//    }
 
     void assertRestAPI() {
         assumeTrue(kafkaAdminAPI != null, "rest API is null because the createKafkaUsingServiceAPI has failed");
@@ -108,9 +130,50 @@ public class KafkaAdminAPITest extends TestBase {
     void assertTopic() {
         assumeTrue(topic != null, "topic is null because the testCreateTopic has failed to create the topic on the Kafka instance");
     }
+    void assertAPI() {
+        assumeTrue(api != null, "api is null because the bootstrap has failed");
+    }
+
+    @Test
+    @Order(1)
+    @Disabled
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
+    void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
+        assertAPI();
+        // Create Kafka Instance
+        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
+        // add postfix to the name based on owner
+        kafkaPayload.name = KAFKA_INSTANCE_NAME;
+        kafkaPayload.multiAZ = true;
+        kafkaPayload.cloudProvider = "aws";
+        kafkaPayload.region = "us-east-1";
+
+        LOGGER.info("create kafka instance: {}", kafkaPayload.name);
+        api.createKafka(kafkaPayload, true)
+                .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id))
+                .onSuccess(k -> bootstrapServerHost = k.bootstrapServerHost)
+                .onComplete(context.succeedingThenComplete());
+    }
 
     @Test
     @Order(2)
+    @Disabled
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
+    void connectKafkaAdminAPI(Vertx vertx, VertxTestContext context) {
+        assertAPI();
+        String completeUrl = String.format("https://admin-server-%s", bootstrapServerHost);
+        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+                .onSuccess(restApiResponse -> {
+                    kafkaAdminAPI = restApiResponse;})
+                .onFailure(msg -> {
+                    System.out.println(msg.getMessage());;
+                })
+                .onComplete(context.succeedingThenComplete());
+
+    }
+
+    @Test
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testCreateTopic(VertxTestContext context)  {
         assertRestAPI();
@@ -135,7 +198,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testCreateExistingTopic(VertxTestContext context)  {
         assertRestAPI();
@@ -156,7 +219,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetTopicByName(VertxTestContext context)  {
         assertRestAPI();
@@ -167,7 +230,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetNotExistingTopicByName(VertxTestContext context) {
         assertRestAPI();
@@ -188,7 +251,7 @@ public class KafkaAdminAPITest extends TestBase {
 
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void tetGetTopics(VertxTestContext context)  {
         assertRestAPI();
@@ -203,7 +266,7 @@ public class KafkaAdminAPITest extends TestBase {
 
 
     @Test
-    @Order(4)
+    @Order(5)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteTopicByName(VertxTestContext context) {
         assertRestAPI();
@@ -225,7 +288,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteNotExistingTopicByName(VertxTestContext context) {
         assertRestAPI();
@@ -243,7 +306,7 @@ public class KafkaAdminAPITest extends TestBase {
 
     // TODO: current API version response to every request with status code 200, thus for now body of response is checked as well.
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetGroups(VertxTestContext context) {
         assertRestAPI();
@@ -256,7 +319,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetGroupByName(VertxTestContext context) {
         assertRestAPI();
@@ -270,7 +333,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetNotExistingGroupByName(VertxTestContext context) {
         assertRestAPI();
@@ -280,7 +343,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteGroupByName(VertxTestContext context) {
         assertRestAPI();
@@ -290,7 +353,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteNotExistingGroupByName(VertxTestContext context) {
         assertRestAPI();
@@ -306,7 +369,6 @@ public class KafkaAdminAPITest extends TestBase {
         topicPayload.name = TEST_TOPIC_NAME;
         topicPayload.settings = new CreateTopicPayload.Settings();
         topicPayload.settings.numPartitions = 3;
-        topicPayload.settings.replicationFactor = 3;
         CreateTopicPayload.Settings.Config c1 = new CreateTopicPayload.Settings.Config();
         CreateTopicPayload.Settings.Config c2 = new CreateTopicPayload.Settings.Config();
         c1.key = "min.insync.replicas";
