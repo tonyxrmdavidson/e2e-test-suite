@@ -14,6 +14,7 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
@@ -27,6 +28,7 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -43,6 +45,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.waitFor;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -60,12 +63,13 @@ public class BindingOperatorTest extends TestBase {
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
 
     User user;
+    ServiceAPI api;
     KubernetesClient client;
     boolean accessToken;
 
     final static String ACCESS_TOKEN_SECRET_NAME = "mk-e2e-api-accesstoken";
     final static String CLOUD_SERVICE_ACCOUNT_REQUEST_NAME = "mk-e2e-service-account-request";
-    final static String SERVICE_ACCOUNT_NAME = "mk-e2e-service-account";
+    final static String SERVICE_ACCOUNT_NAME = "mk-e2e-bo-sa-" + Environment.KAFKA_POSTFIX_NAME;
     final static String SERVICE_ACCOUNT_SECRET_NAME = "mk-e2e-service-account-secret";
     final static String CLOUD_SERVICES_REQUEST_NAME = "mk-e2e-kafka-request";
     final static String KAFKA_CONNECTION_NAME = "mk-e2e-kafka-connection";
@@ -102,6 +106,10 @@ public class BindingOperatorTest extends TestBase {
                 .map(__ -> null);
     }
 
+    private void bootstrapAPI(Vertx vertx) {
+        api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
+    }
+
     private void bootstrapK8sClient() {
 
         Config config = new ConfigBuilder()
@@ -119,7 +127,10 @@ public class BindingOperatorTest extends TestBase {
         assertENVs();
 
         bootstrapUser(vertx)
-                .onSuccess(__ -> bootstrapK8sClient())
+                .onSuccess(__ -> {
+                    bootstrapAPI(vertx);
+                    bootstrapK8sClient();
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -164,8 +175,12 @@ public class BindingOperatorTest extends TestBase {
 
     }
 
-    @Test
-    void teardown(ExtensionContext context) {
+    private Future<Void> cleanServiceAccount() {
+        return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
+    }
+
+    @AfterAll
+    void teardown(ExtensionContext context, VertxTestContext testContext) {
 
         try {
             cleanKafkaConnection();
@@ -196,6 +211,11 @@ public class BindingOperatorTest extends TestBase {
         } catch (Exception e) {
             LOGGER.error("collect operator logs error: ", e);
         }
+
+        // force clean the service account if it hasn't done it yet
+        cleanServiceAccount()
+
+                .onComplete(testContext.succeedingThenComplete());
     }
 
     @Test
@@ -246,7 +266,7 @@ public class BindingOperatorTest extends TestBase {
                     }
                     return Pair.with(false, null);
                 });
-        waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(3), ready)
+        waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(4), ready)
                 .onSuccess(r -> LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(r)))
                 .onComplete(context.succeedingThenComplete());
     }
