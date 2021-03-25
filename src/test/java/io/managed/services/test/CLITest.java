@@ -5,6 +5,8 @@ import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.cli.ProcessException;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
+import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
 import io.managed.services.test.client.serviceapi.TopicConfig;
@@ -29,8 +31,6 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import static io.managed.services.test.cli.CLIUtils.deleteKafkaByNameIfExists;
-import static io.managed.services.test.cli.CLIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
@@ -54,44 +54,41 @@ public class CLITest extends TestBase {
     // TODO This needs to be changed to 3 after newer version of kafka_admin_server
     static final int DEFAULT_PARTITIONS = 1;
 
-    String workdir;
     CLI cli;
     boolean loggedIn;
     KafkaResponse kafkaInstance;
     ServiceAccount serviceAccount;
     TopicResponse topic;
 
+    private Future<Void> cleanServiceAccount(ServiceAPI api) {
+        LOGGER.info("delete service account with name: {}", SERVICE_ACCOUNT_NAME);
+        return ServiceAPIUtils.deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
+    }
+
+    private Future<Void> cleanKafkaInstance(ServiceAPI api) {
+        LOGGER.info("delete kafka instance with name: {}", KAFKA_INSTANCE_NAME);
+        return ServiceAPIUtils.deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
+    }
+
     @AfterAll
     void clean(Vertx vertx, VertxTestContext context) {
-        var cliF = Optional.ofNullable(cli)
-                .map(cli -> {
+        ServiceAPIUtils.serviceAPI(vertx)
 
-                    // delete service account by name if it exists
-                    LOGGER.info("delete service account with name: {}", SERVICE_ACCOUNT_NAME);
-                    return context.assertComplete(deleteServiceAccountByNameIfExists(vertx, cli, SERVICE_ACCOUNT_NAME))
-                            // delete kafka instance by name if it exists
-                            .eventually(__ -> {
-                                LOGGER.info("delete kafka instance with name: {}", KAFKA_INSTANCE_NAME);
-                                return context.assertComplete(deleteKafkaByNameIfExists(vertx, cli, KAFKA_INSTANCE_NAME));
-                            })
-                            .eventually(__ -> {
-                                LOGGER.info("log-out from the CLI");
-                                return context.assertComplete(cli.logout());
-                            })
-                            .eventually(__ -> Future.succeededFuture());
+                // clean service account
+                .compose(api -> cleanServiceAccount(api)
+
+                        // clean kafka instance
+                        .compose(__ -> cleanKafkaInstance(api)))
+
+                .compose(__ -> {
+                    if (cli != null) {
+                        LOGGER.info("delete workdir: {}", cli.getWorkdir());
+                        return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
+                    }
+                    return Future.succeededFuture();
                 })
-                .orElse(Future.succeededFuture());
 
-        var workdirF = cliF.compose(__ ->
-                Optional.ofNullable(workdir)
-                        .map(workdir -> {
-                            LOGGER.info("delete workdir: {}", workdir);
-                            return context.assertComplete(vertx.fileSystem().deleteRecursive(workdir, true))
-                                    .compose(___ -> Future.succeededFuture());
-                        })
-                        .orElse(Future.succeededFuture()));
-
-        workdirF.onComplete(context.succeedingThenComplete());
+                .onComplete(context.succeedingThenComplete());
     }
 
     void assertCLI() {
