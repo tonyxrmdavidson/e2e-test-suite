@@ -5,6 +5,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -13,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
@@ -93,14 +95,20 @@ public class ServiceAPIUtils {
      */
     public static Future<Void> deleteServiceAccountByNameIfExists(ServiceAPI api, String name) {
 
-        return getServiceAccountByName(api, name)
-                .compose(o -> o.map(s -> {
-                    LOGGER.info("clean service account: {}", s.id);
-                    return api.deleteServiceAccount(s.id);
-                }).orElseGet(() -> {
-                    LOGGER.warn("service account '{}' not found", name);
-                    return Future.succeededFuture();
-                }));
+        return api.getListOfServiceAccounts()
+
+                // delete all service accounts with the same name
+                .map(r -> r.items.stream()
+                        .filter(a -> a.name.equals(name))
+                        .map(a -> {
+                            LOGGER.info("clean service account: {}", a.id);
+                            return (Future) api.deleteServiceAccount(a.id);
+                        })
+                        .collect(Collectors.toList())
+                )
+                .compose(l -> CompositeFuture.join(l))
+
+                .compose(__ -> Future.succeededFuture());
     }
 
     /**
