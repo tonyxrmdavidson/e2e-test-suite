@@ -47,6 +47,7 @@ public class KafkaAdminAPITest extends TestBase {
     ServiceAPI api;
     String topic;
     String group;
+    String bootstrapServerHost;
 
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-kaa-" + Environment.KAFKA_POSTFIX_NAME;
@@ -57,37 +58,14 @@ public class KafkaAdminAPITest extends TestBase {
     static final String TEST_NOT_EXISTING_GROUP_NAME = "not-existing-group";
 
 
-    // TODO: creation of kafka instance may still take more than 5 minutes (what is io.vertx.junit5.VertxTestContext) this problem doesn't occurre
-
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @BeforeAll
-    void createKafkaUsingServiceAPI(Vertx vertx, VertxTestContext context)  {
-        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        kafkaPayload.name = KAFKA_INSTANCE_NAME;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
-
+    void bootstrap(Vertx vertx, VertxTestContext context) {
         ServiceAPIUtils.serviceAPI(vertx)
-                .compose(apiResponse -> {
-                    api = apiResponse;
-                    return api.createKafka(kafkaPayload, true);
-                })
-                .compose(kafkaResponse -> waitUntilKafkaIsReady(vertx, api, kafkaResponse.id))
-                .compose(kafkaReadyResponse -> {
-                    String completeUrl = String.format("https://admin-server-%s", kafkaReadyResponse.bootstrapServerHost);
-                    return KafkaAdminAPIUtils.restApi(vertx, completeUrl);
-                })
-                .onSuccess(restApiResponse -> kafkaAdminAPI = restApiResponse)
+                .onSuccess(a -> api = a)
                 .onComplete(context.succeedingThenComplete());
-
-        // 14 minutes is the upper bound, execution will continue once Tokens, kafka instance, and connection are created (3-7 minutes approx.). (default: 30sec)
-        try {
-            context.awaitCompletion(14, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
+
 
     @AfterAll
     void deleteKafkaInstance(VertxTestContext context) {
@@ -102,11 +80,53 @@ public class KafkaAdminAPITest extends TestBase {
     void assertTopic() {
         assumeTrue(topic != null, "topic is null because the testCreateTopic has failed to create the topic on the Kafka instance");
     }
+    void assertAPI() {
+        assumeTrue(api != null, "api is null because the bootstrap has failed");
+    }
+    void assertConnectedToRunningKafkaInstance() {
+        assumeTrue(bootstrapServerHost != null, "Failed to connect to Kafka within Timeout Period (8minutes 20 seconds)");
+    }
+
+    @Test
+    @Order(1)
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
+    void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
+        assertAPI();
+        // Create Kafka Instance
+        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
+        // add postfix to the name based on owner
+        kafkaPayload.name = KAFKA_INSTANCE_NAME;
+        kafkaPayload.multiAZ = true;
+        kafkaPayload.cloudProvider = "aws";
+        kafkaPayload.region = "us-east-1";
+
+        LOGGER.info("create kafka instance: {}", kafkaPayload.name);
+        api.createKafka(kafkaPayload, true)
+                .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id))
+                .onSuccess(k -> bootstrapServerHost = k.bootstrapServerHost)
+                .onComplete(context.succeedingThenComplete());
+    }
 
     @Test
     @Order(2)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
+    void connectKafkaAdminAPI(Vertx vertx, VertxTestContext context) {
+        assertAPI();
+        assertConnectedToRunningKafkaInstance();
+        String completeUrl = String.format("https://admin-server-%s", bootstrapServerHost);
+        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+                .onSuccess(restApiResponse -> {
+                    kafkaAdminAPI = restApiResponse; })
+                .onFailure(msg -> System.out.println(msg.getMessage()))
+                .onComplete(context.succeedingThenComplete());
+
+    }
+
+    @Test
+    @Order(3)
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testCreateTopic(VertxTestContext context)  {
+        assertConnectedToRunningKafkaInstance();
         assertRestAPI();
         CreateTopicPayload topicPayload = setUpTopicPayload();
         kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
@@ -129,7 +149,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testCreateExistingTopic(VertxTestContext context)  {
         assertRestAPI();
@@ -150,7 +170,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetTopicByName(VertxTestContext context)  {
         assertRestAPI();
@@ -161,9 +181,10 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetNotExistingTopicByName(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
         assertRestAPI();
         kafkaAdminAPI.getSingleTopicByName(TEST_NOT_EXISTING_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Get none existing topic should fail"))
@@ -182,7 +203,7 @@ public class KafkaAdminAPITest extends TestBase {
 
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void tetGetTopics(VertxTestContext context)  {
         assertRestAPI();
@@ -197,9 +218,10 @@ public class KafkaAdminAPITest extends TestBase {
 
 
     @Test
-    @Order(4)
+    @Order(5)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteTopicByName(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
         assertRestAPI();
         kafkaAdminAPI.deleteTopicByName(TEST_TOPIC_NAME)
                 .compose(r -> kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME))
@@ -214,14 +236,14 @@ public class KafkaAdminAPITest extends TestBase {
                 })
                 .onComplete(context.succeedingThenComplete());
 
-
-
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteNotExistingTopicByName(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
+        assertRestAPI();
         kafkaAdminAPI.deleteTopicByName(TEST_NOT_EXISTING_TOPIC_NAME)
                 .compose(__ -> Future.failedFuture("Deleting not existing topic should result in HTTP_NOT_FOUND response"))
                 .recover(throwable -> {
@@ -234,11 +256,13 @@ public class KafkaAdminAPITest extends TestBase {
                 .onComplete(context.succeedingThenComplete());
     }
 
-    // TODO: current API version response to every request with status code 200, thus for now body of response is checked as well.
+    // TODO: current API version response to delete attempts with 401 response, which may change over time.
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetGroups(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
+        assertRestAPI();
         kafkaAdminAPI.getAllGroups()
                 .onSuccess(groupResponse -> context.verify(() -> {
                     int groupsCount =  groupResponse.length;
@@ -248,9 +272,11 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetGroupByName(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
+        assertRestAPI();
         kafkaAdminAPI.getSingleGroupByName(TEST_GROUP_NAME)
                 .onSuccess(groupResponse -> context.verify(() -> {
                     assertEquals(groupResponse.id, TEST_GROUP_NAME);
@@ -261,30 +287,56 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testGetNotExistingGroupByName(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
+        assertRestAPI();
         kafkaAdminAPI.getSingleGroupByName(TEST_NOT_EXISTING_GROUP_NAME)
                 .onSuccess(groupResponse -> context.verify(() -> assertEquals("DEAD", groupResponse.state)))
                 .onComplete(context.succeedingThenComplete());
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteGroupByName(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
+        assertRestAPI();
+
         kafkaAdminAPI.deleteGroupByName(TEST_GROUP_NAME)
-                .onSuccess(responseMessage -> context.verify(() -> assertEquals("The group is not empty.", responseMessage)))
+                .compose(r -> Future.failedFuture("Deleting existing not empty grop by name"))
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException) {
+                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                            LOGGER.info("Group isn't empty, thus cannot be deleted : {}", TEST_GROUP_NAME);
+                            return Future.succeededFuture();
+                        }
+                    }
+                    return Future.failedFuture(throwable);
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void testDeleteNotExistingGroupByName(VertxTestContext context) {
+        assertConnectedToRunningKafkaInstance();
+        assertRestAPI();
         kafkaAdminAPI.deleteGroupByName(TEST_NOT_EXISTING_GROUP_NAME)
-                .onSuccess(responseMessage -> context.verify(() -> assertEquals("The group id does not exist.", responseMessage)))
+                .compose(r -> Future.failedFuture("Deleting group by not existing name"))
+                .recover(throwable -> {
+                    if (throwable instanceof ResponseException) {
+                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                            LOGGER.info("Group is not existing thus cannot be deleted: {}", TEST_NOT_EXISTING_TOPIC_NAME);
+                            return Future.succeededFuture();
+                        }
+                    }
+                    return Future.failedFuture(throwable);
+                })
                 .onComplete(context.succeedingThenComplete());
+
     }
 
 
@@ -293,8 +345,8 @@ public class KafkaAdminAPITest extends TestBase {
         CreateTopicPayload topicPayload = new CreateTopicPayload();
         topicPayload.name = TEST_TOPIC_NAME;
         topicPayload.settings = new CreateTopicPayload.Settings();
+
         topicPayload.settings.numPartitions = 3;
-        topicPayload.settings.replicationFactor = 3;
         CreateTopicPayload.Settings.Config c1 = new CreateTopicPayload.Settings.Config();
         CreateTopicPayload.Settings.Config c2 = new CreateTopicPayload.Settings.Config();
         c1.key = "min.insync.replicas";
