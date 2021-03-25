@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -19,11 +20,15 @@ public class KafkaProducerClient {
     private final Vertx vertx;
     private final KafkaProducer<String, String> producer;
 
-    public KafkaProducerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+    public KafkaProducerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean oauth) {
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        producer = createProducer(vertx, bootstrapHost, clientID, clientSecret);
+        if (oauth) {
+            producer = createProducerOauth(vertx, bootstrapHost, clientID, clientSecret);
+        } else {
+            producer = createProducer(vertx, bootstrapHost, clientID, clientSecret);
+        }
     }
 
     public Future<List<RecordMetadata>> sendAsync(String topicName, String... messages) {
@@ -45,6 +50,27 @@ public class KafkaProducerClient {
             Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
 
         Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
+        config.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        config.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        config.put("acks", "all");
+
+        return KafkaProducer.create(vertx, config);
+    }
+
+    static public KafkaProducer<String, String> createProducerOauth(
+            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+        Map<String, String> config = new HashMap<>();
+        config.put("bootstrap.servers", bootstrapHost);
+
+        // OAUTH config
+        config.put("sasl.mechanism", "OAUTHBEARER");
+        config.put("security.protocol", "SASL_SSL");
+        String jaas = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id=\"%s\" oauth.client.secret=\"%s\" " +
+                "oauth.token.endpoint.uri=\"https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org/auth/realms/mas-sso-staging/protocol/openid-connect/token\";", clientID, clientSecret);
+        config.put("sasl.jaas.config", jaas);
+        config.put("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+
+        //Standard consumer config
         config.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         config.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         config.put("acks", "all");

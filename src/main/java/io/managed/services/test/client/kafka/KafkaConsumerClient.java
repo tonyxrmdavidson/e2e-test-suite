@@ -10,6 +10,7 @@ import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -21,11 +22,16 @@ public class KafkaConsumerClient {
     private final KafkaConsumer<String, String> consumer;
     private final Object lock = new Object();
 
-    public KafkaConsumerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+    public KafkaConsumerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean oauth) {
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        if (oauth) {
+            consumer = createConsumerWithOauth(vertx, bootstrapHost, clientID, clientSecret);
+        } else {
+            consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        }
+
     }
 
     public Future<Future<List<KafkaConsumerRecord<String, String>>>> receiveAsync(String topicName, int expectedMessages) {
@@ -98,6 +104,31 @@ public class KafkaConsumerClient {
             Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
 
         Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
+        config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        config.put("group.id", "test-group");
+        config.put("auto.offset.reset", "latest");
+        config.put("enable.auto.commit", "true");
+
+        return KafkaConsumer.create(vertx, config);
+    }
+
+    public static KafkaConsumer<String, String> createConsumerWithOauth(
+            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+
+        Map<String, String> config = new HashMap<>();
+        config.put("bootstrap.servers", bootstrapHost);
+
+        // OAUTH config
+        config.put("sasl.mechanism", "OAUTHBEARER");
+        config.put("security.protocol", "SASL_SSL");
+        String jaas1 = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id=\"%s\" oauth.client.secret=\"%s\" " +
+                "oauth.token.endpoint.uri=\"https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org/auth/realms/mas-sso-staging/protocol/openid-connect/token\";", clientID, clientSecret);
+
+
+        config.put("sasl.jaas.config", jaas1);
+        config.put("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+        //Standard consumer config
         config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("group.id", "test-group");

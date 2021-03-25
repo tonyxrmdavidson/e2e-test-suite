@@ -116,7 +116,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                     String clientSecret = serviceAccountF.result().clientSecret;
 
                     LOGGER.info("send {} message to the topic: {}", MESSAGE_COUNT, TOPIC_NAME);
-                    return testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100);
+                    return testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100, true);
                 });
 
         // wait for the metric to be updated or fail with timeout

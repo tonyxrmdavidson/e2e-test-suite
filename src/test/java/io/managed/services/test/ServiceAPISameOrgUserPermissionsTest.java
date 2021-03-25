@@ -152,7 +152,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
                     String topicName = "test-topic";
                     LOGGER.info("create kafka topic: {}", topicName);
                     return admin.createTopic(topicName)
-                            .compose(__ -> testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100))
+                            .compose(__ -> testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100, true))
 
                             .onComplete(__ -> admin.close());
                 })

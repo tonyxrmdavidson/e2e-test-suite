@@ -183,7 +183,7 @@ class ServiceAPITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100, true)
                 .onComplete(context.succeedingThenComplete());
     }
 

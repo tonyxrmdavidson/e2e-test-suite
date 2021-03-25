@@ -4,6 +4,7 @@ import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.cli.ProcessException;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
@@ -26,7 +27,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -51,7 +51,6 @@ public class CLITest extends TestBase {
     static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TOPIC_NAME = "cli-e2e-test-topic";
-    // TODO This needs to be changed to 3 after newer version of kafka_admin_server
     static final int DEFAULT_PARTITIONS = 1;
 
     CLI cli;
@@ -264,7 +263,7 @@ public class CLITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100, true)
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -312,6 +311,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(10)
     void testMessagingOnUpdatedTopic(Vertx vertx, VertxTestContext context) {
         assertTopic();
@@ -320,13 +320,44 @@ public class CLITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100, true)
                 .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(11)
+    void testPlainMessaging(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+
+        var bootstrapHost = kafkaInstance.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
+
+        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100, false)
+                .onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Order(12)
+    void testFailedOauthMessaging(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+        var bootstrapHost = kafkaInstance.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+
+        try {
+            KafkaProducerClient producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, "invalid", true);
+            producer.close();
+            context.failNow("Producer successfully connected");
+        } catch (Exception e) {
+            context.completeNow();
+        }
+    }
+
+    @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Order(13)
     void testDeleteTopic(Vertx vertx, VertxTestContext context) {
         assertTopic();
         cli.deleteTopic(vertx, TOPIC_NAME)
@@ -335,7 +366,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Order(12)
+    @Order(14)
     void testCreateAlreadyCreatedKafka(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
@@ -355,10 +386,10 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
-    @Order(13)
+    @Order(15)
     void testDeleteServiceAccount(Vertx vertx, VertxTestContext context) {
         assertServiceAccount();
-        cli.deleteServiceAccount(vertx, serviceAccount.id)
+        cli.deleteServiceAccount(vertx, serviceAqccount.id)
                 .onSuccess(__ ->
                         LOGGER.info("Serviceaccount {} with id {} deleted", serviceAccount.name, serviceAccount.id))
                 .onComplete(context.succeedingThenComplete());
@@ -366,7 +397,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    @Order(14)
+    @Order(16)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
