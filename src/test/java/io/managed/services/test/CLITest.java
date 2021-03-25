@@ -341,6 +341,18 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(12)
+    void testFailedPlainMessaging(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+        var bootstrapHost = kafkaInstance.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+
+        testTopic(vertx, bootstrapHost, clientID, "invalid", TOPIC_NAME, 1000, 10, 100, false)
+                .onComplete(context.failingThenComplete());
+    }
+
+    @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Order(13)
     void testFailedOauthMessaging(Vertx vertx, VertxTestContext context) {
         assertTopic();
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
@@ -357,7 +369,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    @Order(13)
+    @Order(14)
     void testDeleteTopic(Vertx vertx, VertxTestContext context) {
         assertTopic();
         cli.deleteTopic(vertx, TOPIC_NAME)
@@ -366,7 +378,7 @@ public class CLITest extends TestBase {
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     void testCreateAlreadyCreatedKafka(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
@@ -386,10 +398,10 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
-    @Order(15)
+    @Order(16)
     void testDeleteServiceAccount(Vertx vertx, VertxTestContext context) {
         assertServiceAccount();
-        cli.deleteServiceAccount(vertx, serviceAqccount.id)
+        cli.deleteServiceAccount(vertx, serviceAccount.id)
                 .onSuccess(__ ->
                         LOGGER.info("Serviceaccount {} with id {} deleted", serviceAccount.name, serviceAccount.id))
                 .onComplete(context.succeedingThenComplete());
@@ -397,7 +409,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    @Order(16)
+    @Order(17)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
