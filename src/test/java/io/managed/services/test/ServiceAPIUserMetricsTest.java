@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
 import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.collectTopicMetric;
