@@ -129,20 +129,13 @@ public class CLITest extends TestBase {
     void testDownloadCLI(Vertx vertx, VertxTestContext context) {
         assertCredentials();
 
-        var downloader = new CLIDownloader(
-                vertx,
-                Environment.BF2_GITHUB_TOKEN,
-                DOWNLOAD_ORG,
-                DOWNLOAD_REPO,
-                Environment.CLI_VERSION,
-                Environment.CLI_PLATFORM,
-                Environment.CLI_ARCH);
+        var downloader = CLIDownloader.defaultDownloader(vertx);
 
         // download the cli
         downloader.downloadCLIInTempDir()
 
                 .compose(binary -> {
-                    this.cli = new CLI(binary.directory, binary.name);
+                    this.cli = new CLI(vertx, binary.directory, binary.name);
 
                     LOGGER.info("validate cli");
                     return cli.help();
@@ -159,7 +152,7 @@ public class CLITest extends TestBase {
         assertCLI();
 
         LOGGER.info("verify that we aren't logged-in");
-        cli.listKafka(vertx)
+        cli.listKafka()
                 .compose(r -> Future.failedFuture("cli kafka list should fail because we haven't log-in yet"))
                 .recover(t -> {
                     if (t instanceof ProcessException) {
@@ -178,7 +171,7 @@ public class CLITest extends TestBase {
                 .compose(__ -> {
 
                     LOGGER.info("verify that we are logged-in");
-                    return cli.listKafka(vertx);
+                    return cli.listKafka();
                 })
 
                 .onSuccess(__ -> loggedIn = true)
@@ -217,7 +210,7 @@ public class CLITest extends TestBase {
         assertServiceAccount();
 
         LOGGER.info("create kafka instance with name {}", KAFKA_INSTANCE_NAME);
-        cli.createKafka(vertx, KAFKA_INSTANCE_NAME)
+        cli.createKafka(KAFKA_INSTANCE_NAME)
                 .compose(kafka -> {
                     LOGGER.info("created kafka instance {} with id {}", kafka.name, kafka.id);
                     return waitForKafkaReady(vertx, cli, kafka.id)
@@ -231,12 +224,12 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(5)
-    void testGetStatusOfKafkaInstance(Vertx vertx, VertxTestContext context) {
+    void testGetStatusOfKafkaInstance(VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
 
         LOGGER.info("Get kafka instance with name {}", KAFKA_INSTANCE_NAME);
-        cli.describeKafka(vertx, kafkaInstance.id)
+        cli.describeKafka(kafkaInstance.id)
                 .onSuccess(kafka -> context.verify(() -> {
                     assertEquals("ready", kafka.status);
                     LOGGER.info("found kafka instance {} with id {}", kafka.name, kafka.id);
@@ -248,11 +241,11 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(6)
-    void testCreateKafkaTopic(Vertx vertx, VertxTestContext context) {
+    void testCreateKafkaTopic(VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
         LOGGER.info("Create kafka topic with name {}", KAFKA_INSTANCE_NAME);
-        cli.createTopic(vertx, TOPIC_NAME)
+        cli.createTopic(TOPIC_NAME)
                 .onSuccess(testTopic -> context.verify(() -> {
                     assertEquals(testTopic.name, TOPIC_NAME);
                     assertEquals(testTopic.partitions.size(), DEFAULT_PARTITIONS);
@@ -277,12 +270,12 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(8)
-    void testUpdateKafkaTopic(Vertx vertx, VertxTestContext context) {
+    void testUpdateKafkaTopic(VertxTestContext context) {
         assertTopic();
         String retentionTime = "4";
         String retentionKey = "retention.ms";
         LOGGER.info("Update kafka topic with name {}", TOPIC_NAME);
-        cli.updateTopic(vertx, TOPIC_NAME, retentionTime)
+        cli.updateTopic(TOPIC_NAME, retentionTime)
                 .onSuccess(testTopic -> context.verify(() -> {
                     Optional<TopicConfig> retentionValue = testTopic.config.stream().filter(conf -> conf.key.equals(retentionKey))
                             .findFirst();
@@ -298,12 +291,12 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(9)
-    void testGetRetentionConfigFromTopic(Vertx vertx, VertxTestContext context) {
+    void testGetRetentionConfigFromTopic(VertxTestContext context) {
         assertTopic();
         String retentionTime = "4";
         String retentionKey = "retention.ms";
         LOGGER.info("Describe kafka topic with name {}", TOPIC_NAME);
-        cli.describeTopic(vertx, TOPIC_NAME)
+        cli.describeTopic(TOPIC_NAME)
                 .onSuccess(testTopic -> context.verify(() -> {
                     assertEquals(testTopic.name, TOPIC_NAME);
                     assertEquals(testTopic.partitions.size(), topic.partitions.size());
@@ -380,18 +373,18 @@ public class CLITest extends TestBase {
     @Order(13)
     void testDeleteTopic(Vertx vertx, VertxTestContext context) {
         assertTopic();
-        cli.deleteTopic(vertx, TOPIC_NAME)
+        cli.deleteTopic(TOPIC_NAME)
                 .compose(__ -> waitForTopicDelete(vertx, cli, TOPIC_NAME))
                 .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Order(14)
-    void testCreateAlreadyCreatedKafka(Vertx vertx, VertxTestContext context) {
+    void testCreateAlreadyCreatedKafka(VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
 
-        cli.createKafka(vertx, KAFKA_INSTANCE_NAME)
+        cli.createKafka(KAFKA_INSTANCE_NAME)
                 .compose(r -> Future.failedFuture("Create kafka with same name should fail"))
                 .recover(throwable -> {
                     if (throwable instanceof Exception) {
@@ -407,9 +400,9 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
     @Order(15)
-    void testDeleteServiceAccount(Vertx vertx, VertxTestContext context) {
+    void testDeleteServiceAccount(VertxTestContext context) {
         assertServiceAccount();
-        cli.deleteServiceAccount(vertx, serviceAccount.id)
+        cli.deleteServiceAccount(serviceAccount.id)
                 .onSuccess(__ ->
                         LOGGER.info("Serviceaccount {} with id {} deleted", serviceAccount.name, serviceAccount.id))
                 .onComplete(context.succeedingThenComplete());
@@ -423,7 +416,7 @@ public class CLITest extends TestBase {
         assertKafka();
 
         LOGGER.info("Delete kafka instance {} with id {}", kafkaInstance.name, kafkaInstance.id);
-        cli.deleteKafka(vertx, kafkaInstance.id)
+        cli.deleteKafka(kafkaInstance.id)
                 .compose(__ -> waitForKafkaDelete(vertx, cli, kafkaInstance.name))
                 .onComplete(context.succeedingThenComplete());
     }
