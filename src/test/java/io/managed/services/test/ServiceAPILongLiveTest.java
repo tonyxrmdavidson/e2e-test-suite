@@ -180,7 +180,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
         forEach(Set.of(TOPICS), topic -> {
             LOGGER.info("start testing topic: {}", topic);
-            return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, ofMinutes(1), 10, 7, 10, false);
+            return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, ofMinutes(1), 10, 7, 10, true);
         }).onComplete(context.succeedingThenComplete());
     }
 }

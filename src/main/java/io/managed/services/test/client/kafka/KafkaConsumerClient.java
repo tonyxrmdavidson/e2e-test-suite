@@ -27,9 +27,9 @@ public class KafkaConsumerClient {
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         if (oauth) {
-            consumer = createConsumerWithOauth(vertx, bootstrapHost, clientID, clientSecret);
-        } else {
             consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        } else {
+            consumer = createConsumerWithPlain(vertx, bootstrapHost, clientID, clientSecret);
         }
 
     }
@@ -100,10 +100,10 @@ public class KafkaConsumerClient {
         return promise.future();
     }
 
-    public static KafkaConsumer<String, String> createConsumer(
+    public static KafkaConsumer<String, String> createConsumerWithPlain(
             Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
 
-        Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
+        Map<String, String> config = KafkaUtils.plainConfigs(bootstrapHost, clientID, clientSecret);
         config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("group.id", "test-group");
@@ -113,21 +113,10 @@ public class KafkaConsumerClient {
         return KafkaConsumer.create(vertx, config);
     }
 
-    public static KafkaConsumer<String, String> createConsumerWithOauth(
-            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+    public static KafkaConsumer<String, String> createConsumer(
+        Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+        Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
 
-        Map<String, String> config = new HashMap<>();
-        config.put("bootstrap.servers", bootstrapHost);
-
-        // OAUTH config
-        config.put("sasl.mechanism", "OAUTHBEARER");
-        config.put("security.protocol", "SASL_SSL");
-        String jaas1 = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id=\"%s\" oauth.client.secret=\"%s\" " +
-                "oauth.token.endpoint.uri=\"https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org/auth/realms/mas-sso-staging/protocol/openid-connect/token\";", clientID, clientSecret);
-
-
-        config.put("sasl.jaas.config", jaas1);
-        config.put("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
         //Standard consumer config
         config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");

@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicPlain;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
@@ -183,7 +185,7 @@ class ServiceAPITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100, true)
+        testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
                 .onComplete(context.succeedingThenComplete());
     }
 

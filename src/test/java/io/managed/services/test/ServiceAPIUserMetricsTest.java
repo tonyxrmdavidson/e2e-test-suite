@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
 import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.collectTopicMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
@@ -116,7 +117,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                     String clientSecret = serviceAccountF.result().clientSecret;
 
                     LOGGER.info("send {} message to the topic: {}", MESSAGE_COUNT, TOPIC_NAME);
-                    return testTopic(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100, true);
+                    return testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100);
                 });
 
         // wait for the metric to be updated or fail with timeout

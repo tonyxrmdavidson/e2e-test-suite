@@ -21,7 +21,7 @@ import static org.slf4j.helpers.MessageFormatter.format;
 public class KafkaMessagingUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMessagingUtils.class);
 
-    public static Future<Void> testTopic(
+    public static Future<Void> testTopicPlain(
             Vertx vertx,
             String bootstrapHost,
             String clientID,
@@ -29,8 +29,7 @@ public class KafkaMessagingUtils {
             String topicName,
             int messageCount,
             int minMessageSize,
-            int maxMessageSize,
-            boolean oauth) {
+            int maxMessageSize) {
 
         return testTopic(vertx,
                 bootstrapHost,
@@ -41,7 +40,29 @@ public class KafkaMessagingUtils {
                 messageCount,
                 minMessageSize,
                 maxMessageSize,
-                oauth);
+                false);
+    }
+
+    public static Future<Void> testTopicWithOauth(
+            Vertx vertx,
+            String bootstrapHost,
+            String clientID,
+            String clientSecret,
+            String topicName,
+            int messageCount,
+            int minMessageSize,
+            int maxMessageSize) {
+
+        return testTopic(vertx,
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                topicName,
+                Duration.ofMinutes(1),
+                messageCount,
+                minMessageSize,
+                maxMessageSize,
+                true);
     }
 
     /**
