@@ -19,11 +19,15 @@ public class KafkaProducerClient {
     private final Vertx vertx;
     private final KafkaProducer<String, String> producer;
 
-    public KafkaProducerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+    public KafkaProducerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean oauth) {
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        producer = createProducer(vertx, bootstrapHost, clientID, clientSecret);
+        if (oauth) {
+            producer = createProducer(vertx, bootstrapHost, clientID, clientSecret);
+        } else {
+            producer = createProducerWithPlain(vertx, bootstrapHost, clientID, clientSecret);
+        }
     }
 
     public Future<List<RecordMetadata>> sendAsync(String topicName, String... messages) {
@@ -41,10 +45,23 @@ public class KafkaProducerClient {
                 .map(c -> c.list());
     }
 
-    static public KafkaProducer<String, String> createProducer(
+    static public KafkaProducer<String, String> createProducerWithPlain(
             Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
 
+        Map<String, String> config = KafkaUtils.plainConfigs(bootstrapHost, clientID, clientSecret);
+        config.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        config.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        config.put("acks", "all");
+
+        return KafkaProducer.create(vertx, config);
+    }
+
+    static public KafkaProducer<String, String> createProducer(
+        Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
         Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
+
+
+        //Standard consumer config
         config.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         config.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         config.put("acks", "all");

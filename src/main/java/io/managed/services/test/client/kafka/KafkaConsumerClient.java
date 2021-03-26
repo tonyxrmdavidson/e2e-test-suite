@@ -21,11 +21,16 @@ public class KafkaConsumerClient {
     private final KafkaConsumer<String, String> consumer;
     private final Object lock = new Object();
 
-    public KafkaConsumerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+    public KafkaConsumerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean oauth) {
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        if (oauth) {
+            consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+        } else {
+            consumer = createConsumerWithPlain(vertx, bootstrapHost, clientID, clientSecret);
+        }
+
     }
 
     public Future<Future<List<KafkaConsumerRecord<String, String>>>> receiveAsync(String topicName, int expectedMessages) {
@@ -94,10 +99,24 @@ public class KafkaConsumerClient {
         return promise.future();
     }
 
-    public static KafkaConsumer<String, String> createConsumer(
+    public static KafkaConsumer<String, String> createConsumerWithPlain(
             Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
 
+        Map<String, String> config = KafkaUtils.plainConfigs(bootstrapHost, clientID, clientSecret);
+        config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        config.put("group.id", "test-group");
+        config.put("auto.offset.reset", "latest");
+        config.put("enable.auto.commit", "true");
+
+        return KafkaConsumer.create(vertx, config);
+    }
+
+    public static KafkaConsumer<String, String> createConsumer(
+        Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
         Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
+
+        //Standard consumer config
         config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("group.id", "test-group");

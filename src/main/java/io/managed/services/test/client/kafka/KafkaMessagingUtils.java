@@ -21,7 +21,7 @@ import static org.slf4j.helpers.MessageFormatter.format;
 public class KafkaMessagingUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMessagingUtils.class);
 
-    public static Future<Void> testTopic(
+    public static Future<Void> testTopicPlain(
             Vertx vertx,
             String bootstrapHost,
             String clientID,
@@ -39,7 +39,30 @@ public class KafkaMessagingUtils {
                 Duration.ofMinutes(1),
                 messageCount,
                 minMessageSize,
-                maxMessageSize);
+                maxMessageSize,
+                false);
+    }
+
+    public static Future<Void> testTopicWithOauth(
+            Vertx vertx,
+            String bootstrapHost,
+            String clientID,
+            String clientSecret,
+            String topicName,
+            int messageCount,
+            int minMessageSize,
+            int maxMessageSize) {
+
+        return testTopic(vertx,
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                topicName,
+                Duration.ofMinutes(1),
+                messageCount,
+                minMessageSize,
+                maxMessageSize,
+                true);
     }
 
     /**
@@ -65,12 +88,13 @@ public class KafkaMessagingUtils {
             Duration timeout,
             int messageCount,
             int minMessageSize,
-            int maxMessageSize) {
+            int maxMessageSize,
+            boolean oauth) {
 
         // generate random strings to send as messages
         var messages = generateRandomMessages(messageCount, minMessageSize, maxMessageSize);
 
-        return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, timeout, messages)
+        return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, timeout, messages, oauth)
                 .compose(records -> assertMessages(messages, records));
     }
 
@@ -81,11 +105,12 @@ public class KafkaMessagingUtils {
             String clientSecret,
             String topicName,
             Duration timeout,
-            List<String> messages) {
+            List<String> messages,
+            boolean oauth) {
 
         // initialize the consumer and the producer
-        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret);
-        var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret);
+        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, oauth);
+        var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, oauth);
 
         LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
         return consumer.receiveAsync(topicName, messages.size()).compose(consumeFuture -> {

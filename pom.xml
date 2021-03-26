@@ -126,6 +126,11 @@
             <version>2.8.0</version>
         </dependency>
         <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>kafka-oauth-client</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+        <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-junit5</artifactId>
             <version>4.0.2</version>

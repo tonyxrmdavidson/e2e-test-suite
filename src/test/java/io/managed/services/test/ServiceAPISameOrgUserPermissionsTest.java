@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -152,7 +152,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
                     String topicName = "test-topic";
                     LOGGER.info("create kafka topic: {}", topicName);
                     return admin.createTopic(topicName)
-                            .compose(__ -> testTopic(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100))
+                            .compose(__ -> testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100))
 
                             .onComplete(__ -> admin.close());
                 })

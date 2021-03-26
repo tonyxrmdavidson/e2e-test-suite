@@ -1,11 +1,11 @@
 package io.managed.services.test.client.kafkaadminapi;
 
 import io.managed.services.test.client.BaseVertxClient;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.kafkaadminapi.resourcesGroups.GroupResponse;
 import io.managed.services.test.client.kafkaadminapi.resourcesgroup.CreateTopicPayload;
 import io.managed.services.test.client.kafkaadminapi.resourcesgroup.Topic;
 import io.managed.services.test.client.kafkaadminapi.resourcesgroup.TopicList;
-import io.managed.services.test.client.kafkaadminapi.resourcesGroups.GroupResponse;
+import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;

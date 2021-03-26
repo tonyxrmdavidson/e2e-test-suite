@@ -22,12 +22,24 @@ import static io.managed.services.test.TestUtils.forEach;
 public class KafkaUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaUtils.class);
 
-    static public Map<String, String> configs(String bootstrapHost, String clientID, String clientSecret) {
+    static public Map<String, String> plainConfigs(String bootstrapHost, String clientID, String clientSecret) {
         Map<String, String> config = new HashMap<>();
         config.put("bootstrap.servers", bootstrapHost);
         config.put("sasl.mechanism", "PLAIN");
         config.put("security.protocol", "SASL_SSL");
         config.put("sasl.jaas.config", String.format("org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";", clientID, clientSecret));
+        return config;
+    }
+
+    static public Map<String, String> configs(String bootstrapHost, String clientID, String clientSecret) {
+        Map<String, String> config = new HashMap<>();
+        config.put("bootstrap.servers", bootstrapHost);
+        config.put("sasl.mechanism", "OAUTHBEARER");
+        config.put("security.protocol", "SASL_SSL");
+        String jaas = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id=\"%s\" oauth.client.secret=\"%s\" " +
+                "oauth.token.endpoint.uri=\"https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org/auth/realms/mas-sso-staging/protocol/openid-connect/token\";", clientID, clientSecret);
+        config.put("sasl.jaas.config", jaas);
+        config.put("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
         return config;
     }
 

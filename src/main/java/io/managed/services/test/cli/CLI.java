@@ -170,7 +170,7 @@ public class CLI {
             }
 
             if (t instanceof ProcessException) {
-                if (t.getMessage().contains("504") || t.getMessage().contains("500")) {
+                if (t.getMessage().contains("504") || t.getMessage().contains("500") || t.getMessage().contains("internal")) {
                     return retry.apply(t);
                 }
             }
