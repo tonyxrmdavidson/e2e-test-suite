@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -46,12 +45,8 @@ public class CLI {
         cmd.add("-d");
         cmd.addAll(Arrays.asList(command));
 
-        ProcessBuilder pb = new ProcessBuilder(cmd)
+        return new ProcessBuilder(cmd)
                 .directory(new File(workdir));
-        //TODO remove env setting after fix for https://github.com/bf2fc6cc711aee1a0c2a/cli/issues/497 will be released
-        Map<String, String> env = pb.environment();
-        env.put("RHOASCLI_CONFIG", System.getenv("HOME") + "/.rhoascli.json");
-        return pb;
     }
 
     private Future<Process> exec(String... command) {
