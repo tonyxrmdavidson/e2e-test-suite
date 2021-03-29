@@ -2,10 +2,14 @@ package io.managed.services.test;
 
 
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
+
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
@@ -29,7 +33,8 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
-import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
+
+import static io.managed.services.test.client.kafka.KafkaUtils.applyTopic;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.collectTopicMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
@@ -58,6 +63,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
     private static final String TOPIC_NAME = "metric-test-topic";
 
     private ServiceAPI api;
+    private KafkaAdminAPI kafkaAdminApi;
 
     void assertAPI() {
         assumeTrue(api != null, "api is null because the bootstrap has failed");
@@ -66,8 +72,18 @@ public class ServiceAPIUserMetricsTest extends TestBase {
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         ServiceAPIUtils.serviceAPI(vertx)
-                .onSuccess(a -> api = a)
+                .compose(a -> {
+                    api = a;
+                    return getKafkaByName(api, KAFKA_INSTANCE_NAME);
+                })
+                .compose(o -> o.map(Future::succeededFuture).orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", KAFKA_INSTANCE_NAME))))
+                .compose(kafkaResponse -> {
+                    String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, kafkaResponse.bootstrapServerHost);
+                    return KafkaAdminAPIUtils.restApi(vertx, completeUrl);
+                })
+                .onSuccess(kafkaAdminAPI -> kafkaAdminApi = kafkaAdminAPI)
                 .onComplete(context.succeedingThenComplete());
+
     }
 
     @Test
@@ -81,7 +97,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
         var kafkaF = getKafkaByName(api, KAFKA_INSTANCE_NAME)
                 .map(o -> o.orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", KAFKA_INSTANCE_NAME))));
 
-        // retrieve service account and reset the credentials
+
         var serviceAccountF = applyServiceAccount(api, SERVICE_ACCOUNT_NAME);
 
         var adminF = CompositeFuture.all(kafkaF, serviceAccountF)
@@ -97,7 +113,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
         var topicF = adminF
                 .compose(admin -> {
                     LOGGER.info("ensure the topic {} exists", TOPIC_NAME);
-                    return applyTopics(admin, Set.of(TOPIC_NAME))
+                    return applyTopic(kafkaAdminApi, Set.of(TOPIC_NAME))
 
                             .onComplete(__ -> admin.close());
                 });

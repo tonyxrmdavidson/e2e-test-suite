@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static io.managed.services.test.client.kafka.KafkaUtils.applyTopicsWithKafkaAdminApi;
+import static io.managed.services.test.client.kafka.KafkaUtils.applyTopic;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -92,7 +92,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
         LOGGER.info("get kafka instance for name: {}", KAFKA_INSTANCE_NAME);
         getKafkaByName(api, KAFKA_INSTANCE_NAME)
-                .compose(o -> o.map(k -> Future.succeededFuture(k)).orElseGet(() -> {
+                .compose(o -> o.map(Future::succeededFuture).orElseGet(() -> {
                     LOGGER.error("kafka is not present: {}", KAFKA_INSTANCE_NAME);
 
                     LOGGER.info("try to recreate the kafka instance: {}", KAFKA_INSTANCE_NAME);
@@ -167,7 +167,7 @@ class ServiceAPILongLiveTest extends TestBase {
         KafkaAdminAPIUtils.restApi(vertx, completeUrl)
                 .compose(kafkaAdminAPIResponse -> {
                     kafkaAdminAPI = kafkaAdminAPIResponse;
-                    return applyTopicsWithKafkaAdminApi(kafkaAdminAPI, topics);
+                    return applyTopic(kafkaAdminAPI, topics);
                 })
                 .onSuccess(__ -> topic = true)
                 .onSuccess(missingTopics -> context.verify(() -> {

@@ -84,7 +84,7 @@ public class KafkaUtils {
      *
      * @return the list of missing topics that has been created
      */
-    static public Future<List<String>> applyTopics(KafkaAdmin admin, Set<String> topics) {
+    static public Future<List<String>> applyTopicsForFutureTest(KafkaAdmin admin, Set<String> topics) {
 
         List<String> missingTopics = new ArrayList<>();
 
@@ -104,7 +104,7 @@ public class KafkaUtils {
                 }).map(v -> missingTopics));
     }
 
-    static public Future<List<String>> applyTopicsWithKafkaAdminApi(KafkaAdminAPI admin, Set<String> topics) {
+    static public Future<List<String>> applyTopic(KafkaAdminAPI admin, Set<String> topics) {
 
         List<String> missingTopics = new ArrayList<>();
 
