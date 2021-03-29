@@ -48,6 +48,9 @@ public class Environment {
     private static final String SSO_REDHAT_CLIENT_ID_ENV = "SSO_REDHAT_CLIENT_ID";
     private static final String SSO_REDHAT_REDIRECT_URI_ENV = "SSO_REDHAT_REDIRECT_URI";
 
+    private static final String KAFKA_ADMIN_API_SERVER_PREFIX_ENV = "KAFKA_ADMIN_API_SERVER_PREFIX";
+
+
     private static final String MAS_SSO_REDHAT_KEYCLOAK_URI_ENV = "MAS_SSO_REDHAT_KEYCLOAK_URI";
     private static final String MAS_SSO_REDHAT_REALM_ENV = "MAS_SSO_REDHAT_REALM_ENV";
     private static final String MAS_SSO_REDHAT_CLIENT_ID_ENV = "MAS_SSO_REDHAT_CLIENT_ID_ENV";
@@ -100,6 +103,8 @@ public class Environment {
     public static final String SSO_REDHAT_REALM = getOrDefault(SSO_REDHAT_REALM_ENV, "redhat-external");
     public static final String SSO_REDHAT_CLIENT_ID = getOrDefault(SSO_REDHAT_CLIENT_ID_ENV, "cloud-services");
     public static final String SSO_REDHAT_REDIRECT_URI = getOrDefault(SSO_REDHAT_REDIRECT_URI_ENV, "https://qaprodauth.cloud.redhat.com");
+
+    public static final String KAFKA_ADMIN_API_SERVER_PREFIX = getOrDefault(KAFKA_ADMIN_API_SERVER_PREFIX_ENV, "https://admin-server-");
 
     public static final String SERVICE_API_URI = getOrDefault(SERVICE_API_URI_ENV, "https://api.stage.openshift.com");
 

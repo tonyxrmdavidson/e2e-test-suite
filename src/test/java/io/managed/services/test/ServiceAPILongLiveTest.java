@@ -1,6 +1,8 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
@@ -16,6 +18,7 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeAll;
+
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -29,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
+import static io.managed.services.test.client.kafka.KafkaUtils.applyTopicsWithKafkaAdminApi;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -54,6 +57,9 @@ class ServiceAPILongLiveTest extends TestBase {
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
     boolean topic;
+
+    KafkaAdminAPI kafkaAdminAPI;
+    String bootstrapServerHost;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -144,7 +150,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
     @Test
     @Order(3)
-    void testPresenceOfTopics(VertxTestContext context) {
+    void testPresenceOfTopics(Vertx vertx, VertxTestContext context) {
         assertServiceAccount();
 
         String bootstrapHost = kafka.bootstrapServerHost;
@@ -156,7 +162,13 @@ class ServiceAPILongLiveTest extends TestBase {
 
         var topics = Set.of(TOPICS);
         LOGGER.info("apply topics: {}", topics);
-        applyTopics(admin, topics)
+
+        String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
+        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+                .compose(kafkaAdminAPIResponse -> {
+                    kafkaAdminAPI = kafkaAdminAPIResponse;
+                    return applyTopicsWithKafkaAdminApi(kafkaAdminAPI, topics);
+                })
                 .onSuccess(__ -> topic = true)
                 .onSuccess(missingTopics -> context.verify(() -> {
                     // log failure if we had to recreate some topics

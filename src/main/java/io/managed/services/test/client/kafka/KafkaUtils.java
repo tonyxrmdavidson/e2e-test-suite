@@ -1,5 +1,6 @@
 package io.managed.services.test.client.kafka;
 
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -100,6 +101,26 @@ public class KafkaUtils {
 
                     LOGGER.info("create missing topic: {}", t);
                     return admin.createTopic(t);
+                }).map(v -> missingTopics));
+    }
+
+    static public Future<List<String>> applyTopicsWithKafkaAdminApi(KafkaAdminAPI admin, Set<String> topics) {
+
+        List<String> missingTopics = new ArrayList<>();
+
+        return admin.getAllTopics()
+
+                // create the missing topics
+                .compose(currentTopics -> forEach(topics.iterator(), t -> {
+                    if (currentTopics.topics.stream().anyMatch(o -> o.name.equals(t))) {
+                        return Future.succeededFuture();
+                    }
+
+                    missingTopics.add(t);
+
+                    LOGGER.info("create missing topic: {}", t);
+                    return admin.createTopic(t);
+
                 }).map(v -> missingTopics));
     }
 }

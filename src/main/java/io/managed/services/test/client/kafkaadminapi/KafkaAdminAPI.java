@@ -13,6 +13,7 @@ import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.client.HttpResponse;
 
 import java.net.HttpURLConnection;
+import java.util.ArrayList;
 
 public class KafkaAdminAPI extends BaseVertxClient {
 
@@ -28,12 +29,13 @@ public class KafkaAdminAPI extends BaseVertxClient {
     }
 
 
-    public Future<Topic> createTopic(CreateTopicPayload payload) {
+    public Future<Void> createTopic(String topicName) {
+        CreateTopicPayload topicPayload = setUpDefaultTopicPayload(topicName);
         return retry(() -> client.post("/rest/topics")
                 .authentication(token)
-                .sendJson(payload)
+                .sendJson(topicPayload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_CREATED))
-                .map(r -> r.bodyAsJson(Topic.class)));
+                .map(r -> r.bodyAsJson(Void.class)));
     }
 
     public Future<TopicList> getAllTopics() {
@@ -80,6 +82,25 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(HttpResponse::bodyAsString));
+    }
+
+    private CreateTopicPayload setUpDefaultTopicPayload(String name) {
+        CreateTopicPayload topicPayload = new CreateTopicPayload();
+        topicPayload.name = name;
+        topicPayload.settings = new CreateTopicPayload.Settings();
+
+        // Partitions needs to be set to 1 in order sending messages properly in test suite ServiceApiLongLiveTest
+        topicPayload.settings.numPartitions = 1;
+        CreateTopicPayload.Settings.Config c1 = new CreateTopicPayload.Settings.Config();
+        CreateTopicPayload.Settings.Config c2 = new CreateTopicPayload.Settings.Config();
+        c1.key = "min.insync.replicas";
+        c1.value = "1";
+        c2.key = "max.message.bytes";
+        c2.value = "1050000";
+        topicPayload.settings.config = new ArrayList<>();
+        topicPayload.settings.config.add(c1);
+        topicPayload.settings.config.add(c2);
+        return topicPayload;
     }
 
 }

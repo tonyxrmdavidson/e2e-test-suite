@@ -3,6 +3,8 @@ package io.managed.services.test;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -59,6 +62,7 @@ class ServiceAPITest extends TestBase {
 
     ServiceAPI api;
     KafkaAdmin admin;
+    KafkaAdminAPI kafkaAdminAPI;
 
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
@@ -154,21 +158,22 @@ class ServiceAPITest extends TestBase {
 
     @Test
     @Order(2)
-    void testCreateTopic(VertxTestContext context) {
+    void testCreateTopic(Vertx vertx, VertxTestContext context) {
         assertKafka();
         assertServiceAccount();
 
+
+
         var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
 
-        // Create Kafka topic
-        // TODO: User service api to create topics when available
-        LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+//         TODO: User service api to create topics when available
 
-        LOGGER.info("create kafka topic: {}", TOPIC_NAME);
-        admin.createTopic(TOPIC_NAME)
+        String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
+        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+                .compose(restApiResponse -> {
+                    kafkaAdminAPI = restApiResponse;
+                    return kafkaAdminAPI.createTopic(TOPIC_NAME);
+                })
                 .onSuccess(__ -> topic = TOPIC_NAME)
                 .onComplete(context.succeedingThenComplete());
     }
@@ -247,8 +252,17 @@ class ServiceAPITest extends TestBase {
         assertTopic();
 
         LOGGER.info("Delete created topic : {}", TOPIC_NAME);
-        // TODO: Verify that the topic doesn't exists anymore
-        admin.deleteTopic(TOPIC_NAME)
+        kafkaAdminAPI.deleteTopicByName(TOPIC_NAME)
+                .compose(r -> kafkaAdminAPI.getSingleTopicByName(TOPIC_NAME))
+                .compose(r -> Future.failedFuture("Getting test-topic should fail due to topic being deleted in current test"))
+                .recover(throwable -> {
+                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
+                        System.out.println(((ResponseException) throwable).response.bodyAsString());
+                        LOGGER.info("Topic not found : {}", TOPIC_NAME);
+                        return Future.succeededFuture();
+                    }
+                    return Future.failedFuture(throwable);
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
