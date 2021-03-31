@@ -159,6 +159,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
         var topics = Set.of(TOPICS);
         LOGGER.info("apply topics: {}", topics);
+        System.out.println("this is url");
 
         KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapHost)
                 .compose(kafkaAdminAPIResponse -> {
