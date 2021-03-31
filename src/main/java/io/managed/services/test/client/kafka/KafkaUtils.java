@@ -1,6 +1,5 @@
 package io.managed.services.test.client.kafka;
 
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -8,16 +7,13 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
+
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static io.managed.services.test.TestUtils.forEach;
 
 
 public class KafkaUtils {
@@ -79,48 +75,4 @@ public class KafkaUtils {
                 .map(Optional::ofNullable);
     }
 
-    /**
-     * Create the missing topics
-     *
-     * @return the list of missing topics that has been created
-     */
-    static public Future<List<String>> applyTopicsForFutureTest(KafkaAdmin admin, Set<String> topics) {
-
-        List<String> missingTopics = new ArrayList<>();
-
-        return admin.listTopics()
-
-                // create the missing topics
-                .compose(currentTopics -> forEach(topics.iterator(), t -> {
-                    if (currentTopics.contains(t)) {
-                        currentTopics.remove(t);
-                        return Future.succeededFuture();
-                    }
-
-                    missingTopics.add(t);
-
-                    LOGGER.info("create missing topic: {}", t);
-                    return admin.createTopic(t);
-                }).map(v -> missingTopics));
-    }
-
-    static public Future<List<String>> applyTopic(KafkaAdminAPI admin, Set<String> topics) {
-
-        List<String> missingTopics = new ArrayList<>();
-
-        return admin.getAllTopics()
-
-                // create the missing topics
-                .compose(currentTopics -> forEach(topics.iterator(), t -> {
-                    if (currentTopics.topics.stream().anyMatch(o -> o.name.equals(t))) {
-                        return Future.succeededFuture();
-                    }
-
-                    missingTopics.add(t);
-
-                    LOGGER.info("create missing topic: {}", t);
-                    return admin.createTopic(t);
-
-                }).map(v -> missingTopics));
-    }
 }

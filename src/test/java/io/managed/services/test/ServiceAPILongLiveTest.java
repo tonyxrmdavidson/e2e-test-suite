@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static io.managed.services.test.client.kafka.KafkaUtils.applyTopic;
+import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -57,9 +57,7 @@ class ServiceAPILongLiveTest extends TestBase {
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
     boolean topic;
-
     KafkaAdminAPI kafkaAdminAPI;
-    String bootstrapServerHost;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -158,25 +156,20 @@ class ServiceAPILongLiveTest extends TestBase {
         String clientSecret = serviceAccount.clientSecret;
 
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
         var topics = Set.of(TOPICS);
         LOGGER.info("apply topics: {}", topics);
 
-        String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
-        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapHost)
                 .compose(kafkaAdminAPIResponse -> {
                     kafkaAdminAPI = kafkaAdminAPIResponse;
-                    return applyTopic(kafkaAdminAPI, topics);
+                    return applyTopics(kafkaAdminAPI, topics);
                 })
                 .onSuccess(__ -> topic = true)
                 .onSuccess(missingTopics -> context.verify(() -> {
                     // log failure if we had to recreate some topics
                     assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
                 }))
-
-                .onComplete(__ -> admin.close())
-
                 .onComplete(context.succeedingThenComplete());
     }
 

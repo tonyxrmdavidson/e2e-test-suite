@@ -2,9 +2,7 @@ package io.managed.services.test;
 
 
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
-
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
@@ -34,7 +32,8 @@ import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
 
-import static io.managed.services.test.client.kafka.KafkaUtils.applyTopic;
+
+import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.collectTopicMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
@@ -63,7 +62,6 @@ public class ServiceAPIUserMetricsTest extends TestBase {
     private static final String TOPIC_NAME = "metric-test-topic";
 
     private ServiceAPI api;
-    private KafkaAdminAPI kafkaAdminApi;
 
     void assertAPI() {
         assumeTrue(api != null, "api is null because the bootstrap has failed");
@@ -77,11 +75,6 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                     return getKafkaByName(api, KAFKA_INSTANCE_NAME);
                 })
                 .compose(o -> o.map(Future::succeededFuture).orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", KAFKA_INSTANCE_NAME))))
-                .compose(kafkaResponse -> {
-                    String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, kafkaResponse.bootstrapServerHost);
-                    return KafkaAdminAPIUtils.restApi(vertx, completeUrl);
-                })
-                .onSuccess(kafkaAdminAPI -> kafkaAdminApi = kafkaAdminAPI)
                 .onComplete(context.succeedingThenComplete());
 
     }
@@ -109,11 +102,14 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                     return new KafkaAdmin(bootstrapHost, clientID, clientSecret);
                 });
 
+        var kafkaAdminApiF = kafkaF
+                .compose(kafkaResponse -> KafkaAdminAPIUtils.restApiDefault(vertx, kafkaResponse.bootstrapServerHost));
+
         // ensure the topic exists
         var topicF = adminF
                 .compose(admin -> {
                     LOGGER.info("ensure the topic {} exists", TOPIC_NAME);
-                    return applyTopic(kafkaAdminApi, Set.of(TOPIC_NAME))
+                    return applyTopics(kafkaAdminApiF.result(), Set.of(TOPIC_NAME))
 
                             .onComplete(__ -> admin.close());
                 });
