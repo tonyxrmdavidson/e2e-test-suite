@@ -168,7 +168,7 @@ class ServiceAPITest extends TestBase {
         KafkaAdminAPIUtils.restApi(vertx, completeUrl)
                 .compose(restApiResponse -> {
                     kafkaAdminAPI = restApiResponse;
-                    return kafkaAdminAPI.createTopic(TOPIC_NAME);
+                    return KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TOPIC_NAME);
                 })
                 .onSuccess(__ -> topic = TOPIC_NAME)
                 .onComplete(context.succeedingThenComplete());

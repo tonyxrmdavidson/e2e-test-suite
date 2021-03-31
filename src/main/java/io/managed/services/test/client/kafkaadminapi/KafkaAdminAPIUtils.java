@@ -19,7 +19,7 @@ import static io.managed.services.test.Environment.MAS_SSO_REDHAT_REDIRECT_URI;
 import static io.managed.services.test.TestUtils.forEach;
 
 
-public class KafkaAdminAPIUtils  {
+public class KafkaAdminAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(io.managed.services.test.client.serviceapi.ServiceAPIUtils.class);
 
     public static Future<KafkaAdminAPI> restApi(Vertx vertx, String kafkaInstanceUrl) {
@@ -44,11 +44,22 @@ public class KafkaAdminAPIUtils  {
     }
 
     /**
+     * Create a topic with the passed name using the default payload
+     *
+     * @param api       KafkaAdminAPI
+     * @param topicName String
+     * @return Void
+     */
+    static public Future<Void> createDefaultTopic(KafkaAdminAPI api, String topicName) {
+        var topicPayload = setUpDefaultTopicPayload(topicName);
+        return api.createTopic(topicPayload);
+    }
+
+    /**
      * Create the missing topics
      *
      * @return the list of missing topics that has been created
      */
-
     static public Future<List<String>> applyTopics(KafkaAdminAPI admin, Set<String> topics) {
 
         List<String> missingTopics = new ArrayList<>();
@@ -64,7 +75,7 @@ public class KafkaAdminAPIUtils  {
                     missingTopics.add(t);
 
                     LOGGER.info("create missing topic: {}", t);
-                    return admin.createTopic(t);
+                    return createDefaultTopic(admin, t);
 
                 }).map(v -> missingTopics));
     }

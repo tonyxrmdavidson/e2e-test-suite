@@ -75,12 +75,15 @@ public class KafkaAdminAPITest extends TestBase {
     void assertRestAPI() {
         assumeTrue(kafkaAdminAPI != null, "rest API is null because the createKafkaUsingServiceAPI has failed");
     }
+
     void assertTopic() {
         assumeTrue(topic != null, "topic is null because the testCreateTopic has failed to create the topic on the Kafka instance");
     }
+
     void assertAPI() {
         assumeTrue(api != null, "api is null because the bootstrap has failed");
     }
+
     void assertConnectedToRunningKafkaInstance() {
         assumeTrue(bootstrapServerHost != null, "Failed to connect to Kafka within Timeout Period (8minutes 20 seconds)");
     }
@@ -121,7 +124,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Test
     @Order(3)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testCreateTopic(VertxTestContext context)  {
+    void testCreateTopic(VertxTestContext context) {
         assertConnectedToRunningKafkaInstance();
         assertRestAPI();
         kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
@@ -133,8 +136,8 @@ public class KafkaAdminAPITest extends TestBase {
                     }
                     return Future.failedFuture(throwable);
                 })
-                .compose(a ->  kafkaAdminAPI.createTopic(TEST_TOPIC_NAME))
-                .onSuccess(__ ->  topic = TEST_TOPIC_NAME)
+                .compose(a -> KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME))
+                .onSuccess(__ -> topic = TEST_TOPIC_NAME)
                 .onComplete(context.succeedingThenComplete());
 
 
@@ -143,10 +146,10 @@ public class KafkaAdminAPITest extends TestBase {
     @Test
     @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testCreateExistingTopic(VertxTestContext context)  {
+    void testCreateExistingTopic(VertxTestContext context) {
         assertRestAPI();
         assertTopic();
-        kafkaAdminAPI.createTopic(TEST_TOPIC_NAME)
+        KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Create existing topic should fail"))
                 .recover(throwable -> {
                     if (throwable instanceof ResponseException) {
@@ -163,7 +166,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Test
     @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testGetTopicByName(VertxTestContext context)  {
+    void testGetTopicByName(VertxTestContext context) {
         assertRestAPI();
         assertTopic();
         kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
@@ -196,7 +199,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Test
     @Order(4)
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void tetGetTopics(VertxTestContext context)  {
+    void tetGetTopics(VertxTestContext context) {
         assertRestAPI();
         assertTopic();
         kafkaAdminAPI.getAllTopics()
@@ -256,7 +259,7 @@ public class KafkaAdminAPITest extends TestBase {
         assertRestAPI();
         kafkaAdminAPI.getAllGroups()
                 .onSuccess(groupResponse -> context.verify(() -> {
-                    int groupsCount =  groupResponse.length;
+                    int groupsCount = groupResponse.length;
                     assertTrue(groupsCount >= 1);
                 }))
                 .onComplete(context.succeedingThenComplete());
@@ -329,8 +332,4 @@ public class KafkaAdminAPITest extends TestBase {
                 .onComplete(context.succeedingThenComplete());
 
     }
-
-
-
-
 }

@@ -11,10 +11,8 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.client.HttpResponse;
+
 import java.net.HttpURLConnection;
-
-
-import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.setUpDefaultTopicPayload;
 
 public class KafkaAdminAPI extends BaseVertxClient {
 
@@ -30,8 +28,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
     }
 
 
-    public Future<Void> createTopic(String topicName) {
-        CreateTopicPayload topicPayload = setUpDefaultTopicPayload(topicName);
+    public Future<Void> createTopic(CreateTopicPayload topicPayload) {
         return retry(() -> client.post("/rest/topics")
                 .authentication(token)
                 .sendJson(topicPayload)
