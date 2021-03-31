@@ -1,7 +1,6 @@
 package io.managed.services.test;
 
 
-import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
@@ -31,8 +30,6 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
-
-
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.collectTopicMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
@@ -75,8 +72,8 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                     return getKafkaByName(api, KAFKA_INSTANCE_NAME);
                 })
                 .compose(o -> o.map(Future::succeededFuture).orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", KAFKA_INSTANCE_NAME))))
-                .onComplete(context.succeedingThenComplete());
 
+                .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -94,22 +91,16 @@ public class ServiceAPIUserMetricsTest extends TestBase {
         var serviceAccountF = applyServiceAccount(api, SERVICE_ACCOUNT_NAME);
 
         var adminF = CompositeFuture.all(kafkaF, serviceAccountF)
-                .map(__ -> {
-                    String bootstrapHost = kafkaF.result().bootstrapServerHost;
-                    String clientID = serviceAccountF.result().clientID;
-                    String clientSecret = serviceAccountF.result().clientSecret;
-
-                    return new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+                .compose(__ -> {
+                    var bootstrapHost = kafkaF.result().bootstrapServerHost;
+                    return KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost);
                 });
-
-        var kafkaAdminApiF = kafkaF
-                .compose(kafkaResponse -> KafkaAdminAPIUtils.kafkaAdminAPI(vertx, kafkaResponse.bootstrapServerHost));
 
         // ensure the topic exists
         var topicF = adminF
                 .compose(__ -> {
                     LOGGER.info("ensure the topic {} exists", TOPIC_NAME);
-                    return applyTopics(kafkaAdminApiF.result(), Set.of(TOPIC_NAME));
+                    return applyTopics(adminF.result(), Set.of(TOPIC_NAME));
                 });
 
         // retrieve the current in messages before sending more
