@@ -3,7 +3,6 @@ package io.managed.services.test;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -62,7 +60,6 @@ class ServiceAPITest extends TestBase {
 
     ServiceAPI api;
     KafkaAdmin admin;
-    KafkaAdminAPI kafkaAdminAPI;
 
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
@@ -123,7 +120,6 @@ class ServiceAPITest extends TestBase {
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @Order(1)
     void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
-
         assertAPI();
 
         // Create Kafka Instance
@@ -160,17 +156,15 @@ class ServiceAPITest extends TestBase {
     @Order(2)
     void testCreateTopic(Vertx vertx, VertxTestContext context) {
         assertKafka();
-        assertServiceAccount();
 
         var bootstrapHost = kafka.bootstrapServerHost;
-        String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
 
-        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
-                .compose(restApiResponse -> {
-                    kafkaAdminAPI = restApiResponse;
-                    return kafkaAdminAPI.createTopic(TOPIC_NAME);
-                })
+        LOGGER.info("create topic with name {} on the instance: {}", TOPIC_NAME, bootstrapHost);
+        KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost)
+
+                .compose(api -> KafkaAdminAPIUtils.createDefaultTopic(api, TOPIC_NAME))
                 .onSuccess(__ -> topic = TOPIC_NAME)
+
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -178,6 +172,8 @@ class ServiceAPITest extends TestBase {
     @Order(3)
     @Timeout(value = 3, timeUnit = TimeUnit.MINUTES)
     void testProduceAndConsumeKafkaMessages(Vertx vertx, VertxTestContext context) {
+        assertKafka();
+        assertServiceAccount();
         assertTopic();
 
         var bootstrapHost = kafka.bootstrapServerHost;
@@ -244,25 +240,6 @@ class ServiceAPITest extends TestBase {
 
     @Test
     @Order(4)
-    void testDeleteTopic(VertxTestContext context) {
-        assertTopic();
-
-        LOGGER.info("Delete created topic : {}", TOPIC_NAME);
-        kafkaAdminAPI.deleteTopicByName(TOPIC_NAME)
-                .compose(r -> kafkaAdminAPI.getSingleTopicByName(TOPIC_NAME))
-                .compose(r -> Future.failedFuture("Getting test-topic should fail due to topic being deleted in current test"))
-                .recover(throwable -> {
-                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
-                        LOGGER.info("Topic not found : {}", TOPIC_NAME);
-                        return Future.succeededFuture();
-                    }
-                    return Future.failedFuture(throwable);
-                })
-                .onComplete(context.succeedingThenComplete());
-    }
-
-    @Test
-    @Order(5)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertKafka();
 

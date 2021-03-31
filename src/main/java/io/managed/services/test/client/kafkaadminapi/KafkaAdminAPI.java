@@ -1,20 +1,14 @@
 package io.managed.services.test.client.kafkaadminapi;
 
 import io.managed.services.test.client.BaseVertxClient;
-import io.managed.services.test.client.kafkaadminapi.resourcesGroups.GroupResponse;
-import io.managed.services.test.client.kafkaadminapi.resourcesgroup.CreateTopicPayload;
-import io.managed.services.test.client.kafkaadminapi.resourcesgroup.Topic;
-import io.managed.services.test.client.kafkaadminapi.resourcesgroup.TopicList;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.client.HttpResponse;
+
 import java.net.HttpURLConnection;
-
-
-import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.setUpDefaultTopicPayload;
 
 public class KafkaAdminAPI extends BaseVertxClient {
 
@@ -29,14 +23,12 @@ public class KafkaAdminAPI extends BaseVertxClient {
         this(vertx, uri, KeycloakOAuth.getToken(user));
     }
 
-
-    public Future<Void> createTopic(String topicName) {
-        CreateTopicPayload topicPayload = setUpDefaultTopicPayload(topicName);
+    public Future<Topic> createTopic(CreateTopicPayload topicPayload) {
         return retry(() -> client.post("/rest/topics")
                 .authentication(token)
                 .sendJson(topicPayload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_CREATED))
-                .map(r -> r.bodyAsJson(Void.class)));
+                .map(r -> r.bodyAsJson(Topic.class)));
     }
 
     public Future<TopicList> getAllTopics() {
@@ -46,7 +38,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(TopicList.class)));
     }
 
-    public Future<Topic> getSingleTopicByName(String topicName) {
+    public Future<Topic> getTopicByName(String topicName) {
         return retry(() -> client.get(String.format("/rest/topics/%s", topicName))
                 .authentication(token)
                 .send()
@@ -62,19 +54,19 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(HttpResponse::bodyAsString));
     }
 
-    public Future<GroupResponse[]> getAllGroups() {
+    public Future<Group[]> getAllGroups() {
         return retry(() -> client.get("/rest/groups")
                 .authentication(token).send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(GroupResponse[].class)));
+                .map(r -> r.bodyAsJson(Group[].class)));
     }
 
-    public Future<GroupResponse> getSingleGroupByName(String topicName) {
+    public Future<Group> getGroupByName(String topicName) {
         return retry(() -> client.get(String.format("/rest/groups/%s", topicName))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(GroupResponse.class)));
+                .map(r -> r.bodyAsJson(Group.class)));
     }
 
     public Future<String> deleteGroupByName(String topicName) {
@@ -84,7 +76,6 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(HttpResponse::bodyAsString));
     }
-
 
 
 }

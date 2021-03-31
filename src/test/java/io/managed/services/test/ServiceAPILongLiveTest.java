@@ -1,6 +1,5 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -17,7 +16,6 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeAll;
-
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -56,7 +54,6 @@ class ServiceAPILongLiveTest extends TestBase {
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
     boolean topic;
-    KafkaAdminAPI kafkaAdminAPI;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -157,13 +154,13 @@ class ServiceAPILongLiveTest extends TestBase {
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
 
         var topics = Set.of(TOPICS);
-        LOGGER.info("apply topics: {}", topics);
 
+        LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
+        KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost)
 
-        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapHost)
-                .compose(kafkaAdminAPIResponse -> {
-                    kafkaAdminAPI = kafkaAdminAPIResponse;
-                    return applyTopics(kafkaAdminAPI, topics);
+                .compose(api -> {
+                    LOGGER.info("apply topics: {}", topics);
+                    return applyTopics(api, topics);
                 })
                 .onSuccess(__ -> topic = true)
                 .onSuccess(missingTopics -> context.verify(() -> {
