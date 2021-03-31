@@ -107,11 +107,9 @@ public class ServiceAPIUserMetricsTest extends TestBase {
 
         // ensure the topic exists
         var topicF = adminF
-                .compose(admin -> {
+                .compose(__ -> {
                     LOGGER.info("ensure the topic {} exists", TOPIC_NAME);
-                    return applyTopics(kafkaAdminApiF.result(), Set.of(TOPIC_NAME))
-
-                            .onComplete(__ -> admin.close());
+                    return applyTopics(kafkaAdminApiF.result(), Set.of(TOPIC_NAME));
                 });
 
         // retrieve the current in messages before sending more
