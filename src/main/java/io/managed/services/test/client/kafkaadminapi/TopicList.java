@@ -1,4 +1,4 @@
-package io.managed.services.test.client.kafkaadminapi.resourcesgroup;
+package io.managed.services.test.client.kafkaadminapi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

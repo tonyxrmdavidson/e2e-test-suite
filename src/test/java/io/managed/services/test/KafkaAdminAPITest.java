@@ -3,7 +3,7 @@ package io.managed.services.test;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
-import io.managed.services.test.client.kafkaadminapi.resourcesgroup.Topic;
+import io.managed.services.test.client.kafkaadminapi.Topic;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
