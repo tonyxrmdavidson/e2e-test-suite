@@ -1,6 +1,5 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
