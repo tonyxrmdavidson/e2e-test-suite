@@ -111,8 +111,7 @@ public class KafkaAdminAPITest extends TestBase {
     void connectKafkaAdminAPI(Vertx vertx, VertxTestContext context) {
         assertAPI();
         assertConnectedToRunningKafkaInstance();
-        String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapServerHost);
-        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapServerHost)
                 .onSuccess(restApiResponse -> kafkaAdminAPI = restApiResponse)
                 .onFailure(msg -> System.out.println(msg.getMessage()))
                 .onComplete(context.succeedingThenComplete());

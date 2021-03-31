@@ -162,13 +162,9 @@ class ServiceAPITest extends TestBase {
         assertKafka();
         assertServiceAccount();
 
-
-
         var bootstrapHost = kafka.bootstrapServerHost;
-
-//         TODO: User service api to create topics when available
-
         String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
+
         KafkaAdminAPIUtils.restApi(vertx, completeUrl)
                 .compose(restApiResponse -> {
                     kafkaAdminAPI = restApiResponse;
@@ -257,7 +253,6 @@ class ServiceAPITest extends TestBase {
                 .compose(r -> Future.failedFuture("Getting test-topic should fail due to topic being deleted in current test"))
                 .recover(throwable -> {
                     if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
-                        System.out.println(((ResponseException) throwable).response.bodyAsString());
                         LOGGER.info("Topic not found : {}", TOPIC_NAME);
                         return Future.succeededFuture();
                     }

@@ -1,16 +1,22 @@
 package io.managed.services.test.client.kafkaadminapi;
 
 import io.managed.services.test.Environment;
+import io.managed.services.test.client.kafkaadminapi.resourcesgroup.CreateTopicPayload;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import static io.managed.services.test.Environment.MAS_SSO_REDHAT_CLIENT_ID;
 import static io.managed.services.test.Environment.MAS_SSO_REDHAT_KEYCLOAK_URI;
 import static io.managed.services.test.Environment.MAS_SSO_REDHAT_REALM;
 import static io.managed.services.test.Environment.MAS_SSO_REDHAT_REDIRECT_URI;
+import static io.managed.services.test.TestUtils.forEach;
 
 
 public class KafkaAdminAPIUtils  {
@@ -18,6 +24,11 @@ public class KafkaAdminAPIUtils  {
 
     public static Future<KafkaAdminAPI> restApi(Vertx vertx, String kafkaInstanceUrl) {
         return restAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD, kafkaInstanceUrl);
+    }
+
+    public static Future<KafkaAdminAPI> restApiDefault(Vertx vertx, String bootstrapHost) {
+        String completeKafkaInstanceUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
+        return restAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD, completeKafkaInstanceUrl);
     }
 
     public static Future<KafkaAdminAPI> restAPI(Vertx vertx, String username, String password, String kafkaInstanceUrl) {
@@ -31,6 +42,52 @@ public class KafkaAdminAPIUtils  {
         return auth.login(username, password)
                 .map(user -> new KafkaAdminAPI(vertx, kafkaInstanceUrl, user));
     }
+
+    /**
+     * Create the missing topics
+     *
+     * @return the list of missing topics that has been created
+     */
+
+    static public Future<List<String>> applyTopics(KafkaAdminAPI admin, Set<String> topics) {
+
+        List<String> missingTopics = new ArrayList<>();
+
+        return admin.getAllTopics()
+
+                // create the missing topics
+                .compose(currentTopics -> forEach(topics.iterator(), t -> {
+                    if (currentTopics.topics.stream().anyMatch(o -> o.name.equals(t))) {
+                        return Future.succeededFuture();
+                    }
+
+                    missingTopics.add(t);
+
+                    LOGGER.info("create missing topic: {}", t);
+                    return admin.createTopic(t);
+
+                }).map(v -> missingTopics));
+    }
+
+    static public CreateTopicPayload setUpDefaultTopicPayload(String name) {
+        CreateTopicPayload topicPayload = new CreateTopicPayload();
+        topicPayload.name = name;
+        topicPayload.settings = new CreateTopicPayload.Settings();
+
+        // Partitions needs to be set to 1 in order sending messages properly in test suite ServiceApiLongLiveTest
+        topicPayload.settings.numPartitions = 1;
+        CreateTopicPayload.Settings.Config c1 = new CreateTopicPayload.Settings.Config();
+        CreateTopicPayload.Settings.Config c2 = new CreateTopicPayload.Settings.Config();
+        c1.key = "min.insync.replicas";
+        c1.value = "1";
+        c2.key = "max.message.bytes";
+        c2.value = "1050000";
+        topicPayload.settings.config = new ArrayList<>();
+        topicPayload.settings.config.add(c1);
+        topicPayload.settings.config.add(c2);
+        return topicPayload;
+    }
+
 
 }
 

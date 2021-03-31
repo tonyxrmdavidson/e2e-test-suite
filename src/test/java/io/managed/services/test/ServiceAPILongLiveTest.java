@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static io.managed.services.test.client.kafka.KafkaUtils.applyTopic;
+import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -57,9 +57,7 @@ class ServiceAPILongLiveTest extends TestBase {
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
     boolean topic;
-
     KafkaAdminAPI kafkaAdminAPI;
-    String bootstrapServerHost;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -162,12 +160,12 @@ class ServiceAPILongLiveTest extends TestBase {
 
         var topics = Set.of(TOPICS);
         LOGGER.info("apply topics: {}", topics);
+        System.out.println("this is url");
 
-        String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
-        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapHost)
                 .compose(kafkaAdminAPIResponse -> {
                     kafkaAdminAPI = kafkaAdminAPIResponse;
-                    return applyTopic(kafkaAdminAPI, topics);
+                    return applyTopics(kafkaAdminAPI, topics);
                 })
                 .onSuccess(__ -> topic = true)
                 .onSuccess(missingTopics -> context.verify(() -> {

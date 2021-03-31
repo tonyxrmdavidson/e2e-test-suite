@@ -11,9 +11,10 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.client.HttpResponse;
-
 import java.net.HttpURLConnection;
-import java.util.ArrayList;
+
+
+import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.setUpDefaultTopicPayload;
 
 public class KafkaAdminAPI extends BaseVertxClient {
 
@@ -84,24 +85,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(HttpResponse::bodyAsString));
     }
 
-    private CreateTopicPayload setUpDefaultTopicPayload(String name) {
-        CreateTopicPayload topicPayload = new CreateTopicPayload();
-        topicPayload.name = name;
-        topicPayload.settings = new CreateTopicPayload.Settings();
 
-        // Partitions needs to be set to 1 in order sending messages properly in test suite ServiceApiLongLiveTest
-        topicPayload.settings.numPartitions = 1;
-        CreateTopicPayload.Settings.Config c1 = new CreateTopicPayload.Settings.Config();
-        CreateTopicPayload.Settings.Config c2 = new CreateTopicPayload.Settings.Config();
-        c1.key = "min.insync.replicas";
-        c1.value = "1";
-        c2.key = "max.message.bytes";
-        c2.value = "1050000";
-        topicPayload.settings.config = new ArrayList<>();
-        topicPayload.settings.config.add(c1);
-        topicPayload.settings.config.add(c2);
-        return topicPayload;
-    }
 
 }
 
