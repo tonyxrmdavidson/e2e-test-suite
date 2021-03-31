@@ -48,8 +48,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 public class CLITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(CLITest.class);
 
-    static final String DOWNLOAD_ORG = "bf2fc6cc711aee1a0c2a";
-    static final String DOWNLOAD_REPO = "cli";
     static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TOPIC_NAME = "cli-e2e-test-topic";

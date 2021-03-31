@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -176,5 +177,9 @@ public class TestUtils {
 
     public static <T> T asJson(Class<T> c, String s) {
         return BodyCodecImpl.jsonDecoder(c).apply(Buffer.buffer(s));
+    }
+
+    public static String decodeBase64(String encodedString) {
+        return new String(Base64.getDecoder().decode(encodedString));
     }
 }

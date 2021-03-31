@@ -221,4 +221,38 @@ public class CLIUtils {
         return waitFor(vertx, "kafka topic to be deleted", ofSeconds(10), ofSeconds(Environment.WAIT_READY_MS), isDeleted);
     }
 
+    public static Config kubeConfig(String server, String token, String namespace) {
+        var cluster = new Cluster();
+        cluster.setServer(server);
+
+        var namedCluster = new NamedCluster();
+        namedCluster.setCluster(cluster);
+        namedCluster.setName("default");
+
+        var authInfo = new AuthInfo();
+        authInfo.setToken(token);
+
+        var namedAuthInfo = new NamedAuthInfo();
+        namedAuthInfo.setUser(authInfo);
+        namedAuthInfo.setName("default");
+
+        var context = new Context();
+        context.setCluster("default");
+        context.setUser("default");
+        context.setNamespace(namespace);
+
+        var namedContext = new NamedContext();
+        namedContext.setContext(context);
+        namedContext.setName("default");
+
+        var c = new Config();
+        c.setApiVersion("v1");
+        c.setKind("Config");
+        c.setClusters(List.of(namedCluster));
+        c.setUsers(List.of(namedAuthInfo));
+        c.setContexts(List.of(namedContext));
+        c.setCurrentContext("default");
+
+        return c;
+    }
 }

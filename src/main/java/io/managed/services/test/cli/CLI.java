@@ -102,6 +102,10 @@ public class CLI {
                 .map(p -> stdoutAsJson(p, KafkaResponse.class)));
     }
 
+    public Future<Process> useKafka(String id) {
+        return retry(() -> exec("kafka", "use", "--id", id));
+    }
+
     public Future<KafkaListResponse> listKafkaAsJson() {
         return retry(() -> exec("kafka", "list", "-o", "json")
                 .map(p -> stdoutAsJson(p, KafkaListResponse.class)));
@@ -148,6 +152,10 @@ public class CLI {
     public Future<TopicResponse> updateTopic(String topicName, String retentionTime) {
         return retry(() -> exec("kafka", "topic", "update", topicName, "--retention-ms", retentionTime, "-o", "json")
                 .map(p -> stdoutAsJson(p, TopicResponse.class)));
+    }
+
+    public Future<Process> connectCluster(String token, String kubeconfig) {
+        return retry(() -> exec("cluster", "connect", "--token", token, "--kubeconfig", kubeconfig, "-y"));
     }
 
     public <T> Future<T> retry(Supplier<Future<T>> call) {

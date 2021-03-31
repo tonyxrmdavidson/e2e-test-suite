@@ -1,5 +1,6 @@
 package io.managed.services.test.cli;
 
+import io.managed.services.test.Environment;
 import io.managed.services.test.client.github.Asset;
 import io.managed.services.test.client.github.GitHub;
 import io.managed.services.test.client.github.Release;
@@ -50,6 +51,17 @@ public class CLIDownloader {
         this.platform = platform;
         this.arch = arch;
         this.archiveExt = platformToArchive(platform);
+    }
+
+    public static CLIDownloader defaultDownloader(Vertx vertx) {
+        return new CLIDownloader(
+                vertx,
+                Environment.BF2_GITHUB_TOKEN,
+                Environment.CLI_DOWNLOAD_ORG,
+                Environment.CLI_DOWNLOAD_REPO,
+                Environment.CLI_VERSION,
+                Environment.CLI_PLATFORM,
+                Environment.CLI_ARCH);
     }
 
     private String platformToArchive(String platform) {
