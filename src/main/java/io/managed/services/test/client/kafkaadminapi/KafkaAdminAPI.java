@@ -23,13 +23,12 @@ public class KafkaAdminAPI extends BaseVertxClient {
         this(vertx, uri, KeycloakOAuth.getToken(user));
     }
 
-
-    public Future<Void> createTopic(CreateTopicPayload topicPayload) {
+    public Future<Topic> createTopic(CreateTopicPayload topicPayload) {
         return retry(() -> client.post("/rest/topics")
                 .authentication(token)
                 .sendJson(topicPayload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_CREATED))
-                .map(r -> r.bodyAsJson(Void.class)));
+                .map(r -> r.bodyAsJson(Topic.class)));
     }
 
     public Future<TopicList> getAllTopics() {
@@ -39,7 +38,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(TopicList.class)));
     }
 
-    public Future<Topic> getSingleTopicByName(String topicName) {
+    public Future<Topic> getTopicByName(String topicName) {
         return retry(() -> client.get(String.format("/rest/topics/%s", topicName))
                 .authentication(token)
                 .send()
@@ -62,7 +61,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(GroupResponse[].class)));
     }
 
-    public Future<GroupResponse> getSingleGroupByName(String topicName) {
+    public Future<GroupResponse> getGroupByName(String topicName) {
         return retry(() -> client.get(String.format("/rest/groups/%s", topicName))
                 .authentication(token)
                 .send()
@@ -77,7 +76,6 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(HttpResponse::bodyAsString));
     }
-
 
 
 }

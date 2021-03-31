@@ -21,16 +21,12 @@ import static io.managed.services.test.TestUtils.forEach;
 public class KafkaAdminAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(io.managed.services.test.client.serviceapi.ServiceAPIUtils.class);
 
-    public static Future<KafkaAdminAPI> restApi(Vertx vertx, String kafkaInstanceUrl) {
-        return restAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD, kafkaInstanceUrl);
+    public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost) {
+        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
+        return kafkaAdminAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD, apiURI);
     }
 
-    public static Future<KafkaAdminAPI> restApiDefault(Vertx vertx, String bootstrapHost) {
-        String completeKafkaInstanceUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
-        return restAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD, completeKafkaInstanceUrl);
-    }
-
-    public static Future<KafkaAdminAPI> restAPI(Vertx vertx, String username, String password, String kafkaInstanceUrl) {
+    public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String username, String password, String apiURI) {
         var auth = new KeycloakOAuth(vertx,
                 MAS_SSO_REDHAT_KEYCLOAK_URI,
                 MAS_SSO_REDHAT_REDIRECT_URI,
@@ -39,7 +35,7 @@ public class KafkaAdminAPIUtils {
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
         return auth.login(username, password)
-                .map(user -> new KafkaAdminAPI(vertx, kafkaInstanceUrl, user));
+                .map(user -> new KafkaAdminAPI(vertx, apiURI, user));
     }
 
     /**
@@ -49,7 +45,7 @@ public class KafkaAdminAPIUtils {
      * @param topicName String
      * @return Void
      */
-    static public Future<Void> createDefaultTopic(KafkaAdminAPI api, String topicName) {
+    static public Future<Topic> createDefaultTopic(KafkaAdminAPI api, String topicName) {
         var topicPayload = setUpDefaultTopicPayload(topicName);
         return api.createTopic(topicPayload);
     }
@@ -74,7 +70,7 @@ public class KafkaAdminAPIUtils {
                     missingTopics.add(t);
 
                     LOGGER.info("create missing topic: {}", t);
-                    return createDefaultTopic(admin, t);
+                    return createDefaultTopic(admin, t).map(__ -> null);
 
                 }).map(v -> missingTopics));
     }

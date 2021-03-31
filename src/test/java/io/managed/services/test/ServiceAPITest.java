@@ -163,9 +163,8 @@ class ServiceAPITest extends TestBase {
         assertServiceAccount();
 
         var bootstrapHost = kafka.bootstrapServerHost;
-        String completeUrl = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
 
-        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
+        KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost)
                 .compose(restApiResponse -> {
                     kafkaAdminAPI = restApiResponse;
                     return KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TOPIC_NAME);
@@ -249,7 +248,7 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("Delete created topic : {}", TOPIC_NAME);
         kafkaAdminAPI.deleteTopicByName(TOPIC_NAME)
-                .compose(r -> kafkaAdminAPI.getSingleTopicByName(TOPIC_NAME))
+                .compose(r -> kafkaAdminAPI.getTopicByName(TOPIC_NAME))
                 .compose(r -> Future.failedFuture("Getting test-topic should fail due to topic being deleted in current test"))
                 .recover(throwable -> {
                     if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {

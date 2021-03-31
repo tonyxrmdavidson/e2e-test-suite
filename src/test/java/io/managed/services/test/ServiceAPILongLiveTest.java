@@ -160,7 +160,7 @@ class ServiceAPILongLiveTest extends TestBase {
         LOGGER.info("apply topics: {}", topics);
 
 
-        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapHost)
+        KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost)
                 .compose(kafkaAdminAPIResponse -> {
                     kafkaAdminAPI = kafkaAdminAPIResponse;
                     return applyTopics(kafkaAdminAPI, topics);

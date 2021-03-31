@@ -103,7 +103,7 @@ public class ServiceAPIUserMetricsTest extends TestBase {
                 });
 
         var kafkaAdminApiF = kafkaF
-                .compose(kafkaResponse -> KafkaAdminAPIUtils.restApiDefault(vertx, kafkaResponse.bootstrapServerHost));
+                .compose(kafkaResponse -> KafkaAdminAPIUtils.kafkaAdminAPI(vertx, kafkaResponse.bootstrapServerHost));
 
         // ensure the topic exists
         var topicF = adminF

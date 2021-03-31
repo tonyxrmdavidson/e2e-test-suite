@@ -43,7 +43,7 @@ public class KafkaAdminAPITest extends TestBase {
 
     KafkaAdminAPI kafkaAdminAPI;
     ServiceAPI api;
-    String topic;
+    Topic topic;
     String group;
     String bootstrapServerHost;
 
@@ -114,7 +114,7 @@ public class KafkaAdminAPITest extends TestBase {
     void connectKafkaAdminAPI(Vertx vertx, VertxTestContext context) {
         assertAPI();
         assertConnectedToRunningKafkaInstance();
-        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapServerHost)
+        KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapServerHost)
                 .onSuccess(restApiResponse -> kafkaAdminAPI = restApiResponse)
                 .onFailure(msg -> System.out.println(msg.getMessage()))
                 .onComplete(context.succeedingThenComplete());
@@ -127,7 +127,7 @@ public class KafkaAdminAPITest extends TestBase {
     void testCreateTopic(VertxTestContext context) {
         assertConnectedToRunningKafkaInstance();
         assertRestAPI();
-        kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
+        kafkaAdminAPI.getTopicByName(TEST_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Getting test-topic should fail in 1st test"))
                 .recover(throwable -> {
                     if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
@@ -137,7 +137,7 @@ public class KafkaAdminAPITest extends TestBase {
                     return Future.failedFuture(throwable);
                 })
                 .compose(a -> KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME))
-                .onSuccess(__ -> topic = TEST_TOPIC_NAME)
+                .onSuccess(t -> topic = t)
                 .onComplete(context.succeedingThenComplete());
 
 
@@ -149,6 +149,7 @@ public class KafkaAdminAPITest extends TestBase {
     void testCreateExistingTopic(VertxTestContext context) {
         assertRestAPI();
         assertTopic();
+
         KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Create existing topic should fail"))
                 .recover(throwable -> {
@@ -169,7 +170,8 @@ public class KafkaAdminAPITest extends TestBase {
     void testGetTopicByName(VertxTestContext context) {
         assertRestAPI();
         assertTopic();
-        kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
+
+        kafkaAdminAPI.getTopicByName(TEST_TOPIC_NAME)
                 .onSuccess(topic -> context.verify(() -> assertEquals(TEST_TOPIC_NAME, topic.name)))
                 .onComplete(context.succeedingThenComplete());
     }
@@ -180,7 +182,8 @@ public class KafkaAdminAPITest extends TestBase {
     void testGetNotExistingTopicByName(VertxTestContext context) {
         assertConnectedToRunningKafkaInstance();
         assertRestAPI();
-        kafkaAdminAPI.getSingleTopicByName(TEST_NOT_EXISTING_TOPIC_NAME)
+
+        kafkaAdminAPI.getTopicByName(TEST_NOT_EXISTING_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Get none existing topic should fail"))
                 .recover(throwable -> {
                     if (throwable instanceof ResponseException) {
@@ -218,7 +221,7 @@ public class KafkaAdminAPITest extends TestBase {
         assertConnectedToRunningKafkaInstance();
         assertRestAPI();
         kafkaAdminAPI.deleteTopicByName(TEST_TOPIC_NAME)
-                .compose(r -> kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME))
+                .compose(r -> kafkaAdminAPI.getTopicByName(TEST_TOPIC_NAME))
                 .compose(r -> Future.failedFuture("Getting test-topic should fail due to topic being deleted in current test"))
                 .recover(throwable -> {
                     if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
@@ -271,7 +274,7 @@ public class KafkaAdminAPITest extends TestBase {
     void testGetGroupByName(VertxTestContext context) {
         assertConnectedToRunningKafkaInstance();
         assertRestAPI();
-        kafkaAdminAPI.getSingleGroupByName(TEST_GROUP_NAME)
+        kafkaAdminAPI.getGroupByName(TEST_GROUP_NAME)
                 .onSuccess(groupResponse -> context.verify(() -> {
                     assertEquals(groupResponse.id, TEST_GROUP_NAME);
                     assertEquals("STABLE", groupResponse.state);
@@ -286,7 +289,7 @@ public class KafkaAdminAPITest extends TestBase {
     void testGetNotExistingGroupByName(VertxTestContext context) {
         assertConnectedToRunningKafkaInstance();
         assertRestAPI();
-        kafkaAdminAPI.getSingleGroupByName(TEST_NOT_EXISTING_GROUP_NAME)
+        kafkaAdminAPI.getGroupByName(TEST_NOT_EXISTING_GROUP_NAME)
                 .onSuccess(groupResponse -> context.verify(() -> assertEquals("DEAD", groupResponse.state)))
                 .onComplete(context.succeedingThenComplete());
     }
