@@ -54,19 +54,19 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(HttpResponse::bodyAsString));
     }
 
-    public Future<GroupResponse[]> getAllGroups() {
+    public Future<Group[]> getAllGroups() {
         return retry(() -> client.get("/rest/groups")
                 .authentication(token).send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(GroupResponse[].class)));
+                .map(r -> r.bodyAsJson(Group[].class)));
     }
 
-    public Future<GroupResponse> getGroupByName(String topicName) {
+    public Future<Group> getGroupByName(String topicName) {
         return retry(() -> client.get(String.format("/rest/groups/%s", topicName))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(GroupResponse.class)));
+                .map(r -> r.bodyAsJson(Group.class)));
     }
 
     public Future<String> deleteGroupByName(String topicName) {

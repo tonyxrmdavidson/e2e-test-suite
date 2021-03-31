@@ -9,11 +9,6 @@ public class CreateTopicPayload {
 
     public static class Settings {
         public int numPartitions;
-        public List<Config> config;
-
-        public static class Config {
-            public String key;
-            public String value;
-        }
+        public List<TopicConfig> config;
     }
 }

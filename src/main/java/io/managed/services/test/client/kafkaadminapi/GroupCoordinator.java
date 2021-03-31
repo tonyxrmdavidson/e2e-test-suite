@@ -1,6 +1,6 @@
 package io.managed.services.test.client.kafkaadminapi;
 
-public class Coordinator {
+public class GroupCoordinator {
     public boolean hasRack;
     public String host;
     public int id;

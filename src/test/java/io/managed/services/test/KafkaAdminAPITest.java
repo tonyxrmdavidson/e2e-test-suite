@@ -207,7 +207,7 @@ public class KafkaAdminAPITest extends TestBase {
         assertTopic();
         kafkaAdminAPI.getAllTopics()
                 .onSuccess(topics -> context.verify(() -> {
-                    List<Topic> filteredTopics = topics.topics.stream().filter(k -> k.name.equals(TEST_TOPIC_NAME) || k.name.equals("strimzi-canary")).collect(Collectors.toList());
+                    List<Topic> filteredTopics = topics.items.stream().filter(k -> k.name.equals(TEST_TOPIC_NAME) || k.name.equals("strimzi-canary")).collect(Collectors.toList());
                     assertEquals(2, filteredTopics.size());
                 }))
                 .onComplete(context.succeedingThenComplete());

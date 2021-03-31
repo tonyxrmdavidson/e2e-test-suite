@@ -63,7 +63,7 @@ public class KafkaAdminAPIUtils {
 
                 // create the missing topics
                 .compose(currentTopics -> forEach(topics.iterator(), t -> {
-                    if (currentTopics.topics.stream().anyMatch(o -> o.name.equals(t))) {
+                    if (currentTopics.items.stream().anyMatch(o -> o.name.equals(t))) {
                         return Future.succeededFuture();
                     }
 
@@ -76,14 +76,14 @@ public class KafkaAdminAPIUtils {
     }
 
     static public CreateTopicPayload setUpDefaultTopicPayload(String name) {
-        CreateTopicPayload topicPayload = new CreateTopicPayload();
+        var topicPayload = new CreateTopicPayload();
         topicPayload.name = name;
         topicPayload.settings = new CreateTopicPayload.Settings();
 
         // Partitions needs to be set to 1 in order sending messages properly in test suite ServiceApiLongLiveTest
         topicPayload.settings.numPartitions = 1;
-        CreateTopicPayload.Settings.Config c1 = new CreateTopicPayload.Settings.Config();
-        CreateTopicPayload.Settings.Config c2 = new CreateTopicPayload.Settings.Config();
+        var c1 = new TopicConfig();
+        var c2 = new TopicConfig();
         c1.key = "min.insync.replicas";
         c1.value = "1";
         c2.key = "max.message.bytes";

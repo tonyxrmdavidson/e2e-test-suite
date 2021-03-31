@@ -2,10 +2,10 @@ package io.managed.services.test.client.kafkaadminapi;
 
 import java.util.List;
 
-public class GroupResponse {
+public class Group {
     public String id;
     public boolean simple;
-    public Coordinator coordinator;
-    public List<Member> members;
+    public GroupCoordinator coordinator;
+    public List<GroupMember> members;
     public String state;
 }
