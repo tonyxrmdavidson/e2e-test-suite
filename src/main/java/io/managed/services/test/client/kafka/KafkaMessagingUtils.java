@@ -113,8 +113,9 @@ public class KafkaMessagingUtils {
         var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, oauth);
 
         LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
-        return consumer.receiveAsync(topicName, messages.size()).compose(consumeFuture -> {
 
+
+        return consumer.receiveAsync(topicName, messages.size()).compose(consumeFuture -> {
             LOGGER.info("start sending {} messages on topic {}", messages.size(), topicName);
             var produceFuture = producer.sendAsync(topicName, messages);
 

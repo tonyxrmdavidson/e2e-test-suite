@@ -3,7 +3,6 @@ package io.managed.services.test;
 import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
-import io.managed.services.test.client.kafkaadminapi.resourcesgroup.CreateTopicPayload;
 import io.managed.services.test.client.kafkaadminapi.resourcesgroup.Topic;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
@@ -26,7 +25,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.HttpURLConnection;
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -112,10 +111,8 @@ public class KafkaAdminAPITest extends TestBase {
     void connectKafkaAdminAPI(Vertx vertx, VertxTestContext context) {
         assertAPI();
         assertConnectedToRunningKafkaInstance();
-        String completeUrl = String.format("https://admin-server-%s", bootstrapServerHost);
-        KafkaAdminAPIUtils.restApi(vertx, completeUrl)
-                .onSuccess(restApiResponse -> {
-                    kafkaAdminAPI = restApiResponse; })
+        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapServerHost)
+                .onSuccess(restApiResponse -> kafkaAdminAPI = restApiResponse)
                 .onFailure(msg -> System.out.println(msg.getMessage()))
                 .onComplete(context.succeedingThenComplete());
 
@@ -127,7 +124,6 @@ public class KafkaAdminAPITest extends TestBase {
     void testCreateTopic(VertxTestContext context)  {
         assertConnectedToRunningKafkaInstance();
         assertRestAPI();
-        CreateTopicPayload topicPayload = setUpTopicPayload();
         kafkaAdminAPI.getSingleTopicByName(TEST_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Getting test-topic should fail in 1st test"))
                 .recover(throwable -> {
@@ -137,11 +133,8 @@ public class KafkaAdminAPITest extends TestBase {
                     }
                     return Future.failedFuture(throwable);
                 })
-                .compose(a ->  kafkaAdminAPI.createTopic(topicPayload))
-                .onSuccess(createTopicResponse -> context.verify(() -> {
-                    assertEquals(TEST_TOPIC_NAME, createTopicResponse.name);
-                    topic = createTopicResponse.name;
-                }))
+                .compose(a ->  kafkaAdminAPI.createTopic(TEST_TOPIC_NAME))
+                .onSuccess(__ ->  topic = TEST_TOPIC_NAME)
                 .onComplete(context.succeedingThenComplete());
 
 
@@ -153,13 +146,12 @@ public class KafkaAdminAPITest extends TestBase {
     void testCreateExistingTopic(VertxTestContext context)  {
         assertRestAPI();
         assertTopic();
-        CreateTopicPayload topicPayload = setUpTopicPayload();
-        kafkaAdminAPI.createTopic(topicPayload)
+        kafkaAdminAPI.createTopic(TEST_TOPIC_NAME)
                 .compose(r -> Future.failedFuture("Create existing topic should fail"))
                 .recover(throwable -> {
                     if (throwable instanceof ResponseException) {
                         if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_CONFLICT) {
-                            LOGGER.info("Existing topic cannot be created again : {}", topicPayload.name);
+                            LOGGER.info("Existing topic cannot be created again : {}", TEST_TOPIC_NAME);
                             return Future.succeededFuture();
                         }
                     }
@@ -339,23 +331,6 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
 
-    CreateTopicPayload setUpTopicPayload() {
-        LOGGER.info("API: setting up new payload for creation of new Topic using API");
-        CreateTopicPayload topicPayload = new CreateTopicPayload();
-        topicPayload.name = TEST_TOPIC_NAME;
-        topicPayload.settings = new CreateTopicPayload.Settings();
 
-        topicPayload.settings.numPartitions = 3;
-        CreateTopicPayload.Settings.Config c1 = new CreateTopicPayload.Settings.Config();
-        CreateTopicPayload.Settings.Config c2 = new CreateTopicPayload.Settings.Config();
-        c1.key = "min.insync.replicas";
-        c1.value = "1";
-        c2.key = "max.message.bytes";
-        c2.value = "1050000";
-        topicPayload.settings.config = new ArrayList<>();
-        topicPayload.settings.config.add(c1);
-        topicPayload.settings.config.add(c2);
-        return topicPayload;
-    }
 
 }

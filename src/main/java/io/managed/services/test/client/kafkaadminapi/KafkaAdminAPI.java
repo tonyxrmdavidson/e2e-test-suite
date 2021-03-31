@@ -11,8 +11,10 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.client.HttpResponse;
-
 import java.net.HttpURLConnection;
+
+
+import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.setUpDefaultTopicPayload;
 
 public class KafkaAdminAPI extends BaseVertxClient {
 
@@ -28,12 +30,13 @@ public class KafkaAdminAPI extends BaseVertxClient {
     }
 
 
-    public Future<Topic> createTopic(CreateTopicPayload payload) {
+    public Future<Void> createTopic(String topicName) {
+        CreateTopicPayload topicPayload = setUpDefaultTopicPayload(topicName);
         return retry(() -> client.post("/rest/topics")
                 .authentication(token)
-                .sendJson(payload)
+                .sendJson(topicPayload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_CREATED))
-                .map(r -> r.bodyAsJson(Topic.class)));
+                .map(r -> r.bodyAsJson(Void.class)));
     }
 
     public Future<TopicList> getAllTopics() {
@@ -81,6 +84,8 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(HttpResponse::bodyAsString));
     }
+
+
 
 }
 

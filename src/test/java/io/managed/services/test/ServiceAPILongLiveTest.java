@@ -1,6 +1,7 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
@@ -16,6 +17,7 @@ import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeAll;
+
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -29,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static io.managed.services.test.client.kafka.KafkaUtils.applyTopics;
+import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -54,6 +56,7 @@ class ServiceAPILongLiveTest extends TestBase {
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
     boolean topic;
+    KafkaAdminAPI kafkaAdminAPI;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -86,7 +89,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
         LOGGER.info("get kafka instance for name: {}", KAFKA_INSTANCE_NAME);
         getKafkaByName(api, KAFKA_INSTANCE_NAME)
-                .compose(o -> o.map(k -> Future.succeededFuture(k)).orElseGet(() -> {
+                .compose(o -> o.map(Future::succeededFuture).orElseGet(() -> {
                     LOGGER.error("kafka is not present: {}", KAFKA_INSTANCE_NAME);
 
                     LOGGER.info("try to recreate the kafka instance: {}", KAFKA_INSTANCE_NAME);
@@ -144,7 +147,7 @@ class ServiceAPILongLiveTest extends TestBase {
 
     @Test
     @Order(3)
-    void testPresenceOfTopics(VertxTestContext context) {
+    void testPresenceOfTopics(Vertx vertx, VertxTestContext context) {
         assertServiceAccount();
 
         String bootstrapHost = kafka.bootstrapServerHost;
@@ -152,19 +155,21 @@ class ServiceAPILongLiveTest extends TestBase {
         String clientSecret = serviceAccount.clientSecret;
 
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
         var topics = Set.of(TOPICS);
         LOGGER.info("apply topics: {}", topics);
-        applyTopics(admin, topics)
+
+
+        KafkaAdminAPIUtils.restApiDefault(vertx, bootstrapHost)
+                .compose(kafkaAdminAPIResponse -> {
+                    kafkaAdminAPI = kafkaAdminAPIResponse;
+                    return applyTopics(kafkaAdminAPI, topics);
+                })
                 .onSuccess(__ -> topic = true)
                 .onSuccess(missingTopics -> context.verify(() -> {
                     // log failure if we had to recreate some topics
                     assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
                 }))
-
-                .onComplete(__ -> admin.close())
-
                 .onComplete(context.succeedingThenComplete());
     }
 
