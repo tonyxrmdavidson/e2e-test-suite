@@ -176,10 +176,15 @@ public class QuarkusSampleTest extends TestBase {
 
     }
 
-    private Future<Void> cleanWorkdir(Vertx vertx) {
+    private Future<Void> cleanCLI(Vertx vertx) {
         if (cli != null) {
-            LOGGER.info("clean workdir: {}", cli.getWorkdir());
-            return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
+            LOGGER.info("logout from cli");
+            return cli.logout()
+
+                    .compose(__ -> {
+                        LOGGER.info("clean workdir: {}", cli.getWorkdir());
+                        return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
+                    });
         }
         return Future.succeededFuture();
     }
@@ -204,9 +209,9 @@ public class QuarkusSampleTest extends TestBase {
                     return Future.succeededFuture();
                 })
 
-                .compose(__ -> cleanWorkdir(vertx))
+                .compose(__ -> cleanCLI(vertx))
                 .recover(e -> {
-                    LOGGER.error("cleanWorkdir error: ", e);
+                    LOGGER.error("cleanCLI error: ", e);
                     return Future.succeededFuture();
                 })
 
