@@ -59,8 +59,6 @@ public class Environment {
     private static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
 
     private static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
-    private static final String LONG_LIVED_KAFKA_NAME_ENV = "LONG_LIVED_KAFKA_NAME";
-    private static final String LONG_LIVED_KAFKA_TOPIC_NAME_ENV = "LONG_LIVED_KAFKA_TOPIC_NAME";
 
     private static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
     private static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
@@ -68,6 +66,8 @@ public class Environment {
 
     private static final String BF2_GITHUB_TOKEN_ENV = "BF2_GITHUB_TOKEN";
 
+    private static final String CLI_DOWNLOAD_ORG_ENV = "CLI_DOWNLOAD_ORG";
+    private static final String CLI_DOWNLOAD_REPO_ENV = "CLI_DOWNLOAD_REPO";
     private static final String CLI_VERSION_ENV = "CLI_VERSION";
     private static final String CLI_PLATFORM_ENV = "CLI_PLATFORM";
     private static final String CLI_ARCH_ENV = "CLI_ARCH";
@@ -116,6 +116,8 @@ public class Environment {
 
     public static final String BF2_GITHUB_TOKEN = getOrDefault(BF2_GITHUB_TOKEN_ENV, null);
 
+    public static final String CLI_DOWNLOAD_ORG = getOrDefault(CLI_DOWNLOAD_ORG_ENV, "bf2fc6cc711aee1a0c2a");
+    public static final String CLI_DOWNLOAD_REPO = getOrDefault(CLI_DOWNLOAD_REPO_ENV, "cli");
     public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "latest");
     public static final String CLI_PLATFORM = getOrDefault(CLI_PLATFORM_ENV, Platform.getArch().toString());
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");

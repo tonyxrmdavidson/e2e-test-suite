@@ -1,5 +1,12 @@
 package io.managed.services.test.cli;
 
+import io.fabric8.kubernetes.api.model.AuthInfo;
+import io.fabric8.kubernetes.api.model.Cluster;
+import io.fabric8.kubernetes.api.model.Config;
+import io.fabric8.kubernetes.api.model.Context;
+import io.fabric8.kubernetes.api.model.NamedAuthInfo;
+import io.fabric8.kubernetes.api.model.NamedCluster;
+import io.fabric8.kubernetes.api.model.NamedContext;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
@@ -32,11 +39,13 @@ import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
 public class CLIUtils {
@@ -108,7 +117,7 @@ public class CLIUtils {
                                 return null;
                             });
 
-                    var cliFuture = process.future()
+                    var cliFuture = process.future(ofMinutes(3))
                             .map(r -> {
                                 LOGGER.info("CLI login completed");
                                 return null;
@@ -149,7 +158,7 @@ public class CLIUtils {
         return getKafkaByName(vertx, cli, name)
                 .compose(o -> o.map(k -> {
                     LOGGER.info("delete kafka instance: {}", k.id);
-                    return cli.deleteKafka(vertx, k.id);
+                    return cli.deleteKafka(k.id);
                 }).orElseGet(() -> {
                     LOGGER.warn("kafka instance '{}' not found", name);
                     return Future.succeededFuture();
@@ -157,16 +166,16 @@ public class CLIUtils {
     }
 
     public static Future<Optional<TopicResponse>> getTopicByName(Vertx vertx, CLI cli, String topicName) {
-        return cli.listTopics(vertx).map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
+        return cli.listTopics().map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
     }
 
     public static Future<Optional<KafkaResponse>> getKafkaByName(Vertx vertx, CLI cli, String name) {
-        return cli.listKafkaByNameAsJson(vertx, name)
+        return cli.listKafkaByNameAsJson(name)
                 .map(r -> r.items != null ? r.items.stream().findFirst() : Optional.empty());
     }
 
     public static Future<KafkaResponse> waitForKafkaReady(Vertx vertx, CLI cli, String id) {
-        IsReady<KafkaResponse> isReady = last -> cli.describeKafka(vertx, id)
+        IsReady<KafkaResponse> isReady = last -> cli.describeKafka(id)
                 .compose(r -> ServiceAPIUtils.isKafkaReady(r, last));
         return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
     }
@@ -179,7 +188,7 @@ public class CLIUtils {
     }
 
     public static Future<Optional<ServiceAccount>> getServiceAccountByName(Vertx vertx, CLI cli, String name) {
-        return cli.listServiceAccountAsJson(vertx)
+        return cli.listServiceAccountAsJson()
                 .map(r -> r.items.stream().filter(sa -> sa.name.equals(name)).findFirst());
     }
 
@@ -187,7 +196,7 @@ public class CLIUtils {
         return getServiceAccountByName(vertx, cli, name)
                 .compose(o -> o.map(k -> {
                     LOGGER.info("delete serviceaccount {} instance: {}", k.name, k.id);
-                    return cli.deleteServiceAccount(vertx, k.id);
+                    return cli.deleteServiceAccount(k.id);
                 }).orElseGet(() -> {
                     LOGGER.warn("serviceaccount '{}' not found", name);
                     return Future.succeededFuture();
@@ -195,7 +204,7 @@ public class CLIUtils {
     }
 
     public static Future<ServiceAccount> createServiceAccount(Vertx vertx, CLI cli, String name) {
-        return cli.createServiceAccount(vertx, name, Paths.get(cli.getWorkdir(), name + ".json"))
+        return cli.createServiceAccount(name, Paths.get(cli.getWorkdir(), name + ".json"))
                 .compose(p -> getServiceAccountByName(vertx, cli, name))
                 .compose(o -> o
                         .map(Future::succeededFuture)
@@ -212,4 +221,38 @@ public class CLIUtils {
         return waitFor(vertx, "kafka topic to be deleted", ofSeconds(10), ofSeconds(Environment.WAIT_READY_MS), isDeleted);
     }
 
+    public static Config kubeConfig(String server, String token, String namespace) {
+        var cluster = new Cluster();
+        cluster.setServer(server);
+
+        var namedCluster = new NamedCluster();
+        namedCluster.setCluster(cluster);
+        namedCluster.setName("default");
+
+        var authInfo = new AuthInfo();
+        authInfo.setToken(token);
+
+        var namedAuthInfo = new NamedAuthInfo();
+        namedAuthInfo.setUser(authInfo);
+        namedAuthInfo.setName("default");
+
+        var context = new Context();
+        context.setCluster("default");
+        context.setUser("default");
+        context.setNamespace(namespace);
+
+        var namedContext = new NamedContext();
+        namedContext.setContext(context);
+        namedContext.setName("default");
+
+        var c = new Config();
+        c.setApiVersion("v1");
+        c.setKind("Config");
+        c.setClusters(List.of(namedCluster));
+        c.setUsers(List.of(namedAuthInfo));
+        c.setContexts(List.of(namedContext));
+        c.setCurrentContext("default");
+
+        return c;
+    }
 }

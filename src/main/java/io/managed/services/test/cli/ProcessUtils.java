@@ -3,8 +3,10 @@ package io.managed.services.test.cli;
 import io.managed.services.test.TestUtils;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.util.stream.Collectors;
 
 public class ProcessUtils {
@@ -15,11 +17,11 @@ public class ProcessUtils {
      * @param process Process
      * @return stdout
      */
-    static String stdout(Process process) {
+    public static String stdout(Process process) {
         return read(process.getInputStream());
     }
 
-    static <T> T stdoutAsJson(Process process, Class<T> c) {
+    public static <T> T stdoutAsJson(Process process, Class<T> c) {
         return TestUtils.asJson(c, stdout(process));
     }
 
@@ -31,6 +33,17 @@ public class ProcessUtils {
      */
     static String stderr(Process process) {
         return read(process.getErrorStream());
+    }
+
+    /**
+     * Read everything that is available in the stream right now without waiting for a EOF
+     */
+    private static String readNow(InputStream stream) {
+        try {
+            return new String(stream.readNBytes(stream.available()));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static String read(InputStream stream) {
@@ -45,13 +58,21 @@ public class ProcessUtils {
         return toError(process, process.info());
     }
 
+    static String toTimeoutError(Process process, ProcessHandle.Info info) {
+        return toError(String.format("timeout cmd '%s'", info.commandLine().orElse(null)), process);
+    }
+
     static String toError(Process process, ProcessHandle.Info info) {
-        return String.format("cmd '%s' failed with exit code: %d\n", info.commandLine().orElse(null), process.exitValue())
+        return toError(String.format("cmd '%s' failed with exit code: %d", info.commandLine().orElse(null), process.exitValue()), process);
+    }
+
+    static String toError(String message, Process process) {
+        return String.format("%s\n", message)
                 + "-- STDOUT --\n"
-                + stdout(process)
+                + readNow(process.getInputStream())
                 + "\n"
                 + "-- STDERR --\n"
-                + stderr(process)
+                + readNow(process.getErrorStream())
                 + "\n"
                 + "-- END --\n";
     }
