@@ -1,26 +1,20 @@
 package io.managed.services.test.client.oauth;
 
-import io.managed.services.test.client.BaseVertxClient;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.auth.oauth2.OAuth2FlowType;
 import io.vertx.ext.auth.oauth2.OAuth2Options;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
+import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.authenticateUser;
+import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.followRedirects;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.postUsernamePassword;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.startLogin;
 
@@ -30,9 +24,8 @@ public class KeycloakOAuth {
     static final String AUTH_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/auth";
     static final String TOKEN_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/token";
 
-    final Vertx vertx;
-    final OAuth2Auth oauth2;
-    final String redirectURI;
+    private final Vertx vertx;
+    private final WebClientSession session;
 
     static public String getToken(User user) {
         return user.get("access_token");
@@ -42,57 +35,71 @@ public class KeycloakOAuth {
         return user.get("refresh_token");
     }
 
-    public KeycloakOAuth(Vertx vertx, String keycloakURI, String redirectURI, String realm, String clientID) {
-
-        String tokenPath = String.format(TOKEN_PATH_FORMAT, realm);
-        String authPath = String.format(AUTH_PATH_FORMAT, realm);
-
-        this.oauth2 = OAuth2Auth.create(vertx, new OAuth2Options()
-            .setFlow(OAuth2FlowType.AUTH_CODE)
-            .setClientID(clientID)
-            .setSite(keycloakURI)
-            .setTokenPath(tokenPath)
-            .setAuthorizationPath(authPath));
+    public KeycloakOAuth(Vertx vertx) {
         this.vertx = vertx;
-        this.redirectURI = redirectURI;
+
+        var client = WebClient.create(vertx, new WebClientOptions()
+                .setFollowRedirects(false));
+
+        this.session = WebClientSession.create(client);
     }
 
-    public Future<User> login(String username, String password) {
-        if (username == null) {
-            throw new IllegalArgumentException("username is null");
-        }
-        if (password == null) {
-            throw new IllegalArgumentException("password is null");
-        }
+    public Future<User> login(
+            String keycloakURI,
+            String redirectURI,
+            String realm,
+            String clientID,
+            String username,
+            String password) {
 
-        WebClient client = WebClient.create(vertx);
-        WebClientSession session = WebClientSession.create(client);
+        var tokenPath = String.format(TOKEN_PATH_FORMAT, realm);
+        var authPath = String.format(AUTH_PATH_FORMAT, realm);
 
-        String authURI = oauth2.authorizeURL(new JsonObject()
-            .put("redirect_uri", redirectURI));
+        var oauth2 = OAuth2Auth.create(vertx, new OAuth2Options()
+                .setFlow(OAuth2FlowType.AUTH_CODE)
+                .setClientID(clientID)
+                .setSite(keycloakURI)
+                .setTokenPath(tokenPath)
+                .setAuthorizationPath(authPath));
+
+        var authURI = oauth2.authorizeURL(new JsonObject()
+                .put("redirect_uri", redirectURI));
 
         return startLogin(session, authURI)
-            .flatMap(r -> postUsernamePassword(session, r, username, password))
-            .flatMap(r -> authenticateUser(r))
-            .map(u -> {
-                LOGGER.info("authentication completed; access_token={}", getToken(u));
-                return u;
-            });
+                .compose(r -> followRedirects(session, r))
+                .compose(r -> postUsernamePassword(session, r, username, password))
+                .compose(r -> authenticateUser(session, oauth2, redirectURI, r))
+                .map(u -> {
+                    LOGGER.info("authentication completed; access_token={}", getToken(u));
+                    return u;
+                });
     }
 
-    Future<User> authenticateUser(HttpResponse<Buffer> response) {
-        return BaseVertxClient.getRedirectLocation(response)
-            .compose(locationURI -> {
-                List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
-                String code = queries.stream()
-                    .filter(v -> v.getName().equals("code")).findFirst()
-                    .orElseThrow().getValue();
+    public Future<User> login(
+            String keycloakURI,
+            String redirectURI,
+            String realm,
+            String clientID) {
 
-                LOGGER.info("authenticate user; code={}", code);
-                return oauth2.authenticate(new JsonObject()
-                    .put("code", code)
-                    .put("redirect_uri", redirectURI));
-            });
+        var tokenPath = String.format(TOKEN_PATH_FORMAT, realm);
+        var authPath = String.format(AUTH_PATH_FORMAT, realm);
 
+        var oauth2 = OAuth2Auth.create(vertx, new OAuth2Options()
+                .setFlow(OAuth2FlowType.AUTH_CODE)
+                .setClientID(clientID)
+                .setSite(keycloakURI)
+                .setTokenPath(tokenPath)
+                .setAuthorizationPath(authPath));
+
+        var authURI = oauth2.authorizeURL(new JsonObject()
+                .put("redirect_uri", redirectURI));
+
+        return startLogin(session, authURI)
+                .compose(r -> authenticateUser(session, oauth2, redirectURI, r))
+                .map(u -> {
+                    LOGGER.info("authentication completed; access_token={}", getToken(u));
+                    return u;
+                });
     }
+
 }

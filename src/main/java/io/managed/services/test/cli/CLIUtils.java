@@ -106,7 +106,7 @@ public class CLIUtils {
                                 return null;
                             });
 
-                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), "https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org.*")
+                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), "https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com.*")
                             .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
                             .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
                             .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))

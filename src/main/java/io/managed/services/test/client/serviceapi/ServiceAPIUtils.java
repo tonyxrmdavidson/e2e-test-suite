@@ -30,14 +30,16 @@ public class ServiceAPIUtils {
     }
 
     public static Future<ServiceAPI> serviceAPI(Vertx vertx, String username, String password) {
-        var auth = new KeycloakOAuth(vertx,
+        var auth = new KeycloakOAuth(vertx);
+
+        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
+        return auth.login(
                 Environment.SSO_REDHAT_KEYCLOAK_URI,
                 Environment.SSO_REDHAT_REDIRECT_URI,
                 Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID);
+                Environment.SSO_REDHAT_CLIENT_ID,
+                username, password)
 
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(username, password)
                 .map(user -> new ServiceAPI(vertx, Environment.SERVICE_API_URI, user));
     }
 

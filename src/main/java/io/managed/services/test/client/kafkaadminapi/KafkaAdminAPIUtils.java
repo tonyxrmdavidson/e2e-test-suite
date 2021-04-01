@@ -11,15 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static io.managed.services.test.Environment.MAS_SSO_REDHAT_CLIENT_ID;
-import static io.managed.services.test.Environment.MAS_SSO_REDHAT_KEYCLOAK_URI;
-import static io.managed.services.test.Environment.MAS_SSO_REDHAT_REALM;
-import static io.managed.services.test.Environment.MAS_SSO_REDHAT_REDIRECT_URI;
 import static io.managed.services.test.TestUtils.forEach;
 
 
 public class KafkaAdminAPIUtils {
-    private static final Logger LOGGER = LogManager.getLogger(io.managed.services.test.client.serviceapi.ServiceAPIUtils.class);
+    private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPIUtils.class);
 
     public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost) {
         var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
@@ -27,14 +23,16 @@ public class KafkaAdminAPIUtils {
     }
 
     public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String username, String password, String apiURI) {
-        var auth = new KeycloakOAuth(vertx,
-                MAS_SSO_REDHAT_KEYCLOAK_URI,
-                MAS_SSO_REDHAT_REDIRECT_URI,
-                MAS_SSO_REDHAT_REALM,
-                MAS_SSO_REDHAT_CLIENT_ID);
+        var auth = new KeycloakOAuth(vertx);
 
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-        return auth.login(username, password)
+        LOGGER.info("authenticate user: {} against: {}", username, password);
+        return auth.login(
+                Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
+                Environment.MAS_SSO_REDHAT_REDIRECT_URI,
+                Environment.MAS_SSO_REDHAT_REALM,
+                Environment.MAS_SSO_REDHAT_CLIENT_ID,
+                username, password)
+
                 .map(user -> new KafkaAdminAPI(vertx, apiURI, user));
     }
 
