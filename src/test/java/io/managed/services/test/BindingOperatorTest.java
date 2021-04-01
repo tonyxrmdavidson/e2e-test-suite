@@ -77,6 +77,7 @@ public class BindingOperatorTest extends TestBase {
     private void assertENVs() {
         assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
         assumeTrue(Environment.SSO_PASSWORD != null, "the SSO_PASSWORD env is null");
+        assumeTrue(Environment.DEV_CLUSTER_SERVER != null, "the DEV_CLUSTER_SERVER env is null");
         assumeTrue(Environment.DEV_CLUSTER_TOKEN != null, "the DEV_CLUSTER_TOKEN env is null");
     }
 
