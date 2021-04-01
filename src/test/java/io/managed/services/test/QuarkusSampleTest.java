@@ -214,15 +214,6 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @Test
-    void test(VertxTestContext context) {
-        api.getListOfServiceAccounts()
-                .onSuccess(ss -> {
-                    ss.items.forEach(s -> LOGGER.info("{} / {}", s.name, s.id));
-                })
-                .onComplete(context.succeedingThenComplete());
-    }
-
-    @Test
     void testCLIConnectCluster(Vertx vertx, VertxTestContext context) throws JsonProcessingException {
         var kubeConfig = CLIUtils.kubeConfig(
                 Environment.DEV_CLUSTER_SERVER,
