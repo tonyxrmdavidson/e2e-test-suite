@@ -44,8 +44,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ServiceAPIUserMetricsTest extends TestBase {
-
-    private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
+    private static final Logger LOGGER = LogManager.getLogger(ServiceAPIUserMetricsTest.class);
 
     private static final String IN_MESSAGES_METRIC = "kafka_server_brokertopicmetrics_messages_in_total";
     private static final int MESSAGE_COUNT = 17;

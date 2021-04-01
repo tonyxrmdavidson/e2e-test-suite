@@ -9,4 +9,5 @@ public class ServiceAccount {
     public String clientID;
     public String clientSecret;
     public String name;
+    public String owner;
 }

@@ -95,14 +95,17 @@ public class BindingOperatorTest extends TestBase {
 
     private Future<Void> bootstrapUser(Vertx vertx) {
 
-        KeycloakOAuth auth = new KeycloakOAuth(vertx,
+        var auth = new KeycloakOAuth(vertx);
+
+        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
+        return auth.login(
                 Environment.SSO_REDHAT_KEYCLOAK_URI,
                 Environment.SSO_REDHAT_REDIRECT_URI,
                 Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID);
+                Environment.SSO_REDHAT_CLIENT_ID,
+                Environment.SSO_USERNAME,
+                Environment.SSO_PASSWORD)
 
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(Environment.SSO_USERNAME, Environment.SSO_PASSWORD)
                 .onSuccess(u -> user = u)
                 .map(__ -> null);
     }

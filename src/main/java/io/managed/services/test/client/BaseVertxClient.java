@@ -1,7 +1,6 @@
 package io.managed.services.test.client;
 
 import io.managed.services.test.Environment;
-import io.managed.services.test.TestUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
@@ -21,7 +20,7 @@ import static io.managed.services.test.TestUtils.sleep;
 import static java.time.Duration.ofSeconds;
 
 public abstract class BaseVertxClient {
-    private static final Logger LOGGER = LogManager.getLogger(TestUtils.class);
+    private static final Logger LOGGER = LogManager.getLogger(BaseVertxClient.class);
 
     protected final Vertx vertx;
     protected final WebClient client;

@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaAdminAPITest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
+    private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPITest.class);
 
     KafkaAdminAPI kafkaAdminAPI;
     ServiceAPI serviceAPI;

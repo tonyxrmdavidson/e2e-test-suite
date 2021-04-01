@@ -127,8 +127,8 @@ public class Environment {
 
     public static final int API_CALL_THRESHOLD = getOrDefault(API_CALL_THRESHOLD_ENV, Integer::parseInt, 10);
 
-    public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://keycloak-edge-redhat-rhoam-user-sso.apps.mas-sso-stage.1gzl.s1.devshift.org");
-    public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "mas-sso-staging");
+    public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com");
+    public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "rhoas");
     public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
     public static final String MAS_SSO_REDHAT_REDIRECT_URI = getOrDefault(MAS_SSO_REDHAT_REDIRECT_URI_ENV, "https://qaprodauth.cloud.redhat.com/beta/application-services/openshift-streams");
 

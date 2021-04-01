@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ServiceAPILongLiveTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
+    private static final Logger LOGGER = LogManager.getLogger(ServiceAPILongLiveTest.class);
 
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
