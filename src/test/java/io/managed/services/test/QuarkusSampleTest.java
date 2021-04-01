@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class QuarkusSampleTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(CLITest.class);
+    private static final Logger LOGGER = LogManager.getLogger(QuarkusSampleTest.class);
 
     // use the kafka long living instance
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
@@ -239,7 +239,7 @@ public class QuarkusSampleTest extends TestBase {
                 })
 
                 .compose(__ -> {
-                    LOGGER.info("kubeconfig create at: {}", kubeconfgipath);
+                    LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
                     return cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
                 })
 
