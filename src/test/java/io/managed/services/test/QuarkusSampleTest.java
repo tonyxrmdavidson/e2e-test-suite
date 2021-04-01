@@ -1,12 +1,10 @@
 package io.managed.services.test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
@@ -219,14 +217,13 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @Test
-    void testCLIConnectCluster(Vertx vertx, VertxTestContext context) throws JsonProcessingException {
+    void testCLIConnectCluster(Vertx vertx, VertxTestContext context) {
         var kubeConfig = CLIUtils.kubeConfig(
                 Environment.DEV_CLUSTER_SERVER,
                 Environment.DEV_CLUSTER_TOKEN,
                 Environment.DEV_CLUSTER_NAMESPACE);
 
-        var mapper = new ObjectMapper(new YAMLFactory());
-        var config = mapper.writeValueAsBytes(kubeConfig);
+        var config = Serialization.asYaml(kubeConfig);
 
         var kubeconfgipath = cli.getWorkdir() + "/kubeconfig";
         vertx.fileSystem().writeFile(kubeconfgipath, Buffer.buffer(config))
