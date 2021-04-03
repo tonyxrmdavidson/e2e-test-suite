@@ -76,7 +76,7 @@ public class KeycloakOAuthUtils {
     public static Future<User> authenticateUser(
             WebClientSession session, OAuth2Auth oauth2, String redirectURI, HttpResponse<Buffer> response) {
 
-        Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> r.getHeader("Location").contains(redirectURI);
+        Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> !r.getHeader("Location").contains(redirectURI);
 
         return followRedirects(session, response, stopRedirect)
                 .compose(r -> getRedirectLocation(r))
