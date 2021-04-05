@@ -1,5 +1,6 @@
 package io.managed.services.test.client.oauth;
 
+import io.managed.services.test.client.BaseVertxClient;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -15,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -62,9 +64,11 @@ public class KeycloakOAuthUtils {
             WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
 
         return followRedirects(session, response)
+                .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
+
                 .compose(r -> {
 
-                    Document d = Jsoup.parse(response.bodyAsString());
+                    Document d = Jsoup.parse(r.bodyAsString());
                     String actionURI = d.select("#kc-form-login").attr("action");
 
                     MultiMap f = MultiMap.caseInsensitiveMultiMap();
