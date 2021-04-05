@@ -125,7 +125,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(1)
-    void testDownloadCLI( VertxTestContext context) {
+    void testDownloadCLI(VertxTestContext context) {
         assertCredentials();
 
         var downloader = CLIDownloader.defaultDownloader(vertx);
@@ -181,7 +181,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(3)
-    void testCreateServiceAccount( VertxTestContext context) {
+    void testCreateServiceAccount(VertxTestContext context) {
         assertLoggedIn();
 
         CLIUtils.createServiceAccount(vertx, cli, SERVICE_ACCOUNT_NAME)
@@ -204,7 +204,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @Order(4)
-    void testCreateKafkaInstance( VertxTestContext context) {
+    void testCreateKafkaInstance(VertxTestContext context) {
         assertLoggedIn();
         assertServiceAccount();
 
@@ -256,7 +256,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(7)
-    void testKafkaMessaging( VertxTestContext context) {
+    void testKafkaMessaging(VertxTestContext context) {
         assertTopic();
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
@@ -313,7 +313,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(10)
-    void testMessagingOnUpdatedTopic( VertxTestContext context) {
+    void testMessagingOnUpdatedTopic(VertxTestContext context) {
         assertTopic();
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
@@ -327,7 +327,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(10)
-    void testFailedOauthMessaging( VertxTestContext context) {
+    void testFailedOauthMessaging(VertxTestContext context) {
         assertTopic();
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
