@@ -10,8 +10,7 @@ import io.fabric8.kubernetes.api.model.NamedContext;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.BaseVertxClient;
-import io.managed.services.test.client.oauth.KeycloakOAuthUtils;
+import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
@@ -20,8 +19,6 @@ import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientSession;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
@@ -35,7 +32,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -87,35 +83,21 @@ public class CLIUtils {
     }
 
     public static Future<Void> login(Vertx vertx, CLI cli, String username, String password) {
-        WebClient client = WebClient.create(vertx);
-        WebClientSession session = WebClientSession.create(client);
 
         LOGGER.info("start CLI login with username: {}", username);
         return cli.login()
                 .compose(process -> {
 
+                    var oauth2 = new KeycloakOAuth(vertx);
+
                     LOGGER.info("start oauth login against CLI");
                     var oauthFuture = parseUrl(vertx, process.stdout(), "https://sso.redhat.com/auth/.*")
-                            .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
-                            .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
-                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))
-                            .compose(r -> BaseVertxClient.followRedirect(session, r))
-                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
-                            .map(v -> {
-                                LOGGER.info("first oauth login completed");
-                                return null;
-                            });
+                            .compose(l -> oauth2.login(l, username, password))
+                            .onSuccess(__ -> LOGGER.info("first oauth login completed"));
 
-                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), "https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com.*")
-                            .compose(l -> KeycloakOAuthUtils.startLogin(session, l))
-                            .compose(r -> KeycloakOAuthUtils.postUsernamePassword(session, r, username, password))
-                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))
-                            .compose(r -> BaseVertxClient.followRedirect(session, r))
-                            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
-                            .map(v -> {
-                                LOGGER.info("second oauth login completed");
-                                return null;
-                            });
+                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), "https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com/auth/.*")
+                            .compose(l -> oauth2.login(l))
+                            .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"));
 
                     var cliFuture = process.future(ofMinutes(3))
                             .map(r -> {

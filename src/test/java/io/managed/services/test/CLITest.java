@@ -53,6 +53,7 @@ public class CLITest extends TestBase {
     static final String TOPIC_NAME = "cli-e2e-test-topic";
     static final int DEFAULT_PARTITIONS = 1;
 
+    Vertx vertx = Vertx.vertx();
     CLI cli;
     boolean loggedIn;
     KafkaResponse kafkaInstance;
@@ -70,7 +71,7 @@ public class CLITest extends TestBase {
     }
 
     @AfterAll
-    void clean(Vertx vertx, VertxTestContext context) {
+    void clean(VertxTestContext context) {
         ServiceAPIUtils.serviceAPI(vertx)
 
                 // clean service account
@@ -124,7 +125,7 @@ public class CLITest extends TestBase {
 
     @Test
     @Order(1)
-    void testDownloadCLI(Vertx vertx, VertxTestContext context) {
+    void testDownloadCLI(VertxTestContext context) {
         assertCredentials();
 
         var downloader = CLIDownloader.defaultDownloader(vertx);
@@ -146,7 +147,7 @@ public class CLITest extends TestBase {
     @Test
     @Order(2)
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    void testLogin(Vertx vertx, VertxTestContext context) {
+    void testLogin(VertxTestContext context) {
         assertCLI();
 
         LOGGER.info("verify that we aren't logged-in");
@@ -180,7 +181,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(3)
-    void testCreateServiceAccount(Vertx vertx, VertxTestContext context) {
+    void testCreateServiceAccount(VertxTestContext context) {
         assertLoggedIn();
 
         CLIUtils.createServiceAccount(vertx, cli, SERVICE_ACCOUNT_NAME)
@@ -203,7 +204,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     @Order(4)
-    void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
+    void testCreateKafkaInstance(VertxTestContext context) {
         assertLoggedIn();
         assertServiceAccount();
 
@@ -255,7 +256,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(7)
-    void testKafkaMessaging(Vertx vertx, VertxTestContext context) {
+    void testKafkaMessaging(VertxTestContext context) {
         assertTopic();
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
@@ -312,7 +313,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(10)
-    void testMessagingOnUpdatedTopic(Vertx vertx, VertxTestContext context) {
+    void testMessagingOnUpdatedTopic(VertxTestContext context) {
         assertTopic();
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
@@ -326,7 +327,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(10)
-    void testFailedOauthMessaging(Vertx vertx, VertxTestContext context) {
+    void testFailedOauthMessaging(VertxTestContext context) {
         assertTopic();
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -342,7 +343,7 @@ public class CLITest extends TestBase {
 
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(11)
-    void testPlainMessaging(Vertx vertx, VertxTestContext context) {
+    void testPlainMessaging(VertxTestContext context) {
         assertTopic();
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
@@ -356,7 +357,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(12)
-    void testFailedPlainMessaging(Vertx vertx, VertxTestContext context) {
+    void testFailedPlainMessaging(VertxTestContext context) {
         assertTopic();
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -369,7 +370,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(13)
-    void testDeleteTopic(Vertx vertx, VertxTestContext context) {
+    void testDeleteTopic(VertxTestContext context) {
         assertTopic();
         cli.deleteTopic(TOPIC_NAME)
                 .compose(__ -> waitForTopicDelete(vertx, cli, TOPIC_NAME))
@@ -409,7 +410,7 @@ public class CLITest extends TestBase {
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(16)
-    void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
+    void testDeleteKafkaInstance(VertxTestContext context) {
         assertLoggedIn();
         assertKafka();
 

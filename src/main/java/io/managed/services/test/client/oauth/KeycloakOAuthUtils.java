@@ -1,5 +1,6 @@
 package io.managed.services.test.client.oauth;
 
+import io.managed.services.test.client.BaseVertxClient;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -15,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -61,24 +63,32 @@ public class KeycloakOAuthUtils {
     public static Future<HttpResponse<Buffer>> postUsernamePassword(
             WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
 
-        Document d = Jsoup.parse(response.bodyAsString());
-        String actionURI = d.select("#kc-form-login").attr("action");
+        return followRedirects(session, response)
+                .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
 
-        MultiMap f = MultiMap.caseInsensitiveMultiMap();
-        f.add("username", username);
-        f.add("password", password);
+                .compose(r -> {
 
-        LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
-        return session.postAbs(actionURI).sendForm(f);
+                    Document d = Jsoup.parse(r.bodyAsString());
+                    String actionURI = d.select("#kc-form-login").attr("action");
+
+                    MultiMap f = MultiMap.caseInsensitiveMultiMap();
+                    f.add("username", username);
+                    f.add("password", password);
+
+                    LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
+                    return session.postAbs(actionURI).sendForm(f);
+                });
     }
 
 
     public static Future<User> authenticateUser(
             WebClientSession session, OAuth2Auth oauth2, String redirectURI, HttpResponse<Buffer> response) {
 
+        // follow redirects until the new location doesn't match the redirect URI
         Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> !r.getHeader("Location").contains(redirectURI);
 
         return followRedirects(session, response, stopRedirect)
+
                 .compose(r -> getRedirectLocation(r))
                 .compose(locationURI -> {
                     List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
