@@ -61,24 +61,30 @@ public class KeycloakOAuthUtils {
     public static Future<HttpResponse<Buffer>> postUsernamePassword(
             WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
 
-        Document d = Jsoup.parse(response.bodyAsString());
-        String actionURI = d.select("#kc-form-login").attr("action");
+        return followRedirects(session, response)
+                .compose(r -> {
 
-        MultiMap f = MultiMap.caseInsensitiveMultiMap();
-        f.add("username", username);
-        f.add("password", password);
+                    Document d = Jsoup.parse(response.bodyAsString());
+                    String actionURI = d.select("#kc-form-login").attr("action");
 
-        LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
-        return session.postAbs(actionURI).sendForm(f);
+                    MultiMap f = MultiMap.caseInsensitiveMultiMap();
+                    f.add("username", username);
+                    f.add("password", password);
+
+                    LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
+                    return session.postAbs(actionURI).sendForm(f);
+                });
     }
 
 
     public static Future<User> authenticateUser(
             WebClientSession session, OAuth2Auth oauth2, String redirectURI, HttpResponse<Buffer> response) {
 
+        // follow redirects until the new location doesn't match the redirect URI
         Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> !r.getHeader("Location").contains(redirectURI);
 
         return followRedirects(session, response, stopRedirect)
+
                 .compose(r -> getRedirectLocation(r))
                 .compose(locationURI -> {
                     List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
