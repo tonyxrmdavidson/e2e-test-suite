@@ -255,6 +255,10 @@ class ServiceAPITest extends TestBase {
         LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);
         api.deleteKafka(kafka.id, true)
                 .compose(__ -> waitUntilKafkaIsDeleted(vertx, api, kafka.id))
+
+                // give it 1s more
+                .compose(__ -> sleep(vertx, ofSeconds(1)))
+
                 .compose(__ -> {
 
                     // Produce Kafka messages
