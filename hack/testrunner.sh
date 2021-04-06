@@ -20,6 +20,7 @@ TESTCASE_DEFAULT="io.managed.services.test.**"
 PROFILE=${PROFILE:-${PROFILE_DEFAULT}}
 TESTCASE=${TESTCASE:-${TESTCASE_DEFAULT}}
 REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE:-"false"}
+REPORTPORTAL_ENDPOINT=${REPORTPORTAL_ENDPOINT:-"https://reportportal-cloud-services.apps.ocp4.prod.psi.redhat.com"}
 REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
 
 # Help
@@ -87,6 +88,7 @@ exec mvn verify \
   "-P${PROFILE}" \
   "-Dit.test=${TESTCASE}" \
   "-Drp.enable=${REPORTPORTAL_ENABLE}" \
+  "-Drp.endpoint=${REPORTPORTAL_ENDPOINT}" \
   "-Drp.api.key=${REPORTPORTAL_UUID}" \
   "-Drp.description=Build: ${BUILD_URL:-"null"}" \
   --no-transfer-progress
