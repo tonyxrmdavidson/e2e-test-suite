@@ -75,7 +75,7 @@ public class ServiceAPISameOrgUserPermissionsTest extends TestBase {
 
     @AfterAll
     void deleteServiceAccount(VertxTestContext context) {
-        deleteServiceAccountByNameIfExists(api1, SERVICE_ACCOUNT_NAME)
+        deleteServiceAccountByNameIfExists(api2, SERVICE_ACCOUNT_NAME)
                 .onComplete(context.succeedingThenComplete());
     }
 
