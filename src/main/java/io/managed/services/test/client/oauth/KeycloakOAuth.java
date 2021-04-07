@@ -84,9 +84,10 @@ public class KeycloakOAuth {
      */
     public Future<Void> login(String authURI, String username, String password) {
 
-        var redirectURI = "localhost";
+        var redirectURI = "http://localhost";
 
         return login(authURI, redirectURI, username, password)
+                .compose(r -> followRedirects(session, r))
                 .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(__ -> {
                     LOGGER.info("authentication completed; authURI={}", authURI);
