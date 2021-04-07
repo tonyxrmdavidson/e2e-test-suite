@@ -21,4 +21,5 @@ public class KafkaResponse {
     public String updatedAt;
     @JsonProperty("failed_reason")
     public String failedReason;
+    public String version;
 }
