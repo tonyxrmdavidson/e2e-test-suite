@@ -209,15 +209,14 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
                     LOGGER.info("create kafka topic: {}", topicName);
                     return KafkaAdminAPIUtils.createDefaultTopic(admin, topicName)
                             // convert a success into a failure
-                            .compose(__ -> Future.failedFuture("alien user shouldn't be allow to create a topic on the main user kafka"),
-                                    t -> {
-                                        // convert only the SaslAuthenticationException in a success
-                                        if (t instanceof SaslAuthenticationException) {
-                                            LOGGER.info("the alien user is not allowed to create topic on the main user kafka");
-                                            return Future.succeededFuture();
-                                        }
-                                        return Future.failedFuture(t);
-                                    });
+                            .compose(__ -> Future.failedFuture("alien user shouldn't be allow to create a topic on the main user kafka"), t -> {
+                                // convert only the SaslAuthenticationException in a success
+                                if (t instanceof SaslAuthenticationException) {
+                                    LOGGER.info("the alien user is not allowed to create topic on the main user kafka");
+                                    return Future.succeededFuture();
+                                }
+                                return Future.failedFuture(t);
+                            });
                 })
                 .onComplete(context.succeedingThenComplete());
     }
@@ -252,15 +251,14 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
                     LOGGER.info("create kafka topic: {}", topicName);
                     return admin.createTopic(topicName)
                             // convert a success into a failure
-                            .compose(__ -> Future.failedFuture("alien user shouldn't be allow to create a topic on the main user kafka"),
-                                    t -> {
-                                        // convert only the SaslAuthenticationException in a success
-                                        if (t instanceof SaslAuthenticationException) {
-                                            LOGGER.info("the alien user is not allowed to create topic on the main user kafka");
-                                            return Future.succeededFuture();
-                                        }
-                                        return Future.failedFuture(t);
-                                    })
+                            .compose(__ -> Future.failedFuture("alien user shouldn't be allow to create a topic on the main user kafka"), t -> {
+                                // convert only the SaslAuthenticationException in a success
+                                if (t instanceof SaslAuthenticationException) {
+                                    LOGGER.info("the alien user is not allowed to create topic on the main user kafka");
+                                    return Future.succeededFuture();
+                                }
+                                return Future.failedFuture(t);
+                            })
                             .onComplete(__ -> admin.close());
                 })
                 .onComplete(context.succeedingThenComplete());
@@ -274,17 +272,15 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
 
         // should fail
         secondaryAPI.deleteKafka(kafka.id, true)
-                .compose(
-                        __ -> Future.failedFuture("the secondary user shouldn't be allow to the delete the main user kafka"),
-                        t -> {
-                            if (t instanceof ResponseException) {
-                                if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                                    LOGGER.info("the secondary user is not allow to delete the main user kafka");
-                                    return Future.succeededFuture();
-                                }
-                            }
-                            return Future.failedFuture(t);
-                        })
+                .compose(__ -> Future.failedFuture("the secondary user shouldn't be allow to the delete the main user kafka"), t -> {
+                    if (t instanceof ResponseException) {
+                        if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                            LOGGER.info("the secondary user is not allow to delete the main user kafka");
+                            return Future.succeededFuture();
+                        }
+                    }
+                    return Future.failedFuture(t);
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -295,17 +291,15 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
 
         // should fail
         alienAPI.deleteKafka(kafka.id, true)
-                .compose(
-                        __ -> Future.failedFuture("the alien user shouldn't be allow to delete the main user kafka"),
-                        t -> {
-                            if (t instanceof ResponseException) {
-                                if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                                    LOGGER.info("the alien user is not allowed to delete the main user kafka");
-                                    return Future.succeededFuture();
-                                }
-                            }
-                            return Future.failedFuture(t);
-                        })
+                .compose(__ -> Future.failedFuture("the alien user shouldn't be allow to delete the main user kafka"), t -> {
+                    if (t instanceof ResponseException) {
+                        if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                            LOGGER.info("the alien user is not allowed to delete the main user kafka");
+                            return Future.succeededFuture();
+                        }
+                    }
+                    return Future.failedFuture(t);
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 }
