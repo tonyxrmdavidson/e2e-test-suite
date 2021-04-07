@@ -1,13 +1,17 @@
 package io.managed.services.test.client.oauth;
 
+import io.managed.services.test.Environment;
 import io.managed.services.test.client.BaseVertxClient;
+import io.managed.services.test.client.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.auth.oauth2.OAuth2FlowType;
 import io.vertx.ext.auth.oauth2.OAuth2Options;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
@@ -15,11 +19,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.HttpURLConnection;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.authenticateUser;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.followRedirects;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.postUsernamePassword;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.startLogin;
+import static java.time.Duration.ofSeconds;
 
 public class KeycloakOAuth {
     private static final Logger LOGGER = LogManager.getLogger(KeycloakOAuth.class);
@@ -75,22 +83,10 @@ public class KeycloakOAuth {
      * Generally used for CLI authentication.
      */
     public Future<Void> login(String authURI, String username, String password) {
-        return startLogin(session, authURI)
-                .compose(r -> postUsernamePassword(session, r, username, password))
-                .compose(r -> followRedirects(session, r))
-                .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(__ -> {
-                    LOGGER.info("authentication completed; authURI={}", authURI);
-                    return null;
-                });
-    }
 
-    /**
-     * Login against the authURI using the stored session cookies to skip the username/password login
-     */
-    public Future<Void> login(String authURI) {
-        return startLogin(session, authURI)
-                .compose(r -> followRedirects(session, r))
+        var redirectURI = "localhost";
+
+        return login(authURI, redirectURI, username, password)
                 .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(__ -> {
                     LOGGER.info("authentication completed; authURI={}", authURI);
@@ -113,34 +109,65 @@ public class KeycloakOAuth {
         var oauth2 = createOAuth2(keycloakURI, realm, clientID);
         var authURI = getAuthURI(oauth2, redirectURI);
 
-        return startLogin(session, authURI)
-                .compose(r -> postUsernamePassword(session, r, username, password))
-                .compose(r -> authenticateUser(session, oauth2, redirectURI, r))
+        return login(authURI, redirectURI, username, password)
+                .compose(r -> authenticateUser(oauth2, redirectURI, r))
                 .map(u -> {
                     LOGGER.info("authentication completed; access_token={}", getToken(u));
                     return u;
                 });
     }
 
-    /**
-     * Login against the oauth realm using the stored session cookies and hook to the redirectURI
-     * to retrieve the access code and complete the authentication to retrieve the access_token and refresh_token
-     */
-    public Future<User> login(
-            String keycloakURI,
+    private Future<HttpResponse<Buffer>> login(
+            String authURI,
             String redirectURI,
-            String realm,
-            String clientID) {
+            String username,
+            String password) {
 
-        var oauth2 = createOAuth2(keycloakURI, realm, clientID);
-        var authURI = getAuthURI(oauth2, redirectURI);
+        // follow redirects until the new location doesn't match the redirect URI
+        Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> !r.getHeader("Location").contains(redirectURI);
 
-        return startLogin(session, authURI)
-                .compose(r -> authenticateUser(session, oauth2, redirectURI, r))
-                .map(u -> {
-                    LOGGER.info("authentication completed; access_token={}", getToken(u));
-                    return u;
-                });
+        return retry(() -> startLogin(session, authURI)
+                .compose(r -> followRedirects(session, r, stopRedirect))
+                .compose(r -> {
+                    // if the user is already authenticated don't post username/password
+                    if (r.statusCode() == HttpURLConnection.HTTP_MOVED_TEMP) {
+                        return Future.succeededFuture(r);
+                    }
+
+                    return BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK)
+                            .compose(r2 -> postUsernamePassword(session, r2, username, password))
+                            .compose(r2 -> followRedirects(session, r2, stopRedirect));
+                }));
     }
 
+    private <T> Future<T> retry(Supplier<Future<T>> call) {
+        return retry(call, Environment.API_CALL_THRESHOLD);
+    }
+
+    private <T> Future<T> retry(Supplier<Future<T>> call, int attempts) {
+
+        Function<Throwable, Future<T>> retry = t -> {
+            LOGGER.error("skip error: ", t);
+
+            // retry the API call
+            return sleep(vertx, ofSeconds(1))
+                    .compose(r -> retry(call, attempts - 1));
+        };
+
+        return call.get().recover(t -> {
+            if (attempts <= 0) {
+                // no more attempts remaining
+                return Future.failedFuture(t);
+            }
+
+            if (t instanceof ResponseException) {
+                var r = ((ResponseException) t).response;
+                // retry request in case of error 502
+                if (r.statusCode() == HttpURLConnection.HTTP_BAD_GATEWAY) {
+                    return retry.apply(t);
+                }
+            }
+            return Future.failedFuture(t);
+        });
+    }
 }

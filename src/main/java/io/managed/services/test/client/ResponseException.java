@@ -15,6 +15,7 @@ public class ResponseException extends Exception {
     public static <T> String message(String message, HttpResponse<T> response) {
         StringBuilder error = new StringBuilder();
         error.append(message);
+        error.append(String.format("Status Code: %d", response.statusCode()));
         for (Map.Entry<String, String> e : response.headers().entries()) {
             error.append(String.format("\n< %s: %s", e.getKey(), e.getValue()));
         }
