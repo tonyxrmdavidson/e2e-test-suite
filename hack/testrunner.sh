@@ -22,6 +22,7 @@ TESTCASE=${TESTCASE:-${TESTCASE_DEFAULT}}
 REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE:-"false"}
 REPORTPORTAL_ENDPOINT=${REPORTPORTAL_ENDPOINT:-"https://reportportal-cloud-services.apps.ocp4.prod.psi.redhat.com"}
 REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
+ENABLE_TEST=${ENABLE_TEST:-"true"}
 
 # Help
 # ---
@@ -79,9 +80,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+info "ENVs:"
 info "----------------"
 env
 info "----------------"
+
+if [[ ${ENABLE_TEST} == "false" ]]; then
+  info "skip all tests because they are not enable"
+  exit 0
+fi
 
 exec mvn verify \
   --offline \

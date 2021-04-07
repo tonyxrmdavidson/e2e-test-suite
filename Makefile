@@ -38,6 +38,12 @@ REPORTPORTAL_UUID ?=
 KAFKA_POSTFIX_NAME ?=
 BUILD_URL ?=
 
+# if set to false the tests will not be executed
+# this is a workaround because the app-interface jenkins doesn't support a easy
+# way of disabling a job, but we can use the vault to change this value on demand
+# and disable the tests when needed
+ENABLE_TEST ?= true
+
 ifeq (${DOCKER}, podman)
 	DOCKER_RUN = ${DOCKER} run -u "0"
 else
@@ -97,6 +103,7 @@ container/test:
 		-e REPORTPORTAL_UUID=${REPORTPORTAL_UUID} \
 		-e KAFKA_POSTFIX_NAME=${KAFKA_POSTFIX_NAME} \
 		-e BUILD_URL=${BUILD_URL} \
+		-e ENABLE_TEST=${ENABLE_TEST} \
 		${IMAGE}
 
 .PHONY: clean build test image/build container/test
