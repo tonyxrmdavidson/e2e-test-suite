@@ -74,7 +74,9 @@ class SSOAuthTest extends TestBase {
                         Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
                         Environment.MAS_SSO_REDHAT_REDIRECT_URI,
                         Environment.MAS_SSO_REDHAT_REALM,
-                        Environment.MAS_SSO_REDHAT_CLIENT_ID))
+                        Environment.MAS_SSO_REDHAT_CLIENT_ID,
+                        Environment.SSO_USERNAME,
+                        Environment.SSO_PASSWORD))
                 .onSuccess(user -> LOGGER.info("user authenticated against: {}", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
 
                 .onComplete(context.succeedingThenComplete());

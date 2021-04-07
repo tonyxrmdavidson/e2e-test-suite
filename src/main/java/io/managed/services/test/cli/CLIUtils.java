@@ -96,7 +96,7 @@ public class CLIUtils {
                             .onSuccess(__ -> LOGGER.info("first oauth login completed"));
 
                     var edgeSSOFuture = parseUrl(vertx, process.stdout(), "https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com/auth/.*")
-                            .compose(l -> oauth2.login(l))
+                            .compose(l -> oauth2.login(l, username, password))
                             .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"));
 
                     var cliFuture = process.future(ofMinutes(3))
