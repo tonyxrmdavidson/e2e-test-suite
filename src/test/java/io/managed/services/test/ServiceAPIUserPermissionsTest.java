@@ -21,7 +21,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -33,7 +32,6 @@ import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
 
 import static io.managed.services.test.TestUtils.message;
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -165,7 +163,7 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
     @Test
     @Order(2)
     @Timeout(value = 3, timeUnit = TimeUnit.MINUTES)
-    void testSecondaryProduceAndConsumeKafkaMessages(Vertx vertx, VertxTestContext context) {
+    void testSecondaryUserCreateTopicUsingKafkaBin(Vertx vertx, VertxTestContext context) {
         assertKafka();
 
         // Create Service Account by another user
@@ -185,10 +183,18 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
                     KafkaAdmin admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
                     String topicName = "test-topic";
+
                     LOGGER.info("create kafka topic: {}", topicName);
                     return admin.createTopic(topicName)
-                            .compose(__ -> testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, topicName, 1, 100, 100))
-
+                            // convert a success into a failure
+                            .compose(__ -> Future.failedFuture("secondary user shouldn't be allow to create a topic on the main user kafka"), t -> {
+                                // convert only the SaslAuthenticationException in a success
+                                if (t instanceof SaslAuthenticationException) {
+                                    LOGGER.info("the secondary user is not allowed to create topic on the main user kafka");
+                                    return Future.succeededFuture();
+                                }
+                                return Future.failedFuture(t);
+                            })
                             .onComplete(__ -> admin.close());
                 })
 
@@ -210,10 +216,11 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
                     return KafkaAdminAPIUtils.createDefaultTopic(admin, topicName)
                             // convert a success into a failure
                             .compose(__ -> Future.failedFuture("alien user shouldn't be allow to create a topic on the main user kafka"), t -> {
-                                // convert only the SaslAuthenticationException in a success
-                                if (t instanceof SaslAuthenticationException) {
-                                    LOGGER.info("the alien user is not allowed to create topic on the main user kafka");
-                                    return Future.succeededFuture();
+                                if (t instanceof ResponseException) {
+                                    if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                                        LOGGER.info("the alien user is not allowed to create topic on the main user kafka");
+                                        return Future.succeededFuture();
+                                    }
                                 }
                                 return Future.failedFuture(t);
                             });
@@ -226,7 +233,6 @@ public class ServiceAPIUserPermissionsTest extends TestBase {
      */
     @Test
     @Order(2)
-    @Disabled("Known issue: https://issues.redhat.com/browse/MGDSTRM-1439")
     void testAlienUserCreateTopicUsingKafkaBin(VertxTestContext context) {
         assertKafka();
 
