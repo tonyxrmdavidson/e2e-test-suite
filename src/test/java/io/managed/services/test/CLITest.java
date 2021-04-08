@@ -326,49 +326,6 @@ public class CLITest extends TestBase {
 
     @Test
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    @Order(10)
-    void testFailedOauthMessaging(VertxTestContext context) {
-        assertTopic();
-        var bootstrapHost = kafkaInstance.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-
-        try {
-            KafkaProducerClient producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, "invalid", true);
-            producer.close();
-            context.failNow("Producer successfully connected");
-        } catch (Exception e) {
-            context.completeNow();
-        }
-    }
-
-    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    @Order(11)
-    void testPlainMessaging(VertxTestContext context) {
-        assertTopic();
-
-        var bootstrapHost = kafkaInstance.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
-
-        testTopicPlain(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
-                .onComplete(context.succeedingThenComplete());
-    }
-
-    @Test
-    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
-    @Order(12)
-    void testFailedPlainMessaging(VertxTestContext context) {
-        assertTopic();
-        var bootstrapHost = kafkaInstance.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-
-        testTopicPlain(vertx, bootstrapHost, clientID, "invalid", TOPIC_NAME, 1000, 10, 100)
-                .onComplete(context.failingThenComplete());
-    }
-
-
-    @Test
-    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(13)
     void testDeleteTopic(VertxTestContext context) {
         assertTopic();
