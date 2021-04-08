@@ -138,7 +138,8 @@ public class KeycloakOAuth {
                     return BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK)
                             .compose(r2 -> postUsernamePassword(session, r2, username, password))
                             .compose(r2 -> followRedirects(session, r2, stopRedirect));
-                }));
+                })
+                .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP)));
     }
 
     private <T> Future<T> retry(Supplier<Future<T>> call) {
