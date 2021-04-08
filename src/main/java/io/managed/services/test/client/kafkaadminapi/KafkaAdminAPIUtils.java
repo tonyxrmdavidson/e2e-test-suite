@@ -18,11 +18,11 @@ public class KafkaAdminAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPIUtils.class);
 
     public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost) {
-        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
-        return kafkaAdminAPI(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD, apiURI);
-    }
+        return kafkaAdminAPI(vertx, bootstrapHost, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
-    public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String username, String password, String apiURI) {
+    }
+    public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost, String username, String password) {
+        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
         var auth = new KeycloakOAuth(vertx);
 
         LOGGER.info("authenticate user: {} against: {}", username, password);
