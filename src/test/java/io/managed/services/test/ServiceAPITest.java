@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.sleep;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicPlain;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
@@ -183,6 +184,54 @@ class ServiceAPITest extends TestBase {
         testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
                 .onComplete(context.succeedingThenComplete());
     }
+
+
+
+    @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Order(3)
+    void testFailedOauthMessaging(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+
+        try {
+            KafkaProducerClient producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, "invalid", true);
+            producer.close();
+            context.failNow("Producer successfully connected");
+        } catch (Exception e) {
+            context.completeNow();
+        }
+    }
+
+    @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Order(3)
+    void testPlainMessaging(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
+
+        testTopicPlain(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+                .onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
+    @Order(3)
+    void testFailedPlainMessaging(Vertx vertx, VertxTestContext context) {
+        assertTopic();
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+
+        testTopicPlain(vertx, bootstrapHost, clientID, "invalid", TOPIC_NAME, 1000, 10, 100)
+                .onComplete(context.failingThenComplete());
+    }
+
 
     @Test
     @Order(2)
