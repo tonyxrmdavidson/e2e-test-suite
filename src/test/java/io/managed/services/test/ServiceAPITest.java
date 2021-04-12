@@ -20,6 +20,7 @@ import io.vertx.junit5.VertxTestContext;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
