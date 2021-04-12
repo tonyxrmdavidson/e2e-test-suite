@@ -1,5 +1,6 @@
 package io.managed.services.test.client.kafka;
 
+import io.managed.services.test.Environment;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -7,13 +8,11 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
 
 
 public class KafkaUtils {
@@ -34,7 +33,7 @@ public class KafkaUtils {
         config.put("sasl.mechanism", "OAUTHBEARER");
         config.put("security.protocol", "SASL_SSL");
         String jaas = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id=\"%s\" oauth.client.secret=\"%s\" " +
-                "oauth.token.endpoint.uri=\"https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com/auth/realms/rhoas/protocol/openid-connect/token\";", clientID, clientSecret);
+                "oauth.token.endpoint.uri=\"%s/auth/realms/%s/protocol/openid-connect/token\";", clientID, clientSecret, Environment.MAS_SSO_REDHAT_KEYCLOAK_URI, Environment.MAS_SSO_REDHAT_REALM);
         config.put("sasl.jaas.config", jaas);
         config.put("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
         return config;
