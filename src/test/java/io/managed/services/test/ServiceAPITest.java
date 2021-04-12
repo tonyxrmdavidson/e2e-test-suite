@@ -1,7 +1,6 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.ResponseException;
-import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
@@ -60,7 +59,6 @@ class ServiceAPITest extends TestBase {
     static final String TOPIC_NAME = "test-topic";
 
     ServiceAPI api;
-    KafkaAdmin admin;
 
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
@@ -83,9 +81,6 @@ class ServiceAPITest extends TestBase {
 
     @AfterAll
     void teardown(Vertx vertx, VertxTestContext context) {
-
-        // close KafkaAdmin
-        if (admin != null) admin.close();
 
         // delete kafka instance
         var dk = deleteKafkaInstance();
