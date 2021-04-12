@@ -91,11 +91,11 @@ public class CLIUtils {
                     var oauth2 = new KeycloakOAuth(vertx);
 
                     LOGGER.info("start oauth login against CLI");
-                    var oauthFuture = parseUrl(vertx, process.stdout(), "https://sso.redhat.com/auth/.*")
+                    var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.SSO_REDHAT_KEYCLOAK_URI))
                             .compose(l -> oauth2.login(l, username, password))
                             .onSuccess(__ -> LOGGER.info("first oauth login completed"));
 
-                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), "https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com/auth/.*")
+                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
                             .compose(l -> oauth2.login(l, username, password))
                             .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"));
 

@@ -116,8 +116,8 @@ public class Environment {
 
     public static final String BF2_GITHUB_TOKEN = getOrDefault(BF2_GITHUB_TOKEN_ENV, null);
 
-    public static final String CLI_DOWNLOAD_ORG = getOrDefault(CLI_DOWNLOAD_ORG_ENV, "bf2fc6cc711aee1a0c2a");
-    public static final String CLI_DOWNLOAD_REPO = getOrDefault(CLI_DOWNLOAD_REPO_ENV, "cli");
+    public static final String CLI_DOWNLOAD_ORG = getOrDefault(CLI_DOWNLOAD_ORG_ENV, "redhat-developer");
+    public static final String CLI_DOWNLOAD_REPO = getOrDefault(CLI_DOWNLOAD_REPO_ENV, "app-services-cli");
     public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "latest");
     public static final String CLI_PLATFORM = getOrDefault(CLI_PLATFORM_ENV, Platform.getArch().toString());
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
@@ -127,10 +127,10 @@ public class Environment {
 
     public static final int API_CALL_THRESHOLD = getOrDefault(API_CALL_THRESHOLD_ENV, Integer::parseInt, 10);
 
-    public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://keycloak-mas-sso-stage.apps.app-sre-stage-0.k3s7.p1.openshiftapps.com");
+    public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://identity.api.stage.openshift.com");
     public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "rhoas");
     public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
-    public static final String MAS_SSO_REDHAT_REDIRECT_URI = getOrDefault(MAS_SSO_REDHAT_REDIRECT_URI_ENV, "https://qaprodauth.cloud.redhat.com/beta/application-services/openshift-streams");
+    public static final String MAS_SSO_REDHAT_REDIRECT_URI = getOrDefault(MAS_SSO_REDHAT_REDIRECT_URI_ENV, "https://qaprodauth.cloud.redhat.com/beta/application-services");
 
     private Environment() {
     }

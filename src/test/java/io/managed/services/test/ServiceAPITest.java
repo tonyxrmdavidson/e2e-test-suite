@@ -1,7 +1,6 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.ResponseException;
-import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
@@ -21,7 +20,6 @@ import io.vertx.junit5.VertxTestContext;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -60,7 +58,6 @@ class ServiceAPITest extends TestBase {
     static final String TOPIC_NAME = "test-topic";
 
     ServiceAPI api;
-    KafkaAdmin admin;
 
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
@@ -83,9 +80,6 @@ class ServiceAPITest extends TestBase {
 
     @AfterAll
     void teardown(Vertx vertx, VertxTestContext context) {
-
-        // close KafkaAdmin
-        if (admin != null) admin.close();
 
         // delete kafka instance
         var dk = deleteKafkaInstance();
