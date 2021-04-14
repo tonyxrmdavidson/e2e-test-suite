@@ -42,7 +42,7 @@ make test
 maven
 
 ```
-mvn test -Dit.test=ClassName#testName
+mvn verify -Dit.test=ClassName#testName
 ```
 
 make
@@ -56,7 +56,7 @@ make TESTCASE=ClassName#testName test
 maven
 
 ```
-mvn test -Pci
+mvn verify -Pci
 ```
 
 make
