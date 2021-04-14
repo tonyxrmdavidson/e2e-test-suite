@@ -20,6 +20,7 @@ import io.vertx.junit5.VertxTestContext;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.sleep;
@@ -55,6 +57,7 @@ class ServiceAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TOPIC_NAME = "test-topic";
 
@@ -71,8 +74,8 @@ class ServiceAPITest extends TestBase {
                 .onComplete(context.succeedingThenComplete());
     }
 
-    private Future<Void> deleteKafkaInstance() {
-        return deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
+    private Future<Void> deleteKafkaInstance(String instanceName) {
+        return deleteKafkaByNameIfExists(api, instanceName);
     }
 
     private Future<Void> deleteServiceAccount() {
@@ -83,12 +86,13 @@ class ServiceAPITest extends TestBase {
     void teardown(Vertx vertx, VertxTestContext context) {
 
         // delete kafka instance
-        var dk = deleteKafkaInstance();
+        var dk = deleteKafkaInstance(KAFKA_INSTANCE_NAME);
+        var dk2 = deleteKafkaInstance(KAFKA2_INSTANCE_NAME);
 
         // delete service account
         var ds = deleteServiceAccount();
 
-        CompositeFuture.join(dk, ds)
+        CompositeFuture.join(dk, dk2, ds)
                 .compose(__ -> sleep(vertx, ofSeconds(60)))
                 .onComplete(context.succeedingThenComplete());
     }
@@ -179,7 +183,6 @@ class ServiceAPITest extends TestBase {
         testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
                 .onComplete(context.succeedingThenComplete());
     }
-
 
 
     @Test
@@ -279,6 +282,31 @@ class ServiceAPITest extends TestBase {
                     }
                     return Future.failedFuture(throwable);
                 })
+                .onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Order(4)
+    void testDeleteProvisioningKafkaInstance(Vertx vertx, VertxTestContext context) {
+        assertAPI();
+
+        // Create Kafka Instance
+        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
+        // add postfix to the name based on owner
+        kafkaPayload.name = KAFKA2_INSTANCE_NAME;
+        kafkaPayload.multiAZ = true;
+        kafkaPayload.cloudProvider = "aws";
+        kafkaPayload.region = "us-east-1";
+        AtomicReference<KafkaResponse> kafkaForDeletion = new AtomicReference<>();
+
+        api.createKafka(kafkaPayload, true)
+                .compose(kafkaResponse -> {
+                    kafkaForDeletion.set(kafkaResponse);
+                    return sleep(vertx, ofSeconds(10));
+                })
+                .compose(__ -> api.deleteKafka(kafkaForDeletion.get().id, true))
+                .compose(__ -> waitUntilKafkaIsDeleted(vertx, api, kafkaForDeletion.get().id))
+                .compose(__ -> sleep(vertx, ofSeconds(1)))
                 .onComplete(context.succeedingThenComplete());
     }
 
