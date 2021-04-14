@@ -63,10 +63,10 @@ clean:
 	mvn clean
 
 build:
-	mvn test -DskipTests
+	mvn test -DskipTests --no-transfer-progress
 
 test:
-	mvn test $(TESTCASE_ARGS) $(PROFILE_ARGS)
+	mvn verify $(TESTCASE_ARGS) $(PROFILE_ARGS) --no-transfer-progress
 
 image/build:
 	$(DOCKER) build -t ${IMAGE} .
