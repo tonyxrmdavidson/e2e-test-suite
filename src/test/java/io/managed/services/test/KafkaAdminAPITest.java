@@ -316,18 +316,15 @@ public class KafkaAdminAPITest extends TestBase {
         assertKafkaAdminAPI();
 
         kafkaAdminAPI.getConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)
-                .compose(
-                        r -> failedFuture(message("consumer group '{}' shouldn't exists", TEST_NOT_EXISTING_GROUP_NAME)),
-                        t -> {
-                            if (t instanceof ResponseException) {
-                                if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                                    LOGGER.info("consumer group '{}' doesn't exists", TEST_NOT_EXISTING_GROUP_NAME);
-                                    return succeededFuture();
-                                }
-                            }
-                            return failedFuture(t);
+                .compose(r -> failedFuture(message("consumer group '{}' shouldn't exists", TEST_NOT_EXISTING_GROUP_NAME)), t -> {
+                    if (t instanceof ResponseException) {
+                        if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                            LOGGER.info("consumer group '{}' doesn't exists", TEST_NOT_EXISTING_GROUP_NAME);
+                            return succeededFuture();
                         }
-                )
+                    }
+                    return failedFuture(t);
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -338,17 +335,15 @@ public class KafkaAdminAPITest extends TestBase {
         assertKafkaAdminAPI();
 
         kafkaAdminAPI.deleteConsumerGroup(TEST_ACTIVE_GROUP_NAME)
-                .compose(
-                        r -> failedFuture("Deleting existing not empty group by name"),
-                        t -> {
-                            if (t instanceof ResponseException) {
-                                if (((ResponseException) t).response.statusCode() == 423) {
-                                    LOGGER.info("Group isn't empty, thus cannot be deleted : {}", TEST_ACTIVE_GROUP_NAME);
-                                    return succeededFuture();
-                                }
-                            }
-                            return failedFuture(t);
-                        })
+                .compose(r -> failedFuture("Deleting existing not empty group by name"), t -> {
+                    if (t instanceof ResponseException) {
+                        if (((ResponseException) t).response.statusCode() == 423) {
+                            LOGGER.info("Group isn't empty, thus cannot be deleted : {}", TEST_ACTIVE_GROUP_NAME);
+                            return succeededFuture();
+                        }
+                    }
+                    return failedFuture(t);
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -359,17 +354,15 @@ public class KafkaAdminAPITest extends TestBase {
         assertKafkaAdminAPI();
 
         kafkaAdminAPI.deleteConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)
-                .compose(
-                        r -> failedFuture("deleting group by not existing name"),
-                        t -> {
-                            if (t instanceof ResponseException) {
-                                if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                                    LOGGER.info("group doesn't exists and therefore it cannot be deleted: {}", TEST_NOT_EXISTING_TOPIC_NAME);
-                                    return succeededFuture();
-                                }
-                            }
-                            return failedFuture(t);
-                        })
+                .compose(r -> failedFuture("deleting group by not existing name"), t -> {
+                    if (t instanceof ResponseException) {
+                        if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                            LOGGER.info("group doesn't exists and therefore it cannot be deleted: {}", TEST_NOT_EXISTING_TOPIC_NAME);
+                            return succeededFuture();
+                        }
+                    }
+                    return failedFuture(t);
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
