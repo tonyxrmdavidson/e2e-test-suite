@@ -76,6 +76,7 @@ public class Environment {
     private static final String WAIT_READY_MS_ENV = "WAIT_READY_MS";
 
     private static final String API_CALL_THRESHOLD_ENV = "API_CALL_THRESHOLD";
+    private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
 
     /*
      * Setup constants from env variables or set default
@@ -126,6 +127,7 @@ public class Environment {
     public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
     public static final int API_CALL_THRESHOLD = getOrDefault(API_CALL_THRESHOLD_ENV, Integer::parseInt, 10);
+    public static final boolean SKIP_TEARDOWN = getOrDefault(SKIP_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
     public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://identity.api.stage.openshift.com");
     public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "rhoas");
