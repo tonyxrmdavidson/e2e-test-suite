@@ -132,16 +132,22 @@ public class KafkaAdminAPITest extends TestBase {
         assertKafkaAdminAPI();
 
         kafkaAdminAPI.getTopicByName(TEST_TOPIC_NAME)
-                .compose(r -> Future.failedFuture("Getting test-topic should fail because the topic shouldn't exists"))
+                .compose(r -> Future.failedFuture("getting test-topic should fail because the topic shouldn't exists"))
                 .recover(throwable -> {
                     if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
-                        LOGGER.info("Topic not found : {}", TEST_TOPIC_NAME);
+                        LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
                         return Future.succeededFuture();
                     }
                     return Future.failedFuture(throwable);
                 })
-                .compose(a -> KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME))
-                .onSuccess(t -> topic = t)
+                .compose(a -> {
+                    LOGGER.info("create topic: {}", TEST_TOPIC_NAME);
+                    return KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME);
+                })
+                .onSuccess(t -> {
+                    LOGGER.info("topic created: {}", TEST_TOPIC_NAME);
+                    topic = t;
+                })
                 .onComplete(context.succeedingThenComplete());
 
 
