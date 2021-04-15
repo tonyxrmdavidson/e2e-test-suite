@@ -16,7 +16,6 @@ import org.javatuples.Pair;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
@@ -135,15 +134,10 @@ public class ServiceAPIUtils {
             LOGGER.warn("last kafka response is: {}", Json.encode(kafka));
         }
 
-        switch (kafka.status) {
-            case "failed":
-                var m = message("failed to create kafka instance; {}", Json.encode(kafka));
-                return Future.failedFuture(m);
-            case "ready":
-                return Future.succeededFuture(Pair.with(true, kafka));
-            default:
-                return Future.succeededFuture(Pair.with(false, null));
+        if ("ready".equals(kafka.status)) {
+            return Future.succeededFuture(Pair.with(true, kafka));
         }
+        return Future.succeededFuture(Pair.with(false, null));
     }
 
     public static Future<Void> waitUntilKafkaIsDeleted(Vertx vertx, ServiceAPI api, String kafkaID) {
