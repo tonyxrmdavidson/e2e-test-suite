@@ -67,6 +67,9 @@ public class BindingOperatorTest extends TestBase {
     KubernetesClient client;
     boolean accessToken;
 
+    CloudServicesRequest cloudServicesRequest;
+    CloudServiceAccountRequest cloudServiceAccountRequest;
+
     final static String ACCESS_TOKEN_SECRET_NAME = "mk-e2e-api-accesstoken";
     final static String CLOUD_SERVICE_ACCOUNT_REQUEST_NAME = "mk-e2e-service-account-request";
     final static String SERVICE_ACCOUNT_NAME = "mk-e2e-bo-sa-" + Environment.KAFKA_POSTFIX_NAME;
@@ -91,6 +94,14 @@ public class BindingOperatorTest extends TestBase {
 
     private void assertAccessToken() {
         assumeTrue(accessToken, "accessToken is false because the createAccessTokenSecret method has failed");
+    }
+
+    private void assertCloudServicesRequest() {
+        assumeTrue(cloudServicesRequest != null, "cloudServicesRequest is null because testCreateCloudServicesRequest has failed");
+    }
+
+    private void assertCloudServiceAccountRequest() {
+        assumeTrue(cloudServiceAccountRequest != null, "cloudServiceAccountRequest is null because testCreateCloudServicesRequest has failed");
     }
 
     private Future<Void> bootstrapUser(Vertx vertx) {
@@ -224,7 +235,7 @@ public class BindingOperatorTest extends TestBase {
 
     @Test
     @Order(1)
-    void createAccessTokenSecret() {
+    void testCreateAccessTokenSecret() {
         assertClient();
         assertUser();
 
@@ -241,7 +252,7 @@ public class BindingOperatorTest extends TestBase {
     @Test
     @Order(2)
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    void createCloudServiceAccountRequest(Vertx vertx, VertxTestContext context) {
+    void testCreateCloudServiceAccountRequest(Vertx vertx, VertxTestContext context) {
         assertAccessToken();
 
         var a = new CloudServiceAccountRequest();
@@ -271,13 +282,16 @@ public class BindingOperatorTest extends TestBase {
                     return Pair.with(false, null);
                 });
         waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(4), ready)
-                .onSuccess(r -> LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(r)))
+                .onSuccess(r -> {
+                    LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(r));
+                    cloudServiceAccountRequest = r;
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
     @Test
     @Order(2)
-    void createCloudServicesRequest(Vertx vertx, VertxTestContext context) {
+    void testCreateCloudServicesRequest(Vertx vertx, VertxTestContext context) {
         assertAccessToken();
 
         var k = new CloudServicesRequest();
@@ -307,19 +321,20 @@ public class BindingOperatorTest extends TestBase {
                     return Pair.with(false, null);
                 });
         waitFor(vertx, "CloudServicesRequest to complete", ofSeconds(10), ofMinutes(3), ready)
-                .onSuccess(r -> LOGGER.info("CloudServicesRequest is ready: {}", Json.encode(r)))
+                .onSuccess(r -> {
+                    LOGGER.info("CloudServicesRequest is ready: {}", Json.encode(r));
+                    cloudServicesRequest = r;
+                })
                 .onComplete(context.succeedingThenComplete());
     }
 
 
     @Test
     @Order(3)
-    void createManagedKafkaConnection(Vertx vertx, VertxTestContext context) {
+    void testCreateManagedKafkaConnection(Vertx vertx, VertxTestContext context) {
         assertAccessToken();
-
-        var cloudServicesRequest = OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get();
-        assumeTrue(cloudServicesRequest != null, "the CloudServicesRequest is null");
-        assumeTrue(cloudServicesRequest.getStatus() != null, "the CloudServicesRequest status is null");
+        assertCloudServiceAccountRequest();
+        assertCloudServicesRequest();
 
         var userKafka = cloudServicesRequest.getStatus().getUserKafkas().stream()
                 .filter(k -> k.getName().equals(KAFKA_INSTANCE_NAME))
