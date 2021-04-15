@@ -10,6 +10,9 @@ import io.vertx.ext.web.client.HttpResponse;
 
 import java.net.HttpURLConnection;
 
+/**
+ * OpenAPI: https://github.com/bf2fc6cc711aee1a0c2a/kafka-admin-api/blob/main/rest/src/main/resources/openapi-specs/rest.yaml
+ */
 public class KafkaAdminAPI extends BaseVertxClient {
 
     final TokenCredentials token;
@@ -38,7 +41,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(TopicList.class)));
     }
 
-    public Future<Topic> getTopicByName(String topicName) {
+    public Future<Topic> getTopic(String topicName) {
         return retry(() -> client.get(String.format("/rest/topics/%s", topicName))
                 .authentication(token)
                 .send()
@@ -46,7 +49,7 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(Topic.class)));
     }
 
-    public Future<String> deleteTopicByName(String topicName) {
+    public Future<String> deleteTopic(String topicName) {
         return retry(() -> client.delete(String.format("/rest/topics/%s", topicName))
                 .authentication(token)
                 .send()
@@ -54,29 +57,27 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(HttpResponse::bodyAsString));
     }
 
-    public Future<Group[]> getAllGroups() {
-        return retry(() -> client.get("/rest/groups")
+    public Future<ConsumerGroup[]> getAllConsumerGroups() {
+        return retry(() -> client.get("/rest/consumer-groups")
                 .authentication(token).send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(Group[].class)));
+                .map(r -> r.bodyAsJson(ConsumerGroup[].class)));
     }
 
-    public Future<Group> getGroupByName(String topicName) {
-        return retry(() -> client.get(String.format("/rest/groups/%s", topicName))
+    public Future<ConsumerGroup> getConsumerGroup(String id) {
+        return retry(() -> client.get(String.format("/rest/consumer-groups/%s", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(Group.class)));
+                .map(r -> r.bodyAsJson(ConsumerGroup.class)));
     }
 
-    public Future<String> deleteGroupByName(String topicName) {
-        return retry(() -> client.delete(String.format("/rest/groups/%s", topicName))
+    public Future<String> deleteConsumerGroup(String id) {
+        return retry(() -> client.delete(String.format("/rest/consumer-groups/%s", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
                 .map(HttpResponse::bodyAsString));
     }
-
-
 }
 
