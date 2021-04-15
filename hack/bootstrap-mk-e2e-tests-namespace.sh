@@ -22,7 +22,7 @@ oc process -f hack/namespace-template.yaml -p NAME="${NAMESPACE_NAME}" |
 
 SECRET_NAME=$(oc get serviceaccount "${SERVICE_ACCOUNT_NAME}" \
   --namespace "${NAMESPACE_NAME}" \
-  -o jsonpath='{.secrets[0].name}')
+  -o json | jq -r '.secrets[] | select(.name | contains("token")) | .name')
 
 TOKEN_DATA=$(oc get secret "${SECRET_NAME}" \
   --namespace "${NAMESPACE_NAME}" \
