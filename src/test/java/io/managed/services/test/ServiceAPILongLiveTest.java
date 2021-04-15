@@ -45,8 +45,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class ServiceAPILongLiveTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPILongLiveTest.class);
 
-    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
+    public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
 
     ServiceAPI api;
