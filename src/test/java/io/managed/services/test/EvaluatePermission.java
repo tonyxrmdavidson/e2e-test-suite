@@ -128,6 +128,7 @@ public class EvaluatePermission {
 
     @Test
     @Order(2)
+    @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     void testCreateServiceAccount(VertxTestContext context)  {
         assertAPI();
         assertKafka();
@@ -201,17 +202,17 @@ public class EvaluatePermission {
         assertKafka();
         return Arrays.asList(
                 // --add
-                DynamicTest.dynamicTest("--add --cluster", () -> aclPermissionEvaluations(context, "--add --cluster", ResourceType.CLUSTER)),
-                DynamicTest.dynamicTest("--add --topic", () -> aclPermissionEvaluations(context, "--add --topic", ResourceType.TOPIC)),
-                DynamicTest.dynamicTest("--add --group", () -> aclPermissionEvaluations(context, "--add --group", ResourceType.GROUP)),
-                DynamicTest.dynamicTest("--add --delegation-token", () -> aclPermissionEvaluations(context, "--add --delegation-token", ResourceType.DELEGATION_TOKEN)),
-                DynamicTest.dynamicTest("--add --transactional-id", () -> aclPermissionEvaluations(context, "--add --transactional-id", ResourceType.TRANSACTIONAL_ID)),
+                DynamicTest.dynamicTest("--add--cluster", () -> aclPermissionEvaluations(context, "--add--cluster", ResourceType.CLUSTER)),
+                DynamicTest.dynamicTest("--add--topic", () -> aclPermissionEvaluations(context, "--add--topic", ResourceType.TOPIC)),
+                DynamicTest.dynamicTest("--add--group", () -> aclPermissionEvaluations(context, "--add--group", ResourceType.GROUP)),
+                DynamicTest.dynamicTest("--add--delegation-token", () -> aclPermissionEvaluations(context, "--add--delegation-token", ResourceType.DELEGATION_TOKEN)),
+                DynamicTest.dynamicTest("--add--transactional-id", () -> aclPermissionEvaluations(context, "--ad--transactional-id", ResourceType.TRANSACTIONAL_ID)),
 
                 // --list
-                DynamicTest.dynamicTest("--list --topic", () -> aclListPermissionEvaluation(context, "--list --topic", ResourceType.TOPIC)),
-                DynamicTest.dynamicTest("--list --cluster", () -> aclListPermissionEvaluation(context, "--list --cluster", ResourceType.CLUSTER)),
-                DynamicTest.dynamicTest("--list --group", () -> aclListPermissionEvaluation(context, "--list --group", ResourceType.GROUP)),
-                DynamicTest.dynamicTest("--list ", () -> aclListPermissionEvaluation(context, "--list ", ResourceType.ANY))
+                DynamicTest.dynamicTest("--list--topic", () -> aclListPermissionEvaluation(context, "--list--topic", ResourceType.TOPIC)),
+                DynamicTest.dynamicTest("--list--cluster", () -> aclListPermissionEvaluation(context, "--list--cluster", ResourceType.CLUSTER)),
+                DynamicTest.dynamicTest("--list--group", () -> aclListPermissionEvaluation(context, "--list--group", ResourceType.GROUP)),
+                DynamicTest.dynamicTest("--list", () -> aclListPermissionEvaluation(context, "--list", ResourceType.ANY))
                 );
     }
 
@@ -274,31 +275,31 @@ public class EvaluatePermission {
     }
 
     @TestFactory
-    @DisplayName("configs")
+    @DisplayName("configs--alter--entity-type")
     @Order(4)
     List<DynamicTest> configBroker(VertxTestContext context) {
         assertAPI();
         assertKafka();
         return Arrays.asList(
                 // broker, broker-loggers
-                DynamicTest.dynamicTest("brokers --add-config", () -> configTopicPermissionEvaluations(
+                DynamicTest.dynamicTest("brokers--add-config", () -> configTopicPermissionEvaluations(
                                 context,
-                                "brokers --add-config",
+                                "brokers--add-config",
                                 ConfigResource.Type.BROKER,
                                 AlterConfigOp.OpType.APPEND)),
-                DynamicTest.dynamicTest("brokers --delete-config", () -> configTopicPermissionEvaluations(
+                DynamicTest.dynamicTest("brokers--delete-config", () -> configTopicPermissionEvaluations(
                                 context,
-                                "brokers --delete-config",
+                                "brokers--delete-config",
                                 ConfigResource.Type.BROKER,
                                 AlterConfigOp.OpType.DELETE)),
-                DynamicTest.dynamicTest("broker-loggers --add-config", () -> configTopicPermissionEvaluations(
+                DynamicTest.dynamicTest("broker-loggers--add-config", () -> configTopicPermissionEvaluations(
                                 context,
-                                "broker-loggers --add-config",
+                                "broker-loggers--add-config",
                                 ConfigResource.Type.BROKER_LOGGER,
                                 AlterConfigOp.OpType.DELETE)),
-                DynamicTest.dynamicTest("broker-loggers --delete-config", () -> configTopicPermissionEvaluations(
+                DynamicTest.dynamicTest("broker-loggers--delete-config", () -> configTopicPermissionEvaluations(
                                 context,
-                                "broker-loggers --delete-config",
+                                "broker-loggers--delete-config",
                                 ConfigResource.Type.BROKER_LOGGER,
                                 AlterConfigOp.OpType.DELETE))
 
@@ -322,7 +323,7 @@ public class EvaluatePermission {
 
     @Test
     @Order(4)
-    @DisplayName("config topics --delete-config")
+    @DisplayName("config-topics--delete-config")
     void configTopicPermissionEvaluations(VertxTestContext context) {
         assertAPI();
         assertKafka();
@@ -345,7 +346,7 @@ public class EvaluatePermission {
                     LOGGER.debug("this behaviour shouldn't be possible");
                     LOGGER.info("response size: {}", response.size());
                 })
-                .compose(r -> Future.failedFuture(" configuration-describe-brokerLogger shouldn't be permitted  "))
+                .compose(r -> Future.failedFuture("configuration-describe-brokerLogger shouldn't be permitted"))
                 .recover(throwable -> {
                     if (throwable instanceof ClusterAuthorizationException) {
                         LOGGER.info(throwable.getMessage());
@@ -370,7 +371,7 @@ public class EvaluatePermission {
                     LOGGER.debug("this behaviour shouldn't be possible");
                     LOGGER.info("response size: {}", response.size());
                 })
-                .compose(r -> Future.failedFuture(" configuration-describe-brokerLogger shouldn't be permitted  "))
+                .compose(r -> Future.failedFuture("configuration-describe-brokerLogger shouldn't be permitted"))
                 .recover(throwable -> {
                     if (throwable instanceof ClusterAuthorizationException) {
                         LOGGER.info(throwable.getMessage());
@@ -392,7 +393,7 @@ public class EvaluatePermission {
         assertKafka();
         LOGGER.info("kafka-configs.sh --alter --entity-type brokerLogger <permitted>, script representation test");
         admin.alterConfigurationUser()
-                .compose(r -> Future.failedFuture(" configuration-alter-users fail only due not previously existing configuration, but operation is allowed "))
+                .compose(r -> Future.failedFuture("configuration-alter-users fail only due not previously existing configuration, but operation is allowed "))
                 .recover(throwable -> {
                     if (throwable instanceof InvalidRequestException) {
                         LOGGER.info(throwable.getMessage());
@@ -490,7 +491,7 @@ public class EvaluatePermission {
 
     @Test
     @Order(4)
-    @DisplayName("leader-election--election-type UNCLEAN")
+    @DisplayName("leader-election--election-type--UNCLEAN")
     void testLeaderElectionUnclean(VertxTestContext context) {
         assertAPI();
         assertKafka();
@@ -547,7 +548,7 @@ public class EvaluatePermission {
 
     @Test
     @Order(4)
-    @DisplayName("reassign-partitions--generate and --execute")
+    @DisplayName("reassign-partitions--generate--execute")
     void testReassignPartitions(VertxTestContext context) {
         assertAPI();
         assertKafka();
@@ -566,7 +567,7 @@ public class EvaluatePermission {
 
     @Test
     @Order(4)
-    @DisplayName("delegation-tokens -create")
+    @DisplayName("delegation-tokens-create")
     void testCreateDelegationToken(VertxTestContext context) {
         assertAPI();
         assertKafka();
@@ -585,7 +586,7 @@ public class EvaluatePermission {
 
     @Test
     @Order(4)
-    @DisplayName("delegation-tokens -describe")
+    @DisplayName("delegation-tokens-describe")
     void testDescribeDelegationToken(VertxTestContext context) {
         assertAPI();
         assertKafka();
