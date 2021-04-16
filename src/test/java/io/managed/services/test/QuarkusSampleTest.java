@@ -2,16 +2,10 @@ package io.managed.services.test;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.fabric8.openshift.api.model.Route;
-import io.fabric8.openshift.api.model.RouteBuilder;
-import io.fabric8.openshift.api.model.RoutePortBuilder;
-import io.fabric8.openshift.api.model.RouteSpecBuilder;
-import io.fabric8.openshift.api.model.RouteTargetReferenceBuilder;
-import io.fabric8.openshift.api.model.TLSConfigBuilder;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.managed.services.test.cli.CLI;
@@ -29,7 +23,6 @@ import io.managed.services.test.operator.ServiceBindingSpec;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.Json;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.auth.User;
 import io.vertx.junit5.Timeout;
@@ -65,7 +58,6 @@ import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -385,29 +377,8 @@ public class QuarkusSampleTest extends TestBase {
         LOGGER.info("deploy the rhoas-kafka-quickstart-example app");
         oc.resourceList(loadK8sResources(APP_YAML_PATH)).createOrReplace();
 
-        LOGGER.info("deploy the rhoas-kafka-quickstart-example router");
-        var r = new RouteBuilder()
-                .withMetadata(new ObjectMetaBuilder()
-                        .withName(APP_ROUTE_NAME)
-                        .build())
-                .withSpec(new RouteSpecBuilder()
-                        .withTo(new RouteTargetReferenceBuilder()
-                                .withKind("Service")
-                                .withName(APP_SERVICE_NAME)
-                                .build())
-                        .withPort(new RoutePortBuilder()
-                                .withNewTargetPort("http")
-                                .build())
-                        .withTls(new TLSConfigBuilder()
-                                .withTermination("edge")
-                                .build())
-                        .build())
-                .build();
-        r = oc.routes().createOrReplace(r);
-        assertNotNull(r.getSpec().getHost(), "host should be generated from openshift");
-
-        LOGGER.info("router deployed: {}", Json.encode(r));
-        route = r;
+        route = oc.routes().withName(APP_ROUTE_NAME).get();
+        LOGGER.info("app deployed to: {}", route.getSpec().getHost());
     }
 
 
