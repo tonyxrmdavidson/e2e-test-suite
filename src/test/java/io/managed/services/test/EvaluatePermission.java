@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.managed.services.test.TestUtils.message;
+
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -201,32 +201,23 @@ public class EvaluatePermission {
         assertKafka();
         return Arrays.asList(
                 // --add
-                DynamicTest.dynamicTest("--add --cluster",
-                        () -> aclPermissionEvaluations(context, "--add --cluster", ResourceType.CLUSTER)),
-                DynamicTest.dynamicTest("--add --topic",
-                        () -> aclPermissionEvaluations(context, "--add --topic", ResourceType.TOPIC )),
-                DynamicTest.dynamicTest("--add --group",
-                        () -> aclPermissionEvaluations(context, "--add --group", ResourceType.GROUP)),
-                DynamicTest.dynamicTest("--add --delegation-token",
-                        () -> aclPermissionEvaluations(context, "--add --delegation-token", ResourceType.DELEGATION_TOKEN )),
-                DynamicTest.dynamicTest("--add --transactional-id",
-                        () -> aclPermissionEvaluations(context, "--add --transactional-id", ResourceType.TRANSACTIONAL_ID )),
+                DynamicTest.dynamicTest("--add --cluster", () -> aclPermissionEvaluations(context, "--add --cluster", ResourceType.CLUSTER)),
+                DynamicTest.dynamicTest("--add --topic", () -> aclPermissionEvaluations(context, "--add --topic", ResourceType.TOPIC)),
+                DynamicTest.dynamicTest("--add --group", () -> aclPermissionEvaluations(context, "--add --group", ResourceType.GROUP)),
+                DynamicTest.dynamicTest("--add --delegation-token", () -> aclPermissionEvaluations(context, "--add --delegation-token", ResourceType.DELEGATION_TOKEN)),
+                DynamicTest.dynamicTest("--add --transactional-id", () -> aclPermissionEvaluations(context, "--add --transactional-id", ResourceType.TRANSACTIONAL_ID)),
 
                 // --list
-                DynamicTest.dynamicTest("--list --topic",
-                        () -> aclListPermissionEvaluation(context, "--list --topic", ResourceType.TOPIC )),
-                DynamicTest.dynamicTest("--list --cluster",
-                        () -> aclListPermissionEvaluation(context, "--list --cluster", ResourceType.CLUSTER )),
-                DynamicTest.dynamicTest("--list --group",
-                        () -> aclListPermissionEvaluation(context, "--list --group", ResourceType.GROUP )),
-                DynamicTest.dynamicTest("--list ",
-                        () -> aclListPermissionEvaluation(context, "--list ", ResourceType.ANY ))
+                DynamicTest.dynamicTest("--list --topic", () -> aclListPermissionEvaluation(context, "--list --topic", ResourceType.TOPIC)),
+                DynamicTest.dynamicTest("--list --cluster", () -> aclListPermissionEvaluation(context, "--list --cluster", ResourceType.CLUSTER)),
+                DynamicTest.dynamicTest("--list --group", () -> aclListPermissionEvaluation(context, "--list --group", ResourceType.GROUP)),
+                DynamicTest.dynamicTest("--list ", () -> aclListPermissionEvaluation(context, "--list ", ResourceType.ANY))
                 );
     }
 
 
-    void aclPermissionEvaluations( VertxTestContext context, String testName, ResourceType resourceType  ){
-        LOGGER.info(String.format("kafka-acls.sh %s <Forbidden>, script representation test", testName  ));
+    void aclPermissionEvaluations(VertxTestContext context, String testName, ResourceType resourceType) {
+        LOGGER.info(String.format("kafka-acls.sh %s <Forbidden>, script representation test", testName));
         admin.addAclResource(resourceType)
                 .compose(r -> Future.failedFuture(String.format(" acl.sh  %s should fail due to not sufficient permissions", testName)))
                 .recover(throwable -> {
@@ -239,8 +230,8 @@ public class EvaluatePermission {
                 .onComplete(context.succeedingThenComplete());
     }
 
-    void aclListPermissionEvaluation( VertxTestContext context, String testName, ResourceType resourceType  ){
-        LOGGER.info(String.format("kafka-acls.sh %s <Forbidden>, script representation test", testName  ));
+    void aclListPermissionEvaluation(VertxTestContext context, String testName, ResourceType resourceType) {
+        LOGGER.info(String.format("kafka-acls.sh %s <Forbidden>, script representation test", testName));
         admin.listAclResource(resourceType)
                 .compose(r -> Future.failedFuture(String.format(" acl.sh  %s should fail due to not sufficient permissions", testName)))
                 .recover(throwable -> {
@@ -290,35 +281,34 @@ public class EvaluatePermission {
         assertKafka();
         return Arrays.asList(
                 // broker, broker-loggers
-                DynamicTest.dynamicTest("brokers --add-config",
-                        () -> configTopicPermissionEvaluations(context,
+                DynamicTest.dynamicTest("brokers --add-config", () -> configTopicPermissionEvaluations(
+                                context,
                                 "brokers --add-config",
                                 ConfigResource.Type.BROKER,
                                 AlterConfigOp.OpType.APPEND)),
-                DynamicTest.dynamicTest("brokers --delete-config",
-                        () -> configTopicPermissionEvaluations(context,
+                DynamicTest.dynamicTest("brokers --delete-config", () -> configTopicPermissionEvaluations(
+                                context,
                                 "brokers --delete-config",
                                 ConfigResource.Type.BROKER,
                                 AlterConfigOp.OpType.DELETE)),
-                DynamicTest.dynamicTest("broker-loggers --add-config",
-                        () -> configTopicPermissionEvaluations(context,
+                DynamicTest.dynamicTest("broker-loggers --add-config", () -> configTopicPermissionEvaluations(
+                                context,
                                 "broker-loggers --add-config",
                                 ConfigResource.Type.BROKER_LOGGER,
                                 AlterConfigOp.OpType.DELETE)),
-                DynamicTest.dynamicTest("broker-loggers --delete-config",
-                        () -> configTopicPermissionEvaluations(context,
+                DynamicTest.dynamicTest("broker-loggers --delete-config", () -> configTopicPermissionEvaluations(
+                                context,
                                 "broker-loggers --delete-config",
                                 ConfigResource.Type.BROKER_LOGGER,
                                 AlterConfigOp.OpType.DELETE))
-
 
         );
     }
 
 
-    void configTopicPermissionEvaluations(VertxTestContext context, String testName, ConfigResource.Type resourceType, AlterConfigOp.OpType opType){
-        LOGGER.info(String.format("kafka-config.sh %s <allowed>, script representation test", testName  ));
-        admin.configureBrokerResource(resourceType, opType, "0" )
+    void configTopicPermissionEvaluations(VertxTestContext context, String testName, ConfigResource.Type resourceType, AlterConfigOp.OpType opType) {
+        LOGGER.info(String.format("kafka-config.sh %s <allowed>, script representation test", testName));
+        admin.configureBrokerResource(resourceType, opType, "0")
                 .compose(r -> Future.failedFuture(String.format(" config.sh  %s should fail due to not sufficient permissions", testName)))
                 .recover(throwable -> {
                     if (throwable instanceof ClusterAuthorizationException) {
@@ -333,10 +323,10 @@ public class EvaluatePermission {
     @Test
     @Order(4)
     @DisplayName("config topics --delete-config")
-    void configTopicPermissionEvaluations(VertxTestContext context){
+    void configTopicPermissionEvaluations(VertxTestContext context) {
         assertAPI();
         assertKafka();
-        LOGGER.info("kafka-config.sh --alter --entity-type topics --delete-config <allowed>, script representation test"  );
+        LOGGER.info("kafka-config.sh --alter --entity-type topics --delete-config <allowed>, script representation test");
         admin.configureBrokerResource(ConfigResource.Type.TOPIC, AlterConfigOp.OpType.DELETE, TOPIC_NAME)
                 .onSuccess(response -> LOGGER.debug("Topic configured successfully"))
                 .onComplete(context.succeedingThenComplete());
