@@ -3,7 +3,9 @@ package io.managed.services.test.client.kafka;
 import io.vertx.core.Future;
 import org.apache.kafka.clients.admin.Admin;
 
+import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.NewPartitionReassignment;
@@ -48,7 +50,7 @@ public class KafkaAdmin {
 
     public final Admin admin;
 
-    static final String STRIMZI_TOPIC = "strimzi-canary";
+    static final String STRIMZI_TOPIC = "__strimzi_canary";
     static final String STRIMZI_CANARY_GROUP = "strimzi-canary-group";
     static final String GROUP_ID = "new-group-id";
 
@@ -82,8 +84,8 @@ public class KafkaAdmin {
         return toVertxFuture(admin.deleteTopics(Collections.singleton(name)).all());
     }
 
-    public Future<Void> createAclTopic() {
-        ResourcePattern pattern = new ResourcePattern(ResourceType.TOPIC, STRIMZI_TOPIC, PatternType.LITERAL);
+    public Future<Void> addAclResource(ResourceType resourceType) {
+        ResourcePattern pattern = new ResourcePattern(resourceType, "foo", PatternType.LITERAL);
         AccessControlEntry entry = new AccessControlEntry("*", "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW);
         AclBinding aclBinding  = new AclBinding(pattern, entry);
         List<AclBinding> listOfAclBindings = new ArrayList<>();
@@ -91,8 +93,8 @@ public class KafkaAdmin {
         return toVertxFuture(admin.createAcls(listOfAclBindings).all());
     }
 
-    public Future<Collection<AclBinding>> listAclTopic() {
-        ResourcePatternFilter myFilter = new ResourcePatternFilter(ResourceType.TOPIC, STRIMZI_TOPIC, PatternType.ANY);
+    public Future<Collection<AclBinding>> listAclResource(ResourceType resourceType) {
+        ResourcePatternFilter myFilter = new ResourcePatternFilter(resourceType, "foo", PatternType.ANY);
         AccessControlEntryFilter myFilter2 = new AccessControlEntryFilter("*", "*", AclOperation.ANY, AclPermissionType.ALLOW);
         AclBindingFilter totalFilter = new AclBindingFilter(myFilter, myFilter2);
         return toVertxFuture(admin.describeAcls(totalFilter).values());
@@ -103,7 +105,6 @@ public class KafkaAdmin {
         List<ConfigResource> configResourceAsList = Collections.singletonList(configResource);
         return toVertxFuture(admin.describeConfigs(configResourceAsList).all());
     }
-
 
     public Future<Map<ConfigResource, Config>> getConfigurationTopic(String topicName) {
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
@@ -124,11 +125,19 @@ public class KafkaAdmin {
         return toVertxFuture(admin.describeClientQuotas(clientQuotaFilter2).entities());
     }
 
+    public Future<Void> configureBrokerResource(ConfigResource.Type resourceType, AlterConfigOp.OpType configurationType, String resourceName) {
+        ConfigResource configResource = new ConfigResource(resourceType, resourceName);
+        ConfigEntry configEntry = new ConfigEntry("client-id", "someValue2");
+        AlterConfigOp op = new AlterConfigOp(configEntry, configurationType);
+        Map map = new HashMap<ConfigResource, List<AlterConfigOp>>() {
+            {
+                put(configResource, Collections.singletonList(op));
+            }
+        };
+        return toVertxFuture(admin.incrementalAlterConfigs(map).all());
+    }
 
 
-    // what is there to alter:
-    // Unhandled client quota entity type: principal
-    // key, 1, k1, topic, customResource,CR, BROKER, entity, user, TOPIC, principal, host, "", null, *, DEFAULT
     public Future<Void> alterConfigurationUser() {
         Map<String, String> map = new HashMap<>();
         map.put("client-id", "client-id");
@@ -154,7 +163,6 @@ public class KafkaAdmin {
     }
 
     public Future<Void> resetOffsets() {
-
         TopicPartition topicPartition = new TopicPartition(STRIMZI_TOPIC, 0);
         OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(0, "foo");
         Map map = Map.of(topicPartition, offsetAndMetadata);
