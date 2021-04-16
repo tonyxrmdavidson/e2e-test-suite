@@ -208,7 +208,6 @@ public class ServiceAPIUtils {
      * @return ServiceAccount with clientSecret
      */
     public static Future<ServiceAccount> applyServiceAccount(ServiceAPI api, String name) {
-
         return getServiceAccountByName(api, name)
                 .compose(o -> o
                         .map(v -> {

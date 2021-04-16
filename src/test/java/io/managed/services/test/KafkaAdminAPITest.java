@@ -199,8 +199,10 @@ public class KafkaAdminAPITest extends TestBase {
         assertKafkaAdminAPI();
         assertTopic();
 
+
         await(kafkaAdminAPI.deleteTopic(TEST_TOPIC_NAME));
         LOGGER.info("topic deleted: {}", TEST_TOPIC_NAME);
+
 
 
         assertThrows(HTTPNotFoundException.class,
