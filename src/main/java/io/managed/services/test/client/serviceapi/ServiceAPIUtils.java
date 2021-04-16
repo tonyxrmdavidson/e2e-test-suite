@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.waitFor;
+import static io.vertx.core.Future.succeededFuture;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
 
@@ -66,6 +67,47 @@ public class ServiceAPIUtils {
     public static Future<Optional<ServiceAccount>> getServiceAccountByName(ServiceAPI api, String name) {
         return api.getListOfServiceAccounts()
                 .map(r -> r.items.stream().filter(a -> a.name.equals(name)).findFirst());
+    }
+
+    /**
+     * Create a Kafka instance using the default options if it doesn't exists or return the existing Kafka instance
+     *
+     * @param vertx Vertx
+     * @param api   ServiceAPI
+     * @param name  Name for the Kafka instance
+     * @return Future<KafkaResponse>
+     */
+    public static Future<KafkaResponse> applyKafkaInstance(Vertx vertx, ServiceAPI api, String name) {
+
+        CreateKafkaPayload payload = new CreateKafkaPayload();
+        payload.name = name;
+        payload.multiAZ = true;
+        payload.cloudProvider = "aws";
+        payload.region = "us-east-1";
+
+        return applyKafkaInstance(vertx, api, payload);
+    }
+
+    /**
+     * Create a Kafka instance if it doesn't exists or return the existing Kafka instance
+     *
+     * @param vertx   Vertx
+     * @param api     ServiceAPI
+     * @param payload CreateKafkaPayload
+     * @return Future<KafkaResponse>
+     */
+    public static Future<KafkaResponse> applyKafkaInstance(Vertx vertx, ServiceAPI api, CreateKafkaPayload payload) {
+        return getKafkaByName(api, payload.name)
+                .compose(o -> o.map(k -> {
+                    LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
+                    return succeededFuture(k);
+
+                }).orElseGet(() -> {
+                    LOGGER.info("create kafka instance: {}", payload.name);
+                    return api.createKafka(payload, true)
+                            .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id));
+                }))
+                .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
     }
 
     /**

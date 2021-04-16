@@ -29,6 +29,10 @@ public class OperatorUtils {
         return client.customResources(KafkaConnection.class, KafkaConnectionList.class);
     }
 
+    public static MixedOperation<ServiceBinding, ServiceBindingList, Resource<ServiceBinding>> serviceBinding(KubernetesClient client) {
+        return client.customResources(ServiceBinding.class, ServiceBindingList.class);
+    }
+
     public static Secret buildSecret(String name, Map<String, String> data) {
         return new SecretBuilder()
                 .withMetadata(new ObjectMetaBuilder()

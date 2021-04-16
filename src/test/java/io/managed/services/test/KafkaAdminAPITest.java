@@ -4,7 +4,6 @@ import io.managed.services.test.client.ResponseException;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.kafkaadminapi.Topic;
-import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
@@ -31,8 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.message;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
 import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -98,25 +96,7 @@ public class KafkaAdminAPITest extends TestBase {
     void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertServiceAPI();
 
-        // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        // add postfix to the name based on owner
-        kafkaPayload.name = KAFKA_INSTANCE_NAME;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
-
-        getKafkaByName(serviceAPI, KAFKA_INSTANCE_NAME)
-                .compose(o -> o.map(k -> {
-                    LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
-                    return succeededFuture(k);
-
-                }).orElseGet(() -> {
-                    LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-                    return serviceAPI.createKafka(kafkaPayload, true)
-                            .compose(k -> waitUntilKafkaIsReady(vertx, serviceAPI, k.id));
-
-                }))
+        applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME)
                 .onSuccess(k -> kafka = k)
                 .onComplete(context.succeedingThenComplete());
     }
