@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
 /**
@@ -181,5 +182,27 @@ public class TestUtils {
 
     public static String decodeBase64(String encodedString) {
         return new String(Base64.getDecoder().decode(encodedString));
+    }
+
+    /**
+     * DON'T USE IT ANYWHERE ELSE THAN IN A TEST METHOD
+     * DO NOT USE IT IN COMBINATION WITH THE VERT.X TestContext
+     *
+     * The reason why we use Vert.x is to perform parallel operation without keep a Thread in hostage,
+     * but this await method will keep the Thread in hostage until the Vert.x Future is not completed,
+     * which means that parallelize operations that use this await method will require multiple Threads.
+     */
+    public static <T> T await(Future<T> future) throws Throwable {
+
+        // await for the future to complete
+        var latch = new CountDownLatch(1);
+        future.onComplete(__ -> latch.countDown());
+        latch.await();
+
+        // assert the future result
+        if (future.failed()) {
+            throw future.cause();
+        }
+        return future.result();
     }
 }
