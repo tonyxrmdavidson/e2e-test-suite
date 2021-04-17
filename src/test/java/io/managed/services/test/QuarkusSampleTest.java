@@ -294,7 +294,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @AfterAll
-    void teardown(VertxTestContext context,ExtensionContext extensionContext) {
+    void teardown(VertxTestContext context, ExtensionContext extensionContext) {
         assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
 
         try {
