@@ -6,7 +6,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.TokenCredentials;
-import io.vertx.ext.web.client.HttpResponse;
 
 import java.net.HttpURLConnection;
 
@@ -49,19 +48,19 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(Topic.class)));
     }
 
-    public Future<String> deleteTopic(String topicName) {
+    public Future<Void> deleteTopic(String topicName) {
         return retry(() -> client.delete(String.format("/rest/topics/%s", topicName))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(HttpResponse::bodyAsString));
+                .map(r -> r.bodyAsJson(Void.class)));
     }
 
-    public Future<ConsumerGroup[]> getAllConsumerGroups() {
+    public Future<ConsumerGroupList> getAllConsumerGroups() {
         return retry(() -> client.get("/rest/consumer-groups")
                 .authentication(token).send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(r -> r.bodyAsJson(ConsumerGroup[].class)));
+                .map(r -> r.bodyAsJson(ConsumerGroupList.class)));
     }
 
     public Future<ConsumerGroup> getConsumerGroup(String id) {
@@ -72,12 +71,12 @@ public class KafkaAdminAPI extends BaseVertxClient {
                 .map(r -> r.bodyAsJson(ConsumerGroup.class)));
     }
 
-    public Future<String> deleteConsumerGroup(String id) {
+    public Future<Void> deleteConsumerGroup(String id) {
         return retry(() -> client.delete(String.format("/rest/consumer-groups/%s", id))
                 .authentication(token)
                 .send()
-                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
-                .map(HttpResponse::bodyAsString));
+                .compose(r -> assertResponse(r, HttpURLConnection.HTTP_NO_CONTENT))
+                .map(r -> r.bodyAsJson(Void.class)));
     }
 }
 

@@ -49,6 +49,7 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteS
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
@@ -196,6 +197,7 @@ public class BindingOperatorTest extends TestBase {
 
     @AfterAll
     void teardown(ExtensionContext context, VertxTestContext testContext) {
+        assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
 
         try {
             cleanKafkaConnection();

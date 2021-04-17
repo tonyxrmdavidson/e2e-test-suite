@@ -16,6 +16,7 @@ import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.operator.ServiceBinding;
@@ -39,7 +40,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -197,6 +200,12 @@ public class QuarkusSampleTest extends TestBase {
                 .onComplete(context.succeedingThenComplete());
     }
 
+    private void collectQuarkusAppLogs(ExtensionContext context) throws IOException {
+        LogCollector.saveDeploymentLog(
+            TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
+            oc, Environment.DEV_CLUSTER_NAMESPACE, APP_DEPLOYMENT_NAME);
+    }
+
     private void cleanAccessTokenSecret() {
         Secret s = oc.secrets().withName(ACCESS_TOKEN_SECRET_NAME).get();
         if (s != null) {
@@ -285,8 +294,15 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @AfterAll
-    void teardown(VertxTestContext context) {
+    void teardown(VertxTestContext context, ExtensionContext extensionContext) {
         assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
+
+        try {
+            collectQuarkusAppLogs(extensionContext);
+        } catch (Exception e) {
+            LOGGER.error("collectQuarkusAppLogs error: ", e);
+        }
+
 
         try {
             cleanAccessTokenSecret();
@@ -305,6 +321,7 @@ public class QuarkusSampleTest extends TestBase {
         } catch (Exception e) {
             LOGGER.error("cleanServiceBinding error: ", e);
         }
+
 
         try {
             cleanQuarkusSampleApp();
@@ -425,7 +442,7 @@ public class QuarkusSampleTest extends TestBase {
         var endpoint = String.format("https://%s", route.getSpec().getHost());
         var client = new QuarkusSample(vertx, endpoint);
 
-        LOGGER.info("start streaming prices");
+        LOGGER.info("start streaming prices from: {}", endpoint);
 
         // The /prices/stream endpoint returns a new price every 5s if the
         // the quarkus app can connect successfully to the kafka instance

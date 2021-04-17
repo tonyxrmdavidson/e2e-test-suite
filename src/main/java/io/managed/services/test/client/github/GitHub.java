@@ -1,7 +1,7 @@
 package io.managed.services.test.client.github;
 
 import io.managed.services.test.client.BaseVertxClient;
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -75,7 +75,7 @@ public class GitHub extends BaseVertxClient {
                 .compose(r -> {
                     var l = r.getHeader("Location");
                     if (l == null) {
-                        return Future.failedFuture(new ResponseException("Location header not found", r));
+                        return Future.failedFuture(ResponseException.httpException("Location header not found", r));
                     }
                     return Future.succeededFuture(l);
                 })

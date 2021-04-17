@@ -1,6 +1,6 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.exception.ResponseException;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
@@ -171,7 +171,7 @@ class ServiceAPITest extends TestBase {
     @Test
     @Order(3)
     @Timeout(value = 3, timeUnit = TimeUnit.MINUTES)
-    void testProduceAndConsumeKafkaMessages(Vertx vertx, VertxTestContext context) {
+    void testOAuthMessaging(Vertx vertx, VertxTestContext context) {
         assertKafka();
         assertServiceAccount();
         assertTopic();
@@ -189,6 +189,8 @@ class ServiceAPITest extends TestBase {
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(3)
     void testFailedOauthMessaging(Vertx vertx, VertxTestContext context) {
+        assertKafka();
+        assertServiceAccount();
         assertTopic();
 
         var bootstrapHost = kafka.bootstrapServerHost;
@@ -207,6 +209,8 @@ class ServiceAPITest extends TestBase {
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(3)
     void testPlainMessaging(Vertx vertx, VertxTestContext context) {
+        assertKafka();
+        assertServiceAccount();
         assertTopic();
 
         var bootstrapHost = kafka.bootstrapServerHost;
@@ -221,6 +225,8 @@ class ServiceAPITest extends TestBase {
     @Timeout(value = 2, timeUnit = TimeUnit.MINUTES)
     @Order(3)
     void testFailedPlainMessaging(Vertx vertx, VertxTestContext context) {
+        assertKafka();
+        assertServiceAccount();
         assertTopic();
 
         var bootstrapHost = kafka.bootstrapServerHost;
@@ -314,6 +320,8 @@ class ServiceAPITest extends TestBase {
     @Order(4)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertKafka();
+        assertServiceAccount();
+        assertTopic();
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
