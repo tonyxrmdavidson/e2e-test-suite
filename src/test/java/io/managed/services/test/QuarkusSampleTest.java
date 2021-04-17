@@ -73,19 +73,19 @@ public class QuarkusSampleTest extends TestBase {
 
     // NOTE: Some of the names are hard coded because generated from CLI or hard coded in the yaml files
 
-    static final String KAFKA_INSTANCE_NAME = "mk-e2e-quarkus-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String TOPIC_NAME = "prices";
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-quarkus-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String TOPIC_NAME = "prices";
 
     // this name is decided from the cli
-    static final String ACCESS_TOKEN_SECRET_NAME = "rh-cloud-services-accesstoken-cli";
-    static final String SERVICE_ACCOUNT_SECRET_NAME = "rh-cloud-services-service-account";
+    private static final String ACCESS_TOKEN_SECRET_NAME = "rh-cloud-services-accesstoken-cli";
+    private static final String SERVICE_ACCOUNT_SECRET_NAME = "rh-cloud-services-service-account";
 
-    static final String SERVICE_BINDING_NAME = "rhoas-kafka-quickstart-bind";
+    private static final String SERVICE_BINDING_NAME = "rhoas-kafka-quickstart-bind";
 
-    static final String APP_YAML_PATH = "quarkus/rhoas-kafka-quickstart-example.yml";
-    static final String APP_SERVICE_NAME = "rhoas-kafka-quickstart-example";
-    static final String APP_DEPLOYMENT_NAME = "rhoas-kafka-quickstart-example";
-    static final String APP_ROUTE_NAME = "rhoas-kafka-quickstart-example";
+    private static final String APP_YAML_PATH = "quarkus/rhoas-kafka-quickstart-example.yml";
+    private static final String APP_SERVICE_NAME = "rhoas-kafka-quickstart-example";
+    private static final String APP_DEPLOYMENT_NAME = "rhoas-kafka-quickstart-example";
+    private static final String APP_ROUTE_NAME = "rhoas-kafka-quickstart-example";
 
     private void assertENVs() {
         assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
