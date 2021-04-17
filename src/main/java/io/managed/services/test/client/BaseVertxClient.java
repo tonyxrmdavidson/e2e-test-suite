@@ -1,6 +1,7 @@
 package io.managed.services.test.client;
 
 import io.managed.services.test.Environment;
+import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
@@ -116,7 +117,7 @@ public abstract class BaseVertxClient {
     public static <T> Future<HttpResponse<T>> assertResponse(HttpResponse<T> response, Integer statusCode) {
         if (response.statusCode() != statusCode) {
             String message = String.format("Expected status code %d but got %s", statusCode, response.statusCode());
-            return Future.failedFuture(new ResponseException(message, response));
+            return Future.failedFuture(ResponseException.httpException(message, response));
         }
         return Future.succeededFuture(response);
     }
@@ -124,7 +125,7 @@ public abstract class BaseVertxClient {
     public static Future<String> getRedirectLocation(HttpResponse<Buffer> response) {
         var l = response.getHeader("Location");
         if (l == null) {
-            return Future.failedFuture(new ResponseException("Location header not found", response));
+            return Future.failedFuture(ResponseException.httpException("Location header not found", response));
         }
         return Future.succeededFuture(l);
     }

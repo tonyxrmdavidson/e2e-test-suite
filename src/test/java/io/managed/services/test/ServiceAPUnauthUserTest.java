@@ -1,6 +1,6 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.exception.ResponseException;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;

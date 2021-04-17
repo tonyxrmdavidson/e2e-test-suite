@@ -112,14 +112,20 @@ public class KafkaConsumerClient {
         return KafkaConsumer.create(vertx, config);
     }
 
+
     public static KafkaConsumer<String, String> createConsumer(
-        Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
+        return createConsumer(vertx, bootstrapHost, clientID, clientSecret, "test-group");
+    }
+
+    public static KafkaConsumer<String, String> createConsumer(
+            Vertx vertx, String bootstrapHost, String clientID, String clientSecret, String groupID) {
         Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
 
         //Standard consumer config
         config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        config.put("group.id", "test-group");
+        config.put("group.id", groupID);
         config.put("auto.offset.reset", "latest");
         config.put("enable.auto.commit", "true");
 

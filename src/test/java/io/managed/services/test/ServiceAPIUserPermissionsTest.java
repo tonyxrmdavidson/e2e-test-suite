@@ -1,6 +1,6 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.exception.ResponseException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;

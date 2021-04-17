@@ -3,7 +3,7 @@ package io.managed.services.test.client.serviceapi;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.exception.ResponseException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;

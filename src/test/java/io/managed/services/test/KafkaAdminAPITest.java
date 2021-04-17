@@ -1,6 +1,9 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.exception.HTTPConflictException;
+import io.managed.services.test.client.exception.HTTPLockedException;
+import io.managed.services.test.client.exception.HTTPNotFoundException;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.kafkaadminapi.Topic;
@@ -10,11 +13,10 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import io.vertx.junit5.Timeout;
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -22,64 +24,81 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Timeout;
 
-import java.net.HttpURLConnection;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.managed.services.test.TestUtils.await;
 import static io.managed.services.test.TestUtils.message;
+import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
-import static io.vertx.core.Future.failedFuture;
-import static io.vertx.core.Future.succeededFuture;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.KAFKA_ADMIN_API)
-@ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Timeout(value = 3, unit = TimeUnit.MINUTES)
 public class KafkaAdminAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPITest.class);
+
+    Vertx vertx = Vertx.vertx();
 
     KafkaAdminAPI kafkaAdminAPI;
     ServiceAPI serviceAPI;
     KafkaResponse kafka;
     Topic topic;
+    KafkaConsumer<String, String> kafkaConsumer;
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-kaa-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String SERVICE_ACCOUNT_NAME = "mk-e2e-kaa-sa-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TEST_TOPIC_NAME = "test-api-topic-1";
     static final String TEST_NOT_EXISTING_TOPIC_NAME = "test-api-topic-not-exist";
 
-    static final String TEST_ACTIVE_GROUP_NAME = "strimzi-canary-group";
+    static final String TEST_GROUP_NAME = "test-consumer-group";
     static final String TEST_NOT_EXISTING_GROUP_NAME = "not-existing-group";
 
 
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
+    @Timeout(value = 3, unit = TimeUnit.MINUTES)
     @BeforeAll
-    void bootstrap(Vertx vertx, VertxTestContext context) {
-        ServiceAPIUtils.serviceAPI(vertx)
-                .onSuccess(a -> serviceAPI = a)
-                .onComplete(context.succeedingThenComplete());
+    void bootstrap() throws Throwable {
+        serviceAPI = await(ServiceAPIUtils.serviceAPI(vertx));
+        LOGGER.info("service api initialized");
+
+        kafka = await(applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME));
+        LOGGER.info("kafka instance created: {}", Json.encode(kafka));
     }
 
     @AfterAll
-    void teardown(VertxTestContext context) {
+    void teardown() throws Throwable {
         assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
 
         // delete kafka instance
-        ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, KAFKA_INSTANCE_NAME)
-                .onComplete(context.succeedingThenComplete());
+        try {
+            await(ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, KAFKA_INSTANCE_NAME));
+        } catch (Throwable t) {
+            LOGGER.error("failed to clean kafka instance: ", t);
+        }
+
+        // delete service account
+        try {
+            await(ServiceAPIUtils.deleteServiceAccountByNameIfExists(serviceAPI, SERVICE_ACCOUNT_NAME));
+        } catch (Throwable t) {
+            LOGGER.error("failed to clean service account: ", t);
+        }
     }
 
     void assertKafkaAdminAPI() {
-        assumeTrue(kafkaAdminAPI != null, "kafkaAdminAPI is null because the testConnectKafkaAdminAPI has failed");
+        assumeTrue(kafkaAdminAPI != null, "kafkaAdminAPI is null because testConnectKafkaAdminAPI has failed");
     }
 
     void assertTopic() {
-        assumeTrue(topic != null, "topic is null because the testCreateTopic has failed");
+        assumeTrue(topic != null, "topic is null because testCreateTopic has failed");
     }
 
     void assertServiceAPI() {
@@ -87,264 +106,225 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     void assertKafka() {
-        assumeTrue(kafka != null, "kafka is null because the testCreateKafkaInstance has failed");
+        assumeTrue(kafka != null, "kafka is null because the bootstrap has failed");
+    }
+
+    void assertConsumerGroup() {
+        assumeTrue(kafkaConsumer != null, "kafkaConsumer is null because ");
     }
 
     @Test
     @Order(1)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testCreateKafkaInstance(Vertx vertx, VertxTestContext context) {
-        assertServiceAPI();
-
-        applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME)
-                .onSuccess(k -> kafka = k)
-                .onComplete(context.succeedingThenComplete());
-    }
-
-    @Test
-    @Order(2)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testConnectKafkaAdminAPI(Vertx vertx, VertxTestContext context) {
+    void testConnectKafkaAdminAPI() throws Throwable {
         assertServiceAPI();
         assertKafka();
 
         var bootstrapServerHost = kafka.bootstrapServerHost;
+        kafkaAdminAPI = await(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapServerHost));
+    }
 
-        KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapServerHost)
-                .onSuccess(restApiResponse -> kafkaAdminAPI = restApiResponse)
-                .onFailure(msg -> System.out.println(msg.getMessage()))
-                .onComplete(context.succeedingThenComplete());
+    @Test
+    @Order(2)
+    void testCreateTopic() throws Throwable {
+        assertKafkaAdminAPI();
 
+        assertThrows(HTTPNotFoundException.class,
+                () -> await(kafkaAdminAPI.getTopic(TEST_TOPIC_NAME)),
+                "getting test-topic should fail because the topic shouldn't exists");
+        LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
+
+        LOGGER.info("create topic: {}", TEST_TOPIC_NAME);
+        topic = await(KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME));
+
+        LOGGER.info("topic created: {}", TEST_TOPIC_NAME);
+    }
+
+    @Test
+    @Order(4)
+    void testCreateExistingTopic() {
+        assertKafkaAdminAPI();
+        assertTopic();
+
+        assertThrows(HTTPConflictException.class,
+                () -> await(KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME)),
+                "create existing topic should fail");
+
+        LOGGER.info("existing topic cannot be created again : {}", TEST_TOPIC_NAME);
+    }
+
+    @Test
+    @Order(4)
+    void testGetTopicByName() throws Throwable {
+        assertKafkaAdminAPI();
+        assertTopic();
+
+        var t = await(kafkaAdminAPI.getTopic(TEST_TOPIC_NAME));
+        LOGGER.info("topic retrieved: {}", Json.encode(t));
+
+        assertEquals(TEST_TOPIC_NAME, t.name);
+    }
+
+    @Test
+    @Order(4)
+    void testGetNotExistingTopic() {
+        assertKafkaAdminAPI();
+
+        assertThrows(HTTPNotFoundException.class,
+                () -> await(kafkaAdminAPI.getTopic(TEST_NOT_EXISTING_TOPIC_NAME)),
+                "get none existing topic should fail");
+
+        LOGGER.info("topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
+    }
+
+    @Test
+    @Order(4)
+    void tetGetAllTopics() throws Throwable {
+        assertKafkaAdminAPI();
+        assertTopic();
+
+        var topics = await(kafkaAdminAPI.getAllTopics());
+        LOGGER.info("topics: {}", Json.encode(topics));
+        List<Topic> filteredTopics = topics.items.stream()
+                .filter(k -> k.name.equals(TEST_TOPIC_NAME))
+                .collect(Collectors.toList());
+
+        assertEquals(1, filteredTopics.size());
+    }
+
+
+    @Test
+    @Order(6)
+    void testDeleteTopic() throws Throwable {
+        assertKafkaAdminAPI();
+        assertTopic();
+
+        await(kafkaAdminAPI.deleteTopic(TEST_TOPIC_NAME));
+        LOGGER.info("topic deleted: {}", TEST_TOPIC_NAME);
+
+
+        assertThrows(HTTPNotFoundException.class,
+                () -> await(kafkaAdminAPI.getTopic(TEST_TOPIC_NAME)),
+                "get test-topic should fail due to topic being deleted in current test");
+        LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
+    }
+
+    @Test
+    @Order(5)
+    void testDeleteNotExistingTopic() {
+        assertKafkaAdminAPI();
+
+        assertThrows(HTTPNotFoundException.class,
+                () -> await(kafkaAdminAPI.deleteTopic(TEST_NOT_EXISTING_TOPIC_NAME)),
+                "deleting not existing topic should fail");
+        LOGGER.info("topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
     }
 
     @Test
     @Order(3)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testCreateTopic(VertxTestContext context) {
+    void testStartConsumerGroup() throws Throwable {
         assertKafkaAdminAPI();
 
-        kafkaAdminAPI.getTopic(TEST_TOPIC_NAME)
-                .compose(r -> failedFuture("getting test-topic should fail because the topic shouldn't exists"))
-                .recover(throwable -> {
-                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
-                        LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
-                        return succeededFuture();
-                    }
-                    return failedFuture(throwable);
-                })
-                .compose(a -> {
-                    LOGGER.info("create topic: {}", TEST_TOPIC_NAME);
-                    return KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME);
-                })
-                .onSuccess(t -> {
-                    LOGGER.info("topic created: {}", TEST_TOPIC_NAME);
-                    topic = t;
-                })
-                .onComplete(context.succeedingThenComplete());
+        LOGGER.info("create or retrieve service account: {}", KAFKA_INSTANCE_NAME);
+        var account = await(ServiceAPIUtils.applyServiceAccount(serviceAPI, KAFKA_INSTANCE_NAME));
 
+        LOGGER.info("crete kafka consumer with group id: {}", TEST_GROUP_NAME);
+        var consumer = KafkaConsumerClient.createConsumer(vertx,
+                kafka.bootstrapServerHost,
+                account.clientID,
+                account.clientSecret,
+                TEST_GROUP_NAME);
 
-    }
+        LOGGER.info("subscribe to topic: {}", TEST_TOPIC_NAME);
+        consumer.subscribe(TEST_TOPIC_NAME);
+        consumer.handler(r -> {
+            // ignore
+        });
 
-    @Test
-    @Order(4)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testCreateExistingTopic(VertxTestContext context) {
-        assertKafkaAdminAPI();
-        assertTopic();
+        LOGGER.info("wait for consumer group to ");
 
-        KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME)
-                .compose(r -> failedFuture("Create existing topic should fail"))
-                .recover(throwable -> {
-                    if (throwable instanceof ResponseException) {
-                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_CONFLICT) {
-                            LOGGER.info("Existing topic cannot be created again : {}", TEST_TOPIC_NAME);
-                            return succeededFuture();
-                        }
-                    }
-                    return failedFuture(throwable);
-                })
-                .onComplete(context.succeedingThenComplete());
-    }
+        IsReady<Object> subscribed = last -> consumer.assignment().map(partitions -> {
+            var o = partitions.stream().filter(p -> p.getTopic().equals(TEST_TOPIC_NAME)).findAny();
+            return Pair.with(o.isPresent(), null);
+        });
+        await(waitFor(vertx, "consumer group to subscribe", Duration.ofSeconds(2), Duration.ofMinutes(2), subscribed));
 
-    @Test
-    @Order(4)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testGetTopicByName(VertxTestContext context) {
-        assertKafkaAdminAPI();
-        assertTopic();
-
-        kafkaAdminAPI.getTopic(TEST_TOPIC_NAME)
-                .onSuccess(t -> context.verify(() -> assertEquals(TEST_TOPIC_NAME, t.name)))
-                .onComplete(context.succeedingThenComplete());
-    }
-
-    @Test
-    @Order(4)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testGetNotExistingTopic(VertxTestContext context) {
-        assertKafkaAdminAPI();
-
-        kafkaAdminAPI.getTopic(TEST_NOT_EXISTING_TOPIC_NAME)
-                .compose(r -> failedFuture("Get none existing topic should fail"))
-                .recover(throwable -> {
-                    if (throwable instanceof ResponseException) {
-                        if (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                            LOGGER.info("Topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
-                            return succeededFuture();
-                        }
-                    }
-                    return failedFuture(throwable);
-                })
-                .onComplete(context.succeedingThenComplete());
-    }
-
-    @Test
-    @Order(4)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void tetGetAllTopics(VertxTestContext context) {
-        assertKafkaAdminAPI();
-        assertTopic();
-
-        kafkaAdminAPI.getAllTopics()
-                .onSuccess(topics -> context.verify(() -> {
-                    LOGGER.info("topics: {}", Json.encode(topics));
-                    List<Topic> filteredTopics = topics.items.stream()
-                            .filter(k -> k.name.equals(TEST_TOPIC_NAME))
-                            .collect(Collectors.toList());
-
-                    assertEquals(1, filteredTopics.size());
-                }))
-                .onComplete(context.succeedingThenComplete());
-    }
-
-
-    @Test
-    @Order(5)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testDeleteTopic(VertxTestContext context) {
-        assertKafkaAdminAPI();
-        assertTopic();
-
-        kafkaAdminAPI.deleteTopic(TEST_TOPIC_NAME)
-                .compose(r -> kafkaAdminAPI.getTopic(TEST_TOPIC_NAME))
-                .compose(r -> failedFuture("Getting test-topic should fail due to topic being deleted in current test"))
-                .recover(throwable -> {
-                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
-                        System.out.println(((ResponseException) throwable).response.bodyAsString());
-                        LOGGER.info("Topic not found : {}", TEST_TOPIC_NAME);
-                        return succeededFuture();
-                    }
-                    return failedFuture(throwable);
-                })
-                .onComplete(context.succeedingThenComplete());
-
-    }
-
-    @Test
-    @Order(5)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testDeleteNotExistingTopic(VertxTestContext context) {
-        assertKafkaAdminAPI();
-
-        kafkaAdminAPI.deleteTopic(TEST_NOT_EXISTING_TOPIC_NAME)
-                .compose(__ -> failedFuture("Deleting not existing topic should result in HTTP_NOT_FOUND response"))
-                .recover(throwable -> {
-                    if ((throwable instanceof ResponseException) && (((ResponseException) throwable).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND)) {
-                        LOGGER.info("Topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
-                        return succeededFuture();
-                    }
-                    return failedFuture(throwable);
-                })
-                .onComplete(context.succeedingThenComplete());
+        kafkaConsumer = consumer;
     }
 
     // TODO: current API version response to delete attempts with 401 response, which may change over time.
     @Test
-    @Order(3)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testGetAllConsumerGroups(VertxTestContext context) {
+    @Order(4)
+    void testGetAllConsumerGroups() throws Throwable {
         assertKafkaAdminAPI();
+        assertConsumerGroup();
 
-        kafkaAdminAPI.getAllConsumerGroups()
-                .onSuccess(groupResponse -> context.verify(() -> {
-                    // TODO: create a consumer and assert that the created consumer group exists
-                    int groupsCount = groupResponse.length;
-                    assertTrue(groupsCount >= 1);
-                }))
-                .onComplete(context.succeedingThenComplete());
-    }
+        var groups = await(kafkaAdminAPI.getAllConsumerGroups());
+        LOGGER.info("got consumer groups: {}", Json.encode(groups));
 
-    @Test
-    @Order(3)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testGetConsumerGroup(VertxTestContext context) {
-        assertKafkaAdminAPI();
-
-        kafkaAdminAPI.getConsumerGroup(TEST_ACTIVE_GROUP_NAME)
-                .onSuccess(consumerGroup -> context.verify(() -> {
-                    LOGGER.info("consumer group: {}", Json.encode(consumerGroup));
-                    assertEquals(consumerGroup.groupId, TEST_ACTIVE_GROUP_NAME);
-                    assertTrue(consumerGroup.consumers.size() > 0);
-                }))
-                .onComplete(context.succeedingThenComplete());
-    }
-
-    @Test
-    @Order(3)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testGetNotExistingConsumerGroup(VertxTestContext context) {
-        assertKafkaAdminAPI();
-
-        kafkaAdminAPI.getConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)
-                .compose(r -> failedFuture(message("consumer group '{}' shouldn't exists", TEST_NOT_EXISTING_GROUP_NAME)), t -> {
-                    if (t instanceof ResponseException) {
-                        if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                            LOGGER.info("consumer group '{}' doesn't exists", TEST_NOT_EXISTING_GROUP_NAME);
-                            return succeededFuture();
-                        }
-                    }
-                    return failedFuture(t);
-                })
-                .onComplete(context.succeedingThenComplete());
+        assertTrue(groups.items.size() >= 1);
     }
 
     @Test
     @Order(4)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testDeleteActiveConsumerGroup(VertxTestContext context) {
+    void testGetConsumerGroup() throws Throwable {
         assertKafkaAdminAPI();
+        assertConsumerGroup();
 
-        kafkaAdminAPI.deleteConsumerGroup(TEST_ACTIVE_GROUP_NAME)
-                .compose(r -> failedFuture("Deleting existing not empty group by name"), t -> {
-                    if (t instanceof ResponseException) {
-                        if (((ResponseException) t).response.statusCode() == 423) {
-                            LOGGER.info("Group isn't empty, thus cannot be deleted : {}", TEST_ACTIVE_GROUP_NAME);
-                            return succeededFuture();
-                        }
-                    }
-                    return failedFuture(t);
-                })
-                .onComplete(context.succeedingThenComplete());
+        var group = await(kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME));
+        LOGGER.info("consumer group: {}", Json.encode(group));
+
+        assertEquals(group.groupId, TEST_GROUP_NAME);
+        assertTrue(group.consumers.size() > 0);
     }
 
     @Test
-    @Order(3)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void testDeleteNotExistingConsumerGroup(VertxTestContext context) {
+    @Order(4)
+    void testGetNotExistingConsumerGroup() {
         assertKafkaAdminAPI();
 
-        kafkaAdminAPI.deleteConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)
-                .compose(r -> failedFuture("deleting group by not existing name"), t -> {
-                    if (t instanceof ResponseException) {
-                        if (((ResponseException) t).response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                            LOGGER.info("group doesn't exists and therefore it cannot be deleted: {}", TEST_NOT_EXISTING_TOPIC_NAME);
-                            return succeededFuture();
-                        }
-                    }
-                    return failedFuture(t);
-                })
-                .onComplete(context.succeedingThenComplete());
+        assertThrows(HTTPNotFoundException.class,
+                () -> await(kafkaAdminAPI.getConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)),
+                message("get consumer group '{}' should fail", TEST_NOT_EXISTING_GROUP_NAME));
+        LOGGER.info("consumer group '{}' doesn't exists", TEST_NOT_EXISTING_GROUP_NAME);
     }
 
-    // TODO: Tests delete group for real
+    @Test
+    @Order(4)
+    void testDeleteActiveConsumerGroup() {
+        assertKafkaAdminAPI();
+        assertConsumerGroup();
+
+        assertThrows(HTTPLockedException.class,
+                () -> await(kafkaAdminAPI.deleteConsumerGroup(TEST_GROUP_NAME)),
+                "deleting active consumer group should fail");
+        LOGGER.info("active consumer group cannot be deleted: {}", TEST_GROUP_NAME);
+    }
+
+    @Test
+    @Order(4)
+    void testDeleteNotExistingConsumerGroup() {
+        assertKafkaAdminAPI();
+
+        assertThrows(HTTPNotFoundException.class,
+                () -> await(kafkaAdminAPI.deleteConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)),
+                "deleting not existing consumer group should fail");
+        LOGGER.info("not existing consumer group cannot be deleted: {}", TEST_NOT_EXISTING_TOPIC_NAME);
+    }
+
+    @Test
+    @Order(5)
+    void testDeleteConsumerGroup() throws Throwable {
+        assertKafkaAdminAPI();
+        assertConsumerGroup();
+
+        LOGGER.info("close kafka consumer");
+        await(kafkaConsumer.close());
+
+        LOGGER.info("delete consumer group: {}", TEST_GROUP_NAME);
+        await(kafkaAdminAPI.deleteConsumerGroup(TEST_GROUP_NAME));
+
+        assertThrows(HTTPNotFoundException.class,
+                () -> await(kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME)),
+                message("consumer group '{}' should had been deleted", TEST_GROUP_NAME));
+    }
 }

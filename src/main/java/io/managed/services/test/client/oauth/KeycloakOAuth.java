@@ -2,7 +2,7 @@ package io.managed.services.test.client.oauth;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.client.BaseVertxClient;
-import io.managed.services.test.client.ResponseException;
+import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
