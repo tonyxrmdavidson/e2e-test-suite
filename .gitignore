@@ -6,5 +6,6 @@
 **/*.iml
 **/target/*
 .DS_STORE
+*.config.json
 config.json
 test-results/
