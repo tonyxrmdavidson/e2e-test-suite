@@ -224,8 +224,8 @@ public class KafkaAdminAPITest extends TestBase {
     void testStartConsumerGroup() throws Throwable {
         assertKafkaAdminAPI();
 
-        LOGGER.info("create or retrieve service account: {}", KAFKA_INSTANCE_NAME);
-        var account = await(ServiceAPIUtils.applyServiceAccount(serviceAPI, KAFKA_INSTANCE_NAME));
+        LOGGER.info("create or retrieve service account: {}", SERVICE_ACCOUNT_NAME);
+        var account = await(ServiceAPIUtils.applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME));
 
         LOGGER.info("crete kafka consumer with group id: {}", TEST_GROUP_NAME);
         var consumer = KafkaConsumerClient.createConsumer(vertx,
