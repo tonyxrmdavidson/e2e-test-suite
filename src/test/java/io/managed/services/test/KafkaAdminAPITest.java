@@ -251,7 +251,6 @@ public class KafkaAdminAPITest extends TestBase {
         kafkaConsumer = consumer;
     }
 
-    // TODO: current API version response to delete attempts with 401 response, which may change over time.
     @Test
     @Order(4)
     void testGetAllConsumerGroups() throws Throwable {
