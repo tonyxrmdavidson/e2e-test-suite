@@ -121,6 +121,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         var bootstrapServerHost = kafka.bootstrapServerHost;
         kafkaAdminAPI = await(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapServerHost));
+
     }
 
     @Test

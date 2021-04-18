@@ -13,4 +13,5 @@ public class TestTag {
     public static final String CLI = "cli";
     public static final String KAFKA_ADMIN_API = "kafka-admin-api";
     public static final String SMOKE = "smoke";
+
 }
