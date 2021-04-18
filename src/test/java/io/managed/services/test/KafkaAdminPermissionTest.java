@@ -80,7 +80,7 @@ public class KafkaAdminPermissionTest {
     }
 
     @AfterAll
-    void teardown2(VertxTestContext context) {
+    void teardown(VertxTestContext context) {
         // close KafkaAdmin
         if (admin != null) admin.close();
         // delete service account
@@ -100,11 +100,9 @@ public class KafkaAdminPermissionTest {
                     serviceAPI = serviceApiResponse;
                     return bootstrapKafkaInstance(vertx);
                 })
-                .compose(fucker -> {
-                    {
-                        LOGGER.info("service api created, kafka instance created/connected");
-                        return applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME);
-                    }
+                .compose(__ -> {
+                    LOGGER.info("service api created, kafka instance created/connected");
+                    return applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME);
                 })
                 .onSuccess(response -> {
                     LOGGER.info("service api created, kafka instance created/connected");
