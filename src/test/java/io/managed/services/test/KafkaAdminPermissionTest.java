@@ -79,7 +79,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     }
 
     @BeforeAll
-    void bootstrap(Vertx vertx, VertxTestContext context) throws InterruptedException {
+    void bootstrap(Vertx vertx, VertxTestContext context) {
         serviceAPI(vertx)
             .onSuccess(a -> serviceAPI = a)
             .onComplete(context.succeedingThenComplete());
