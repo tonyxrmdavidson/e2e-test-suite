@@ -64,8 +64,8 @@ public class KafkaAdminAPITest extends TestBase {
     static final String TEST_NOT_EXISTING_GROUP_NAME = "not-existing-group";
 
 
-    @Timeout(value = 3, unit = TimeUnit.MINUTES)
     @BeforeAll
+    @Timeout(value = 10, unit = TimeUnit.MINUTES)
     void bootstrap() throws Throwable {
         serviceAPI = await(ServiceAPIUtils.serviceAPI(vertx));
         LOGGER.info("service api initialized");
