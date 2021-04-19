@@ -22,6 +22,7 @@ TESTCASE=${TESTCASE:-${TESTCASE_DEFAULT}}
 REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE:-"false"}
 REPORTPORTAL_ENDPOINT=${REPORTPORTAL_ENDPOINT:-"https://reportportal-cloud-services.apps.ocp4.prod.psi.redhat.com"}
 REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
+REPORTPORTAL_LAUNCH=${REPORTPORTAL_LAUNCH:-"mk-e2e-test-suite"}
 ENABLE_TEST=${ENABLE_TEST:-"true"}
 
 # Help
@@ -97,5 +98,6 @@ exec mvn verify \
   "-Drp.enable=${REPORTPORTAL_ENABLE}" \
   "-Drp.endpoint=${REPORTPORTAL_ENDPOINT}" \
   "-Drp.api.key=${REPORTPORTAL_UUID}" \
+  "-Drp.launch=${REPORTPORTAL_LAUNCH}" \
   "-Drp.description=Build: ${BUILD_URL:-"null"}" \
   --no-transfer-progress
