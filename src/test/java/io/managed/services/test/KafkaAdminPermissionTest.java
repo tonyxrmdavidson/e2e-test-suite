@@ -4,7 +4,6 @@ import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -23,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.MethodOrderer;
@@ -31,7 +29,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -39,19 +36,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-
-
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.serviceAPI;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.serviceAPI;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.KAFKA_ADMIN_PERMISSIONS)
 @ExtendWith(VertxExtension.class)
+@Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class KafkaAdminPermissionTest {
+public class KafkaAdminPermissionTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminPermissionTest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-pe-" + Environment.KAFKA_POSTFIX_NAME;
@@ -67,59 +62,27 @@ public class KafkaAdminPermissionTest {
     String topic;
 
 
-    private Future<KafkaResponse> bootstrapKafkaInstance(Vertx vertx) {
-        return applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME)
-                .onSuccess(k -> {
-                    LOGGER.info("kafka instance connected/created ");
-                    kafka = k;
-                })
-                .onFailure(r -> {
-                    LOGGER.error("kafka instance connection/creation problem");
-                });
-
-    }
-
     @AfterAll
     void teardown(VertxTestContext context) {
         // close KafkaAdmin
         if (admin != null) admin.close();
-        // delete service account
 
         assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
 
-        // delete kafka instance
-        ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, KAFKA_INSTANCE_NAME)
-                .onComplete(context.succeedingThenComplete());
-    }
-    @BeforeAll
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void bootstrap(Vertx vertx, VertxTestContext context) {
-        serviceAPI(vertx)
-                .compose(serviceApiResponse -> {
-                    LOGGER.info("service api created");
-                    serviceAPI = serviceApiResponse;
-                    return bootstrapKafkaInstance(vertx);
-                })
-                .compose(__ -> {
-                    LOGGER.info("service api created, kafka instance created/connected");
-                    return applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME);
-                })
-                .onSuccess(response -> {
-                    LOGGER.info("service api created, kafka instance created/connected");
-                    ServiceAccount serviceAccount = response;
-                    String bootstrapHost = kafka.bootstrapServerHost;
-                    String clientID = serviceAccount.clientID;
-                    String clientSecret = serviceAccount.clientSecret;
-                    admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
-                })
-                .onComplete(context.succeedingThenComplete());
+        // delete service account
+        ServiceAPIUtils.deleteServiceAccountByNameIfExists(serviceAPI, SERVICE_ACCOUNT_NAME)
 
-        // waiting before allowing next text to start
-        try {
-            context.awaitCompletion(8, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            // delete kafka instance
+            .compose(__ -> ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, KAFKA_INSTANCE_NAME))
+
+            .onComplete(context.succeedingThenComplete());
+    }
+
+    @BeforeAll
+    void bootstrap(Vertx vertx, VertxTestContext context) throws InterruptedException {
+        serviceAPI(vertx)
+            .onSuccess(a -> serviceAPI = a)
+            .onComplete(context.succeedingThenComplete());
     }
 
     void assertAPI() {
@@ -132,6 +95,30 @@ public class KafkaAdminPermissionTest {
 
     void assertKafka() {
         assumeTrue(kafka != null, "kafka is null because the testPresenceOfLongLiveKafkaInstance has failed to create the Kafka instance");
+    }
+
+    @Test
+    @Order(0)
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
+    void testBootstrapKafkaAdmin(Vertx vertx, VertxTestContext context) {
+
+        applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME)
+            .compose(k -> {
+                LOGGER.info("kafka instance connected/created: {}", k.name);
+                kafka = k;
+
+                return applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME);
+            })
+
+            .onSuccess(serviceAccount -> {
+                LOGGER.info("service account created/connected: {}", serviceAccount.name);
+                String bootstrapHost = kafka.bootstrapServerHost;
+                String clientID = serviceAccount.clientID;
+                String clientSecret = serviceAccount.clientSecret;
+                admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+            })
+
+            .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -148,6 +135,7 @@ public class KafkaAdminPermissionTest {
                 })
                 .onComplete(context.succeedingThenComplete());
     }
+
     @Test
     @Order(2)
     void testTopicList(VertxTestContext context) {
@@ -453,7 +441,6 @@ public class KafkaAdminPermissionTest {
 
     @Test
     @Order(2)
-
     void testDeleteRecord(VertxTestContext context) {
         assertAPI();
         assertKafka();
@@ -576,6 +563,4 @@ public class KafkaAdminPermissionTest {
                     })
                 .onComplete(context.succeedingThenComplete());
     }
-
-
 }
