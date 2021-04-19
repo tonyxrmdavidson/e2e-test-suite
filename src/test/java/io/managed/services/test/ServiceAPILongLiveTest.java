@@ -23,8 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.TestUtils.message;
@@ -58,8 +60,8 @@ class ServiceAPILongLiveTest extends TestBase {
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         ServiceAPIUtils.serviceAPI(vertx)
-                .onSuccess(a -> api = a)
-                .onComplete(context.succeedingThenComplete());
+            .onSuccess(a -> api = a)
+            .onComplete(context.succeedingThenComplete());
     }
 
     void assertAPI() {
@@ -86,29 +88,29 @@ class ServiceAPILongLiveTest extends TestBase {
 
         LOGGER.info("get kafka instance for name: {}", KAFKA_INSTANCE_NAME);
         getKafkaByName(api, KAFKA_INSTANCE_NAME)
-                .compose(o -> o.map(Future::succeededFuture).orElseGet(() -> {
-                    LOGGER.error("kafka is not present: {}", KAFKA_INSTANCE_NAME);
+            .compose(o -> o.map(Future::succeededFuture).orElseGet(() -> {
+                LOGGER.error("kafka is not present: {}", KAFKA_INSTANCE_NAME);
 
-                    LOGGER.info("try to recreate the kafka instance: {}", KAFKA_INSTANCE_NAME);
-                    // Create Kafka Instance
-                    var kafkaPayload = new CreateKafkaPayload();
-                    kafkaPayload.name = KAFKA_INSTANCE_NAME;
-                    kafkaPayload.multiAZ = true;
-                    kafkaPayload.cloudProvider = "aws";
-                    kafkaPayload.region = "us-east-1";
+                LOGGER.info("try to recreate the kafka instance: {}", KAFKA_INSTANCE_NAME);
+                // Create Kafka Instance
+                var kafkaPayload = new CreateKafkaPayload();
+                kafkaPayload.name = KAFKA_INSTANCE_NAME;
+                kafkaPayload.multiAZ = true;
+                kafkaPayload.cloudProvider = "aws";
+                kafkaPayload.region = "us-east-1";
 
-                    LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-                    return api.createKafka(kafkaPayload, true)
-                            .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id))
-                            .onSuccess(k -> kafka = k)
-                            .compose(__ -> Future.failedFuture(message("for some reason the long living kafka instance with name: {} didn't exists anymore but we have recreate it", KAFKA_INSTANCE_NAME)));
-                }))
-                .onSuccess(k -> {
-                    kafka = k;
-                    LOGGER.info("kafka is present :{} and created at: {}", KAFKA_INSTANCE_NAME, kafka.createdAt);
-                })
+                LOGGER.info("create kafka instance: {}", kafkaPayload.name);
+                return api.createKafka(kafkaPayload, true)
+                    .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id))
+                    .onSuccess(k -> kafka = k)
+                    .compose(__ -> Future.failedFuture(message("for some reason the long living kafka instance with name: {} didn't exists anymore but we have recreate it", KAFKA_INSTANCE_NAME)));
+            }))
+            .onSuccess(k -> {
+                kafka = k;
+                LOGGER.info("kafka is present :{} and created at: {}", KAFKA_INSTANCE_NAME, kafka.createdAt);
+            })
 
-                .onComplete(context.succeedingThenComplete());
+            .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -118,28 +120,56 @@ class ServiceAPILongLiveTest extends TestBase {
 
         LOGGER.info("get service account by name: {}", SERVICE_ACCOUNT_NAME);
         getServiceAccountByName(api, SERVICE_ACCOUNT_NAME)
-                .compose(o -> o.map(s -> Future.succeededFuture(s)).orElseGet(() -> {
-                    LOGGER.error("service account is not present: {}", SERVICE_ACCOUNT_NAME);
+            .compose(o -> o.map(s -> Future.succeededFuture(s)).orElseGet(() -> {
+                LOGGER.error("service account is not present: {}", SERVICE_ACCOUNT_NAME);
 
-                    LOGGER.info("try to recreate the service account: {}", SERVICE_ACCOUNT_NAME);
-                    // Create Service Account
-                    var serviceAccountPayload = new CreateServiceAccountPayload();
-                    serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
+                LOGGER.info("try to recreate the service account: {}", SERVICE_ACCOUNT_NAME);
+                // Create Service Account
+                var serviceAccountPayload = new CreateServiceAccountPayload();
+                serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
 
-                    LOGGER.info("create service account: {}", serviceAccountPayload.name);
-                    return api.createServiceAccount(serviceAccountPayload)
-                            .onSuccess(s -> serviceAccount = s)
-                            .compose(__ -> Future.failedFuture(message("for some reason the long living service account with name: {} didn't exists anymore but we have recreate it", SERVICE_ACCOUNT_NAME)));
-                }))
+                LOGGER.info("create service account: {}", serviceAccountPayload.name);
+                return api.createServiceAccount(serviceAccountPayload)
+                    .onSuccess(s -> serviceAccount = s)
+                    .compose(__ -> Future.failedFuture(message("for some reason the long living service account with name: {} didn't exists anymore but we have recreate it", SERVICE_ACCOUNT_NAME)));
+            }))
 
-                .compose(s -> {
+            .compose(s -> {
 
-                    LOGGER.info("reset credentials for service account: {}", SERVICE_ACCOUNT_NAME);
-                    return api.resetCredentialsServiceAccount(s.id);
-                })
-                .onSuccess(s -> serviceAccount = s)
+                LOGGER.info("reset credentials for service account: {}", SERVICE_ACCOUNT_NAME);
+                return api.resetCredentialsServiceAccount(s.id);
+            })
+            .onSuccess(s -> serviceAccount = s)
 
-                .onComplete(context.succeedingThenComplete());
+            .onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Order(3)
+    void testCleanAdditionalServiceAccounts(VertxTestContext context) {
+        assertAPI();
+
+        var deleted = new ArrayList<String>();
+
+        LOGGER.info("get all service accounts");
+        api.getListOfServiceAccounts()
+            .map(accounts -> accounts.items.stream()
+                .filter(a -> a.owner.equals(Environment.SSO_USERNAME))
+                .filter(a -> !a.name.equals(SERVICE_ACCOUNT_NAME))
+                .collect(Collectors.toList()))
+            .compose(accounts -> forEach(accounts.iterator(), a -> {
+                LOGGER.warn("delete service account: {}", a);
+                return api.deleteServiceAccount(a.id)
+                    .onSuccess(__ -> deleted.add(a.name));
+            }))
+
+            .compose(__ -> {
+                if (!deleted.isEmpty()) {
+                    return Future.failedFuture(message("deleted {} service account that shouldn't exists: {}", deleted.size(), deleted));
+                }
+                return Future.succeededFuture();
+            })
+            .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -158,16 +188,16 @@ class ServiceAPILongLiveTest extends TestBase {
         LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
         KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost)
 
-                .compose(api -> {
-                    LOGGER.info("apply topics: {}", topics);
-                    return applyTopics(api, topics);
-                })
-                .onSuccess(__ -> topic = true)
-                .onSuccess(missingTopics -> context.verify(() -> {
-                    // log failure if we had to recreate some topics
-                    assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
-                }))
-                .onComplete(context.succeedingThenComplete());
+            .compose(api -> {
+                LOGGER.info("apply topics: {}", topics);
+                return applyTopics(api, topics);
+            })
+            .onSuccess(__ -> topic = true)
+            .onSuccess(missingTopics -> context.verify(() -> {
+                // log failure if we had to recreate some topics
+                assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
+            }))
+            .onComplete(context.succeedingThenComplete());
     }
 
 
