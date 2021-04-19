@@ -8,9 +8,11 @@ package io.managed.services.test.framework;
 public class TestTag {
 
     public static final String SERVICE_API = "service-api";
+    public static final String KAFKA_ADMIN_PERMISSIONS = "kafka-admin-permissions";
     public static final String SERVICE_API_PERMISSIONS = "service-api-permissions";
     public static final String BINDING_OPERATOR = "binding-operator";
     public static final String CLI = "cli";
     public static final String KAFKA_ADMIN_API = "kafka-admin-api";
     public static final String SMOKE = "smoke";
+
 }
