@@ -155,6 +155,28 @@ public class ServiceAPIUtils {
     }
 
     /**
+     * Delete Service Account by owner if it exists
+     *
+     * @param api   ServiceAPI
+     * @param owner Service Account name
+     * @return Future<Void>
+     */
+    public static Future<Void> deleteServiceAccountsByOwnerIfExists(ServiceAPI api, String owner) {
+        return api.getListOfServiceAccounts()
+                // delete all service accounts with the same name
+                .map(r -> r.items.stream()
+                        .filter(a -> a.owner.equals(owner))
+                        .map(a -> {
+                            LOGGER.info("clean service account: {}", a.id);
+                            return (Future) api.deleteServiceAccount(a.id);
+                        })
+                        .collect(Collectors.toList())
+                )
+                .compose(l -> CompositeFuture.join(l))
+                .compose(__ -> Future.succeededFuture());
+    }
+
+    /**
      * Function that returns kafkaResponse only if status is in ready
      *
      * @param vertx   Vertx
