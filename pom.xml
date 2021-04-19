@@ -271,7 +271,7 @@
         <profile>
             <id>default</id>
             <properties>
-                <groups>service-api,service-api-permissions,binding-operator,cli,kafka-admin-api</groups>
+                <groups>service-api,service-api-permissions,binding-operator,cli,kafka-admin-api,kafka-admin-permissions</groups>
             </properties>
         </profile>
         <profile>
