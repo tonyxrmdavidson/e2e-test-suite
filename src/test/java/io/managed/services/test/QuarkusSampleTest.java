@@ -15,7 +15,6 @@ import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
@@ -33,7 +32,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -185,7 +183,9 @@ public class QuarkusSampleTest extends TestBase {
                 .map(__ -> null);
     }
 
-    @BeforeAll
+    @Test
+    @Order(0)
+    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
     void bootstrap(VertxTestContext context) {
         assertENVs();
 
@@ -303,7 +303,6 @@ public class QuarkusSampleTest extends TestBase {
             LOGGER.error("collectQuarkusAppLogs error: ", e);
         }
 
-
         try {
             cleanAccessTokenSecret();
         } catch (Exception e) {
@@ -321,7 +320,6 @@ public class QuarkusSampleTest extends TestBase {
         } catch (Exception e) {
             LOGGER.error("cleanServiceBinding error: ", e);
         }
-
 
         try {
             cleanQuarkusSampleApp();
@@ -369,11 +367,6 @@ public class QuarkusSampleTest extends TestBase {
         vertx.fileSystem().writeFile(kubeconfgipath, Buffer.buffer(config))
 
                 .compose(__ -> {
-                    LOGGER.info("retrieve long living kafka instance id");
-                    return ServiceAPIUtils.getKafkaByName(api, KAFKA_INSTANCE_NAME).map(o -> o.orElseThrow());
-                })
-
-                .compose(kafka -> {
                     LOGGER.info("cli use kafka instance: {}", kafka.id);
                     return cli.useKafka(kafka.id);
                 })

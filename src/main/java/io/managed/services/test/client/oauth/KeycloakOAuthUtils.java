@@ -1,5 +1,6 @@
 package io.managed.services.test.client.oauth;
 
+import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -67,6 +68,10 @@ public class KeycloakOAuthUtils {
         MultiMap f = MultiMap.caseInsensitiveMultiMap();
         f.add("username", username);
         f.add("password", password);
+
+        if (actionURI == null || actionURI.isBlank()) {
+            return Future.failedFuture(ResponseException.httpException("action URI not found", response));
+        }
 
         LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
         return session.postAbs(actionURI).sendForm(f);
