@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -45,21 +45,29 @@ public class CLI {
         return this.workdir;
     }
 
-    private ProcessBuilder builder(String... command) {
+    private ProcessBuilder builder(List<String> command) {
         var cmd = new ArrayList<String>();
         cmd.add(this.cmd);
         cmd.add("-d");
-        cmd.addAll(Arrays.asList(command));
+        cmd.addAll(command);
 
         return new ProcessBuilder(cmd)
-                .directory(new File(workdir));
+            .directory(new File(workdir));
     }
 
     private Future<Process> exec(String... command) {
+        return exec(List.of(command));
+    }
+
+    private Future<Process> exec(List<String> command) {
         return execAsync(command).compose(c -> c.future(DEFAULT_TIMEOUT));
     }
 
     private Future<AsyncProcess> execAsync(String... command) {
+        return execAsync(List.of(command));
+    }
+
+    private Future<AsyncProcess> execAsync(List<String> command) {
         try {
             return Future.succeededFuture(new AsyncProcess(vertx, builder(command).start()));
         } catch (IOException e) {
@@ -71,8 +79,30 @@ public class CLI {
      * This method only starts the CLI login, use CLIUtils.login instead of this method
      * to login using username and password
      */
+    public Future<AsyncProcess> login(String apiGateway, String authURL, String masAuthURL) {
+
+        List<String> cmd = new ArrayList<>();
+        cmd.add("login");
+
+        if (apiGateway != null) {
+            cmd.addAll(List.of("--api-gateway", apiGateway));
+        }
+
+        if (authURL != null) {
+            cmd.addAll(List.of("--auth-url", authURL));
+        }
+
+        if (masAuthURL != null) {
+            cmd.addAll(List.of("--mas-auth-url", masAuthURL));
+        }
+
+        cmd.add("--print-sso-url");
+
+        return execAsync(cmd);
+    }
+
     public Future<AsyncProcess> login() {
-        return execAsync("login", "--print-sso-url");
+        return login(null, null, null);
     }
 
     public Future<Process> logout() {
@@ -81,7 +111,7 @@ public class CLI {
 
     public Future<String> help() {
         return exec("--help")
-                .map(p -> stdout(p));
+            .map(p -> stdout(p));
     }
 
     public Future<Process> listKafka() {
@@ -90,7 +120,7 @@ public class CLI {
 
     public Future<KafkaResponse> createKafka(String name) {
         return retry(() -> exec("kafka", "create", name)
-                .map(p -> stdoutAsJson(p, KafkaResponse.class)));
+            .map(p -> stdoutAsJson(p, KafkaResponse.class)));
     }
 
     public Future<Process> deleteKafka(String id) {
@@ -99,7 +129,7 @@ public class CLI {
 
     public Future<KafkaResponse> describeKafka(String id) {
         return retry(() -> exec("kafka", "describe", "--id", id)
-                .map(p -> stdoutAsJson(p, KafkaResponse.class)));
+            .map(p -> stdoutAsJson(p, KafkaResponse.class)));
     }
 
     public Future<Process> useKafka(String id) {
@@ -108,19 +138,19 @@ public class CLI {
 
     public Future<KafkaListResponse> listKafkaAsJson() {
         return retry(() -> exec("kafka", "list", "-o", "json")
-                .map(p -> stdoutAsJson(p, KafkaListResponse.class)));
+            .map(p -> stdoutAsJson(p, KafkaListResponse.class)));
     }
 
     public Future<KafkaListResponse> listKafkaByNameAsJson(String name) {
         return retry(() -> exec("kafka", "list", "--search", name, "-o", "json")
-                .map(p -> ProcessUtils.stderr(p).contains("No Kafka instances were found") ?
-                        new KafkaListResponse() :
-                        stdoutAsJson(p, KafkaListResponse.class)));
+            .map(p -> ProcessUtils.stderr(p).contains("No Kafka instances were found") ?
+                new KafkaListResponse() :
+                stdoutAsJson(p, KafkaListResponse.class)));
     }
 
     public Future<ServiceAccountList> listServiceAccountAsJson() {
         return retry(() -> exec("serviceaccount", "list", "-o", "json")
-                .map(p -> stdoutAsJson(p, ServiceAccountList.class)));
+            .map(p -> stdoutAsJson(p, ServiceAccountList.class)));
     }
 
     public Future<Process> deleteServiceAccount(String id) {
@@ -141,17 +171,17 @@ public class CLI {
 
     public Future<TopicListResponse> listTopics() {
         return retry(() -> exec("kafka", "topic", "list", "-o", "json")
-                .map(p -> stdoutAsJson(p, TopicListResponse.class)));
+            .map(p -> stdoutAsJson(p, TopicListResponse.class)));
     }
 
     public Future<TopicResponse> describeTopic(String topicName) {
         return retry(() -> exec("kafka", "topic", "describe", topicName, "-o", "json")
-                .map(p -> stdoutAsJson(p, TopicResponse.class)));
+            .map(p -> stdoutAsJson(p, TopicResponse.class)));
     }
 
     public Future<TopicResponse> updateTopic(String topicName, String retentionTime) {
         return retry(() -> exec("kafka", "topic", "update", topicName, "--retention-ms", retentionTime, "-o", "json")
-                .map(p -> stdoutAsJson(p, TopicResponse.class)));
+            .map(p -> stdoutAsJson(p, TopicResponse.class)));
     }
 
     public Future<Process> connectCluster(String token, String kubeconfig) {
@@ -169,7 +199,7 @@ public class CLI {
 
             // retry the CLI call
             return sleep(vertx, ofSeconds(1))
-                    .compose(r -> retry(call, attempts - 1));
+                .compose(r -> retry(call, attempts - 1));
         };
 
         return call.get().recover(t -> {

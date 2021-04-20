@@ -84,8 +84,11 @@ public class CLIUtils {
 
     public static Future<Void> login(Vertx vertx, CLI cli, String username, String password) {
 
+        var authURL = String.format("%s/auth/realms/%s", Environment.SSO_REDHAT_KEYCLOAK_URI, Environment.SSO_REDHAT_REALM);
+        var masAuthURL = String.format("%s/auth/realms/%s", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI, Environment.MAS_SSO_REDHAT_REALM);
+
         LOGGER.info("start CLI login with username: {}", username);
-        return cli.login()
+        return cli.login(Environment.SERVICE_API_URI, authURL, masAuthURL)
                 .compose(process -> {
 
                     var oauth2 = new KeycloakOAuth(vertx);
