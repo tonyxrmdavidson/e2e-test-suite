@@ -19,6 +19,7 @@ import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.operator.ServiceBinding;
+import io.managed.services.test.operator.ServiceBindingApplication;
 import io.managed.services.test.operator.ServiceBindingSpec;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -102,7 +103,7 @@ public class QuarkusSampleTest extends TestBase {
     OpenShiftClient oc;
     KafkaResponse kafka;
     Route route;
-
+    ServiceBinding binding;
 
     private void assertBootstrap() {
         assumeTrue(cli != null, "cli is null because the bootstrap has failed");
@@ -114,6 +115,10 @@ public class QuarkusSampleTest extends TestBase {
 
     private void assertRoute() {
         assumeTrue(route != null, "route is null because the testDeployQuarkusSampleApp has failed");
+    }
+
+    private void assertBinding() {
+        assumeTrue(binding != null, "binding is null because the testCreateServiceBinding has failed");
     }
 
     private static InputStream getResource(String path) {
@@ -412,12 +417,12 @@ public class QuarkusSampleTest extends TestBase {
 
     @Test
     @Order(3)
-    void testDeployServiceBinding() {
+    void testCreateServiceBinding(VertxTestContext context) {
         assertBootstrap();
 
         cleanServiceBinding();
 
-        var application = new ServiceBindingSpec.Application();
+        var application = new ServiceBindingApplication();
         application.group = "apps";
         application.name = APP_DEPLOYMENT_NAME;
         application.resource = "deployments";
@@ -434,15 +439,51 @@ public class QuarkusSampleTest extends TestBase {
         spec.bindAsFiles = true;
         spec.services = List.of(service);
 
-        var binding = new ServiceBinding();
-        binding.setMetadata(new ObjectMeta());
-        binding.getMetadata().setName(SERVICE_BINDING_NAME);
-        binding.setSpec(spec);
+        var sb = new ServiceBinding();
+        sb.setMetadata(new ObjectMeta());
+        sb.getMetadata().setName(SERVICE_BINDING_NAME);
+        sb.setSpec(spec);
 
-        LOGGER.info("deploy service binding");
-        LOGGER.info("json: {}", Json.encode(binding));
-        binding = OperatorUtils.serviceBinding(oc).createOrReplace(binding);
-        LOGGER.info("service binding created: {}", binding);
+        IsReady<Object> serviceBindingIsDeleted = last -> {
+            var b = OperatorUtils.serviceBinding(oc).withName(SERVICE_BINDING_NAME).get();
+
+            if (last) {
+                LOGGER.warn("last service binding is: {}", Json.encode(b));
+            }
+            return succeededFuture(Pair.with(b == null, null));
+        };
+
+        IsReady<ServiceBinding> serviceBindingIsReady = last -> {
+            var b = OperatorUtils.serviceBinding(oc).withName(SERVICE_BINDING_NAME).get();
+
+            if (b == null) {
+                return failedFuture(message("the service binding CR doesn't exists anymore: {}", SERVICE_BINDING_NAME));
+            }
+            if (last) {
+                LOGGER.warn("last service binding is: {}", Json.encode(b));
+            }
+
+            var isReady = b.getStatus().conditions.stream()
+                .filter(c -> c.type.equals("Ready"))
+                .findAny()
+                .map(c -> c.status.equals("True"))
+                .orElse(false);
+            return succeededFuture(Pair.with(isReady, b));
+        };
+
+
+        waitFor(vertx, "service binding to be deleted", ofSeconds(3), ofMinutes(1), serviceBindingIsDeleted)
+
+            .compose(__ -> {
+
+                LOGGER.info("create service binding: {}", Json.encode(sb));
+                OperatorUtils.serviceBinding(oc).create(sb);
+
+                return waitFor(vertx, "service binding to be ready", ofSeconds(3), ofMinutes(1), serviceBindingIsReady)
+                    .onSuccess(b -> binding = b);
+            })
+
+            .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -450,6 +491,7 @@ public class QuarkusSampleTest extends TestBase {
     void testQuarkusSampleApp(VertxTestContext context) {
         assertBootstrap();
         assertRoute();
+        assertBinding();
 
         var endpoint = String.format("https://%s", route.getSpec().getHost());
         var client = new QuarkusSample(vertx, endpoint);

@@ -41,11 +41,11 @@ public class TestUtils {
      * @return A Future that will be completed once the lambda function returns true
      */
     public static <T> Future<T> waitFor(
-            Vertx vertx,
-            String description,
-            Duration interval,
-            Duration timeout,
-            IsReady<T> isReady) {
+        Vertx vertx,
+        String description,
+        Duration interval,
+        Duration timeout,
+        IsReady<T> isReady) {
 
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
         Exception e = new Exception(String.format("timeout after %s waiting for %s", timeout.toString(), description));
@@ -55,31 +55,31 @@ public class TestUtils {
     }
 
     static <T> Future<T> waitFor(
-            Vertx vertx,
-            String description,
-            Duration interval,
-            Instant deadline,
-            Exception timeout,
-            IsReady<T> isReady) {
+        Vertx vertx,
+        String description,
+        Duration interval,
+        Instant deadline,
+        Exception timeout,
+        IsReady<T> isReady) {
 
         boolean last = Instant.now().isAfter(deadline);
 
         LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
         return isReady.apply(last)
-                .compose(r -> {
-                    if (r.getValue0()) {
-                        return Future.succeededFuture(r.getValue1());
-                    }
+            .compose(r -> {
+                if (r.getValue0()) {
+                    return Future.succeededFuture(r.getValue1());
+                }
 
-                    // if the last request after the timeout didn't succeed fail with the timeout error
-                    if (last) {
-                        LOGGER.error(ExceptionUtils.readStackTrace(timeout));
-                        return Future.failedFuture(timeout);
-                    }
+                // if the last request after the timeout didn't succeed fail with the timeout error
+                if (last) {
+                    LOGGER.error(ExceptionUtils.readStackTrace(timeout));
+                    return Future.failedFuture(timeout);
+                }
 
-                    return sleep(vertx, interval)
-                            .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
-                });
+                return sleep(vertx, interval)
+                    .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
+            });
     }
 
     /**
@@ -120,7 +120,7 @@ public class TestUtils {
         }
 
         return action.apply(iterator.next())
-                .compose(r -> forEach(iterator, action));
+            .compose(r -> forEach(iterator, action));
     }
 
 
@@ -187,7 +187,7 @@ public class TestUtils {
     /**
      * DON'T USE IT ANYWHERE ELSE THAN IN A TEST METHOD
      * DO NOT USE IT IN COMBINATION WITH THE VERT.X TestContext
-     *
+     * <p>
      * The reason why we use Vert.x is to perform parallel operation without keep a Thread in hostage,
      * but this await method will keep the Thread in hostage until the Vert.x Future is not completed,
      * which means that parallelize operations that use this await method will require multiple Threads.

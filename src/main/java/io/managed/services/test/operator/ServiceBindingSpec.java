@@ -6,17 +6,9 @@ import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ServiceBindingSpec {
-    public Application application;
+    public ServiceBindingApplication application;
     public boolean bindAsFiles;
     public List<Service> services;
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Application {
-        public String group;
-        public String name;
-        public String resource;
-        public String version;
-    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Service {
