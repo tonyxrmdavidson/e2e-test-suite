@@ -8,13 +8,6 @@
     <artifactId>mk-e2e-test-suite</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <repositories>
-        <repository>
-            <id>bintray</id>
-            <url>http://dl.bintray.com/epam/reportportal</url>
-        </repository>
-    </repositories>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <minimum-maven-version>3.3.1</minimum-maven-version>
@@ -162,7 +155,7 @@
         <dependency>
             <groupId>com.epam.reportportal</groupId>
             <artifactId>agent-java-junit5</artifactId>
-            <version>5.0.4</version>
+            <version>5.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.epam.reportportal</groupId>
