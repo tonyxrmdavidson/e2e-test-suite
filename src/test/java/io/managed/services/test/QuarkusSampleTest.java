@@ -87,6 +87,8 @@ public class QuarkusSampleTest extends TestBase {
     private static final String APP_DEPLOYMENT_NAME = "rhoas-kafka-quickstart-example";
     private static final String APP_ROUTE_NAME = "rhoas-kafka-quickstart-example";
 
+    private static final String TEST_LOGS_PATH = Environment.LOG_DIR.resolve("test-logs").toString();
+
     private void assertENVs() {
         assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
         assumeTrue(Environment.SSO_PASSWORD != null, "the SSO_PASSWORD env is null");
@@ -207,9 +209,27 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     private void collectQuarkusAppLogs(ExtensionContext context) throws IOException {
+
+        // save Deployment
+        var d = oc.apps().deployments().withName(APP_DEPLOYMENT_NAME).get();
+        LogCollector.saveObject(TestUtils.getLogPath(TEST_LOGS_PATH, context), d);
+
+        // save Deployment logs
         LogCollector.saveDeploymentLog(
-            TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
+            TestUtils.getLogPath(TEST_LOGS_PATH, context),
             oc, Environment.DEV_CLUSTER_NAMESPACE, APP_DEPLOYMENT_NAME);
+    }
+
+    private void collectKafkaConnection(ExtensionContext context) throws IOException {
+        // save KafkaConnection CR before delete it
+        var c = OperatorUtils.kafkaConnection(oc).withName(KAFKA_INSTANCE_NAME).get();
+        LogCollector.saveObject(TestUtils.getLogPath(TEST_LOGS_PATH, context), c);
+    }
+
+    private void collectServiceBinding(ExtensionContext context) throws IOException {
+        // save KafkaConnection CR before delete it
+        var b = OperatorUtils.serviceBinding(oc).withName(SERVICE_BINDING_NAME).get();
+        LogCollector.saveObject(TestUtils.getLogPath(TEST_LOGS_PATH, context), b);
     }
 
     private void cleanAccessTokenSecret() {
@@ -318,6 +338,16 @@ public class QuarkusSampleTest extends TestBase {
             collectQuarkusAppLogs(extensionContext);
         } catch (Exception e) {
             LOGGER.error("collectQuarkusAppLogs error: ", e);
+        }
+        try {
+            collectKafkaConnection(extensionContext);
+        } catch (Exception e) {
+            LOGGER.error("collectKafkaConnection error: ", e);
+        }
+        try {
+            collectServiceBinding(extensionContext);
+        } catch (Exception e) {
+            LOGGER.error("collectServiceBinding error: ", e);
         }
 
         try {
