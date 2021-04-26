@@ -113,7 +113,7 @@ public class KeycloakOAuth {
         return login(authURI, redirectURI, username, password)
                 .compose(r -> authenticateUser(oauth2, redirectURI, r))
                 .map(u -> {
-                    LOGGER.info("authentication completed; access_token={}", getToken(u));
+                    LOGGER.info("authentication completed");
                     return u;
                 });
     }
