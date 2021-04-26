@@ -23,6 +23,7 @@ import io.managed.services.test.operator.ServiceBindingSpec;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.Json;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.auth.User;
 import io.vertx.junit5.Timeout;
@@ -126,10 +127,10 @@ public class QuarkusSampleTest extends TestBase {
     private void bootstrapK8sClient() {
 
         var config = new ConfigBuilder()
-                .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
-                .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
-                .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
-                .build();
+            .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
+            .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
+            .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+            .build();
 
         LOGGER.info("initialize kubernetes client");
         oc = new DefaultOpenShiftClient(config);
@@ -139,12 +140,12 @@ public class QuarkusSampleTest extends TestBase {
 
         var downloader = CLIDownloader.defaultDownloader(vertx);
         return downloader.downloadCLIInTempDir()
-                .compose(binary -> {
-                    LOGGER.info("cli downloaded successfully to: {}", binary.directory);
-                    this.cli = new CLI(vertx, binary.directory, binary.name);
+            .compose(binary -> {
+                LOGGER.info("cli downloaded successfully to: {}", binary.directory);
+                this.cli = new CLI(vertx, binary.directory, binary.name);
 
-                    return CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-                });
+                return CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+            });
     }
 
     private Future<Void> bootstrapUserAndAPI() {
@@ -153,34 +154,34 @@ public class QuarkusSampleTest extends TestBase {
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         return auth.login(
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID,
-                Environment.SSO_USERNAME,
-                Environment.SSO_PASSWORD)
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID,
+            Environment.SSO_USERNAME,
+            Environment.SSO_PASSWORD)
 
-                .map(u -> {
-                    user = u;
+            .map(u -> {
+                user = u;
 
-                    api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
+                api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
 
-                    return null;
-                });
+                return null;
+            });
     }
 
     private Future<Void> bootstrapKafkaInstance() {
         return applyKafkaInstance(vertx, api, KAFKA_INSTANCE_NAME)
-                .onSuccess(k -> kafka = k)
+            .onSuccess(k -> kafka = k)
 
-                .compose(__ -> kafkaAdminAPI(
-                        vertx,
-                        kafka.bootstrapServerHost,
-                        Environment.SSO_USERNAME,
-                        Environment.SSO_PASSWORD))
-                .compose(admin -> applyTopics(admin, Set.of(TOPIC_NAME)))
+            .compose(__ -> kafkaAdminAPI(
+                vertx,
+                kafka.bootstrapServerHost,
+                Environment.SSO_USERNAME,
+                Environment.SSO_PASSWORD))
+            .compose(admin -> applyTopics(admin, Set.of(TOPIC_NAME)))
 
-                .map(__ -> null);
+            .map(__ -> null);
     }
 
     @Test
@@ -193,11 +194,11 @@ public class QuarkusSampleTest extends TestBase {
 
         bootstrapCLI()
 
-                .compose(__ -> bootstrapUserAndAPI())
+            .compose(__ -> bootstrapUserAndAPI())
 
-                .compose(__ -> bootstrapKafkaInstance())
+            .compose(__ -> bootstrapKafkaInstance())
 
-                .onComplete(context.succeedingThenComplete());
+            .onComplete(context.succeedingThenComplete());
     }
 
     private void collectQuarkusAppLogs(ExtensionContext context) throws IOException {
@@ -230,6 +231,17 @@ public class QuarkusSampleTest extends TestBase {
         }
     }
 
+    private void cleanServiceBindingSecrets() {
+        for (var secret : oc.secrets().list().getItems()) {
+            if (!secret.getMetadata().getName().startsWith(SERVICE_BINDING_NAME)) {
+                continue;
+            }
+
+            LOGGER.info("clan secret: {}", secret.getMetadata().getName());
+            oc.secrets().delete(secret);
+        }
+    }
+
     private void cleanQuarkusSampleApp() {
         oc.apps().deployments().withName(APP_DEPLOYMENT_NAME).delete();
         oc.services().withName(APP_SERVICE_NAME).delete();
@@ -250,29 +262,29 @@ public class QuarkusSampleTest extends TestBase {
         var secretClientID = decodeBase64(encodedClientID);
 
         return api.getListOfServiceAccounts()
-                // find the service account with the same client-id as the secret
-                .map(accounts -> accounts.items.stream()
-                        .filter(a -> a.clientID.equals(secretClientID))
-                        .findAny())
+            // find the service account with the same client-id as the secret
+            .map(accounts -> accounts.items.stream()
+                .filter(a -> a.clientID.equals(secretClientID))
+                .findAny())
 
-                // unwrap the optional service account
-                .compose(o -> o
-                        .map(a -> Future.succeededFuture(a))
-                        .orElse(failedFuture(message("failed to find service account with client-id: {}", secretClientID))))
+            // unwrap the optional service account
+            .compose(o -> o
+                .map(a -> Future.succeededFuture(a))
+                .orElse(failedFuture(message("failed to find service account with client-id: {}", secretClientID))))
 
-                // delete the service account if founded
-                .compose(a -> {
-                    LOGGER.info("delete service account {} with id: {}", a.name, a.id);
-                    return api.deleteServiceAccount(a.id);
-                })
+            // delete the service account if founded
+            .compose(a -> {
+                LOGGER.info("delete service account {} with id: {}", a.name, a.id);
+                return api.deleteServiceAccount(a.id);
+            })
 
-                // delete the secret only after deleting the service account
-                .map(__ -> {
-                    LOGGER.info("delete secret: {}", secret.getMetadata().getName());
-                    oc.secrets().delete(secret);
+            // delete the secret only after deleting the service account
+            .map(__ -> {
+                LOGGER.info("delete secret: {}", secret.getMetadata().getName());
+                oc.secrets().delete(secret);
 
-                    return null;
-                });
+                return null;
+            });
 
     }
 
@@ -285,10 +297,10 @@ public class QuarkusSampleTest extends TestBase {
             LOGGER.info("logout from cli");
             return cli.logout()
 
-                    .compose(__ -> {
-                        LOGGER.info("clean workdir: {}", cli.getWorkdir());
-                        return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
-                    });
+                .compose(__ -> {
+                    LOGGER.info("clean workdir: {}", cli.getWorkdir());
+                    return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
+                });
         }
         return Future.succeededFuture();
     }
@@ -322,30 +334,36 @@ public class QuarkusSampleTest extends TestBase {
         }
 
         try {
+            cleanServiceBindingSecrets();
+        } catch (Exception e) {
+            LOGGER.error("cleanServiceBindingSecrets error: ", e);
+        }
+
+        try {
             cleanQuarkusSampleApp();
         } catch (Exception e) {
             LOGGER.error("cleanQuarkusSampleApp error: ", e);
         }
 
         cleanServiceAccount()
-                .recover(e -> {
-                    LOGGER.error("cleanServiceAccount error: ", e);
-                    return Future.succeededFuture();
-                })
+            .recover(e -> {
+                LOGGER.error("cleanServiceAccount error: ", e);
+                return Future.succeededFuture();
+            })
 
-                .compose(__ -> cleanKafkaInstance())
-                .recover(e -> {
-                    LOGGER.error("cleanKafkaInstance error: ", e);
-                    return Future.succeededFuture();
-                })
+            .compose(__ -> cleanKafkaInstance())
+            .recover(e -> {
+                LOGGER.error("cleanKafkaInstance error: ", e);
+                return Future.succeededFuture();
+            })
 
-                .compose(__ -> cleanCLI())
-                .recover(e -> {
-                    LOGGER.error("cleanCLI error: ", e);
-                    return Future.succeededFuture();
-                })
+            .compose(__ -> cleanCLI())
+            .recover(e -> {
+                LOGGER.error("cleanCLI error: ", e);
+                return Future.succeededFuture();
+            })
 
-                .onComplete(context.succeedingThenComplete());
+            .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -357,26 +375,26 @@ public class QuarkusSampleTest extends TestBase {
         cleanKafkaConnection();
 
         var kubeConfig = CLIUtils.kubeConfig(
-                Environment.DEV_CLUSTER_SERVER,
-                Environment.DEV_CLUSTER_TOKEN,
-                Environment.DEV_CLUSTER_NAMESPACE);
+            Environment.DEV_CLUSTER_SERVER,
+            Environment.DEV_CLUSTER_TOKEN,
+            Environment.DEV_CLUSTER_NAMESPACE);
 
         var config = Serialization.asYaml(kubeConfig);
 
         var kubeconfgipath = cli.getWorkdir() + "/kubeconfig";
         vertx.fileSystem().writeFile(kubeconfgipath, Buffer.buffer(config))
 
-                .compose(__ -> {
-                    LOGGER.info("cli use kafka instance: {}", kafka.id);
-                    return cli.useKafka(kafka.id);
-                })
+            .compose(__ -> {
+                LOGGER.info("cli use kafka instance: {}", kafka.id);
+                return cli.useKafka(kafka.id);
+            })
 
-                .compose(__ -> {
-                    LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
-                    return cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
-                })
+            .compose(__ -> {
+                LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
+                return cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
+            })
 
-                .onComplete(context.succeedingThenComplete());
+            .onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -422,6 +440,7 @@ public class QuarkusSampleTest extends TestBase {
         binding.setSpec(spec);
 
         LOGGER.info("deploy service binding");
+        LOGGER.info("json: {}", Json.encode(binding));
         binding = OperatorUtils.serviceBinding(oc).createOrReplace(binding);
         LOGGER.info("service binding created: {}", binding);
     }
@@ -469,21 +488,21 @@ public class QuarkusSampleTest extends TestBase {
         });
 
         IsReady<Object> complete = last -> client.streamPrices(wsc)
-                .recover(t -> {
-                    LOGGER.warn("ignore error: ", t);
-                    return succeededFuture();
-                })
-                .map(___ -> {
-                    if (prices.size() > 6) {
-                        return Pair.with(true, null);
-                    }
+            .recover(t -> {
+                LOGGER.warn("ignore error: {}", t.getMessage());
+                return succeededFuture();
+            })
+            .map(___ -> {
+                if (prices.size() > 6) {
+                    return Pair.with(true, null);
+                }
 
-                    // clean the data list between each failures
-                    prices.clear();
+                // clean the data list between each failures
+                prices.clear();
 
-                    return Pair.with(false, null);
-                });
+                return Pair.with(false, null);
+            });
         waitFor(vertx, "retry data", ofSeconds(1), ofMinutes(3), complete)
-                .onComplete(context.succeedingThenComplete());
+            .onComplete(context.succeedingThenComplete());
     }
 }
