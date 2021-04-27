@@ -32,6 +32,7 @@ import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
+import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
@@ -214,6 +215,15 @@ class ServiceAPILongLiveTest extends TestBase {
             LOGGER.info("start testing topic: {}", topic);
             return testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, ofMinutes(1), 10, 7, 10, true);
         }).onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Order(5)
+    void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
+        assertAPI();
+        LOGGER.info("start testing message in total metric");
+        messageInTotalMetric(api, KAFKA_INSTANCE_NAME, SERVICE_ACCOUNT_NAME, vertx)
+                .onComplete(context.succeedingThenComplete());
     }
 }
 
