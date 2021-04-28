@@ -19,6 +19,10 @@ public class ResponseException extends Exception {
                 return new HTTPNotFoundException(message, response);
             case HttpURLConnection.HTTP_CONFLICT:
                 return new HTTPConflictException(message, response);
+            case HttpURLConnection.HTTP_FORBIDDEN:
+                return new HTTPForbiddenException(message, response);
+            case HttpURLConnection.HTTP_UNAUTHORIZED:
+                return new HTTPUnauthorizedException(message, response);
             case 423:
                 return new HTTPLockedException(message, response);
             default:

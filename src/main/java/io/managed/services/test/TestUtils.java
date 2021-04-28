@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.MessageFactory2;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.platform.commons.util.ExceptionUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,7 +18,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 /**
@@ -73,7 +72,6 @@ public class TestUtils {
 
                 // if the last request after the timeout didn't succeed fail with the timeout error
                 if (last) {
-                    LOGGER.error(ExceptionUtils.readStackTrace(timeout));
                     return Future.failedFuture(timeout);
                 }
 
@@ -184,25 +182,15 @@ public class TestUtils {
         return new String(Base64.getDecoder().decode(encodedString));
     }
 
+
     /**
-     * DON'T USE IT ANYWHERE ELSE THAN IN A TEST METHOD
-     * DO NOT USE IT IN COMBINATION WITH THE VERT.X TestContext
-     * <p>
-     * The reason why we use Vert.x is to perform parallel operation without keep a Thread in hostage,
-     * but this await method will keep the Thread in hostage until the Vert.x Future is not completed,
-     * which means that parallelize operations that use this await method will require multiple Threads.
+     * Block and wait for for the Future result and in case of Future failure throw the Future error
      */
-    public static <T> T await(Future<T> future) throws Throwable {
-
-        // await for the future to complete
-        var latch = new CountDownLatch(1);
-        future.onComplete(__ -> latch.countDown());
-        latch.await();
-
-        // assert the future result
-        if (future.failed()) {
-            throw future.cause();
+    public static <T> T bwait(Future<T> future) throws Throwable {
+        try {
+            return future.toCompletionStage().toCompletableFuture().get();
+        } catch (ExecutionException exception) {
+            throw exception.getCause();
         }
-        return future.result();
     }
 }
