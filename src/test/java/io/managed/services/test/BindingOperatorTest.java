@@ -22,9 +22,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.ext.auth.User;
-import io.vertx.junit5.Timeout;
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -35,7 +32,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.IOException;
@@ -44,6 +41,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static java.time.Duration.ofMinutes;
@@ -54,14 +52,15 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
 @Tag(TestTag.BINDING_OPERATOR)
-@ExtendWith(VertxExtension.class)
-@Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class BindingOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(BindingOperatorTest.class);
 
     // use the kafka long living instance
     static final String KAFKA_INSTANCE_NAME = ServiceAPILongLiveTest.KAFKA_INSTANCE_NAME;
+
+    private final Vertx vertx = Vertx.vertx();
 
     User user;
     ServiceAPI api;
@@ -111,15 +110,15 @@ public class BindingOperatorTest extends TestBase {
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         return auth.login(
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID,
-                Environment.SSO_USERNAME,
-                Environment.SSO_PASSWORD)
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID,
+            Environment.SSO_USERNAME,
+            Environment.SSO_PASSWORD)
 
-                .onSuccess(u -> user = u)
-                .map(__ -> null);
+            .onSuccess(u -> user = u)
+            .map(__ -> null);
     }
 
     private void bootstrapAPI(Vertx vertx) {
@@ -129,25 +128,24 @@ public class BindingOperatorTest extends TestBase {
     private void bootstrapK8sClient() {
 
         Config config = new ConfigBuilder()
-                .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
-                .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
-                .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
-                .build();
+            .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
+            .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
+            .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+            .build();
 
         LOGGER.info("initialize kubernetes client");
         client = new DefaultKubernetesClient(config);
     }
 
     @BeforeAll
-    void bootstrap(Vertx vertx, VertxTestContext context) {
+    void bootstrap() throws Throwable {
         assertENVs();
 
-        bootstrapUser(vertx)
-                .onSuccess(__ -> {
-                    bootstrapAPI(vertx);
-                    bootstrapK8sClient();
-                })
-                .onComplete(context.succeedingThenComplete());
+        bwait(bootstrapUser(vertx));
+
+        bootstrapAPI(vertx);
+
+        bootstrapK8sClient();
     }
 
     private void cleanAccessTokenSecret() {
@@ -184,10 +182,10 @@ public class BindingOperatorTest extends TestBase {
 
     private void collectOperatorLogs(ExtensionContext context) throws IOException {
         LogCollector.saveDeploymentLog(
-                TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
-                client,
-                "openshift-operators",
-                "service-binding-operator");
+            TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
+            client,
+            "openshift-operators",
+            "service-binding-operator");
 
     }
 
@@ -196,7 +194,7 @@ public class BindingOperatorTest extends TestBase {
     }
 
     @AfterAll
-    void teardown(ExtensionContext context, VertxTestContext testContext) {
+    void teardown(ExtensionContext context) {
         assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
 
         try {
@@ -230,9 +228,11 @@ public class BindingOperatorTest extends TestBase {
         }
 
         // force clean the service account if it hasn't done it yet
-        cleanServiceAccount()
-
-                .onComplete(testContext.succeedingThenComplete());
+        try {
+            bwait(cleanServiceAccount());
+        } catch (Throwable t) {
+            LOGGER.error("cleanServiceAccount error: ", t);
+        }
     }
 
     @Test
@@ -253,8 +253,8 @@ public class BindingOperatorTest extends TestBase {
 
     @Test
     @Order(2)
-    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
-    void testCreateCloudServiceAccountRequest(Vertx vertx, VertxTestContext context) {
+    @Timeout(value = 5, unit = TimeUnit.MINUTES)
+    void testCreateCloudServiceAccountRequest() throws Throwable {
         assertAccessToken();
 
         var a = new CloudServiceAccountRequest();
@@ -270,30 +270,27 @@ public class BindingOperatorTest extends TestBase {
         LOGGER.info("created CloudServiceAccountRequest: {}", Json.encode(a));
 
         IsReady<CloudServiceAccountRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServiceAccountRequest(client).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get())
-                .map(r -> {
+            .map(r -> {
 
-                    LOGGER.info("CloudServiceAccountRequest status is: {}", Json.encode(r.getStatus()));
+                LOGGER.info("CloudServiceAccountRequest status is: {}", Json.encode(r.getStatus()));
 
-                    if (last) {
-                        LOGGER.warn("last CloudServiceAccountRequest is: {}", Json.encode(r));
-                    }
+                if (last) {
+                    LOGGER.warn("last CloudServiceAccountRequest is: {}", Json.encode(r));
+                }
 
-                    if (r.getStatus() != null && r.getStatus().getMessage().equals("Created")) {
-                        return Pair.with(true, r);
-                    }
-                    return Pair.with(false, null);
-                });
-        waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(4), ready)
-                .onSuccess(r -> {
-                    LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(r));
-                    cloudServiceAccountRequest = r;
-                })
-                .onComplete(context.succeedingThenComplete());
+                if (r.getStatus() != null && r.getStatus().getMessage().equals("Created")) {
+                    return Pair.with(true, r);
+                }
+                return Pair.with(false, null);
+            });
+
+        cloudServiceAccountRequest = bwait(waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(4), ready));
+        LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(cloudServiceAccountRequest));
     }
 
     @Test
     @Order(2)
-    void testCreateCloudServicesRequest(Vertx vertx, VertxTestContext context) {
+    void testCreateCloudServicesRequest() throws Throwable {
         assertAccessToken();
 
         var k = new CloudServicesRequest();
@@ -306,41 +303,37 @@ public class BindingOperatorTest extends TestBase {
         LOGGER.info("created CloudServicesRequest: {}", Json.encode(k));
 
         IsReady<CloudServicesRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get())
-                .map(r -> {
+            .map(r -> {
 
-                    LOGGER.info("CloudServicesRequest status is: {}", Json.encode(r.getStatus()));
+                LOGGER.info("CloudServicesRequest status is: {}", Json.encode(r.getStatus()));
 
-                    if (last) {
-                        LOGGER.warn("last CloudServicesRequest is: {}", Json.encode(r));
-                    }
+                if (last) {
+                    LOGGER.warn("last CloudServicesRequest is: {}", Json.encode(r));
+                }
 
-                    if (r.getStatus() != null
-                            && r.getStatus().getUserKafkas() != null
-                            && !r.getStatus().getUserKafkas().isEmpty()) {
+                if (r.getStatus() != null
+                    && r.getStatus().getUserKafkas() != null
+                    && !r.getStatus().getUserKafkas().isEmpty()) {
 
-                        return Pair.with(true, r);
-                    }
-                    return Pair.with(false, null);
-                });
-        waitFor(vertx, "CloudServicesRequest to complete", ofSeconds(10), ofMinutes(3), ready)
-                .onSuccess(r -> {
-                    LOGGER.info("CloudServicesRequest is ready: {}", Json.encode(r));
-                    cloudServicesRequest = r;
-                })
-                .onComplete(context.succeedingThenComplete());
+                    return Pair.with(true, r);
+                }
+                return Pair.with(false, null);
+            });
+        cloudServicesRequest = bwait(waitFor(vertx, "CloudServicesRequest to complete", ofSeconds(10), ofMinutes(3), ready));
+        LOGGER.info("CloudServicesRequest is ready: {}", Json.encode(cloudServicesRequest));
     }
 
 
     @Test
     @Order(3)
-    void testCreateManagedKafkaConnection(Vertx vertx, VertxTestContext context) {
+    void testCreateManagedKafkaConnection() throws Throwable {
         assertAccessToken();
         assertCloudServiceAccountRequest();
         assertCloudServicesRequest();
 
         var userKafka = cloudServicesRequest.getStatus().getUserKafkas().stream()
-                .filter(k -> k.getName().equals(KAFKA_INSTANCE_NAME))
-                .findFirst();
+            .filter(k -> k.getName().equals(KAFKA_INSTANCE_NAME))
+            .findFirst();
 
         if (userKafka.isEmpty()) {
             LOGGER.info("CloudServicesRequest: {}", Json.encode(cloudServicesRequest));
@@ -359,24 +352,23 @@ public class BindingOperatorTest extends TestBase {
         LOGGER.info("created ManagedKafkaConnection: {}", Json.encode(c));
 
         IsReady<KafkaConnection> ready = last -> Future.succeededFuture(OperatorUtils.kafkaConnection(client).withName(KAFKA_CONNECTION_NAME).get())
-                .map(r -> {
+            .map(r -> {
 
-                    LOGGER.info("ManagedKafkaConnection status is: {}", Json.encode(r.getStatus()));
+                LOGGER.info("ManagedKafkaConnection status is: {}", Json.encode(r.getStatus()));
 
-                    if (last) {
-                        LOGGER.warn("last ManagedKafkaConnection is: {}", Json.encode(r));
-                    }
+                if (last) {
+                    LOGGER.warn("last ManagedKafkaConnection is: {}", Json.encode(r));
+                }
 
-                    if (r.getStatus() != null
-                            && r.getStatus().getMessage() != null
-                            && r.getStatus().getMessage().equals("Created")) {
+                if (r.getStatus() != null
+                    && r.getStatus().getMessage() != null
+                    && r.getStatus().getMessage().equals("Created")) {
 
-                        return Pair.with(true, r);
-                    }
-                    return Pair.with(false, null);
-                });
-        waitFor(vertx, "ManagedKafkaConnection to complete", ofSeconds(10), ofMinutes(2), ready)
-                .onSuccess(r -> LOGGER.info("ManagedKafkaConnection is ready: {}", Json.encode(r)))
-                .onComplete(context.succeedingThenComplete());
+                    return Pair.with(true, r);
+                }
+                return Pair.with(false, null);
+            });
+        var r = bwait(waitFor(vertx, "ManagedKafkaConnection to complete", ofSeconds(10), ofMinutes(2), ready));
+        LOGGER.info("ManagedKafkaConnection is ready: {}", Json.encode(r));
     }
 }
