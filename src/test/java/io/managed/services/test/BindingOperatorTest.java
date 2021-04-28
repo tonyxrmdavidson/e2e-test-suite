@@ -58,7 +58,7 @@ public class BindingOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(BindingOperatorTest.class);
 
     // use the kafka long living instance
-    static final String KAFKA_INSTANCE_NAME = ServiceAPILongLiveTest.KAFKA_INSTANCE_NAME;
+    static final String KAFKA_INSTANCE_NAME = LongLiveKafkaTest.KAFKA_INSTANCE_NAME;
 
     private final Vertx vertx = Vertx.vertx();
 

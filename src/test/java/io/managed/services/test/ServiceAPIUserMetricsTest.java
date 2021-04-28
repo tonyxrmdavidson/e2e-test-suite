@@ -51,8 +51,8 @@ public class ServiceAPIUserMetricsTest extends TestBase {
     private static final Duration WAIT_FOR_METRIC_TIMEOUT = Duration.ofMinutes(2);
 
     // use the kafka long living instance
-    private static final String KAFKA_INSTANCE_NAME = ServiceAPILongLiveTest.KAFKA_INSTANCE_NAME;
-    private static final String SERVICE_ACCOUNT_NAME = ServiceAPILongLiveTest.SERVICE_ACCOUNT_NAME;
+    private static final String KAFKA_INSTANCE_NAME = LongLiveKafkaTest.KAFKA_INSTANCE_NAME;
+    private static final String SERVICE_ACCOUNT_NAME = LongLiveKafkaTest.SERVICE_ACCOUNT_NAME;
 
     // use a special topic
     private static final String TOPIC_NAME = "metric-test-topic";
