@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicPlain;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
+import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
@@ -165,6 +166,15 @@ class ServiceAPITest extends TestBase {
                 .compose(api -> KafkaAdminAPIUtils.createDefaultTopic(api, TOPIC_NAME))
                 .onSuccess(__ -> topic = TOPIC_NAME)
 
+                .onComplete(context.succeedingThenComplete());
+    }
+
+    @Test
+    @Order(2)
+    void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
+        assertAPI();
+        LOGGER.info("start testing message in total metric");
+        messageInTotalMetric(api, KAFKA_INSTANCE_NAME, SERVICE_ACCOUNT_NAME, vertx)
                 .onComplete(context.succeedingThenComplete());
     }
 
