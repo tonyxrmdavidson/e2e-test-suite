@@ -184,7 +184,7 @@ public class TestUtils {
 
 
     /**
-     * Block and wait for for the Future result and in case of Future failure throw the Future error
+     * Block the Thread and wait for for the Future result and in case of Future failure throw the Future error
      */
     public static <T> T bwait(Future<T> future) throws Throwable {
         try {
