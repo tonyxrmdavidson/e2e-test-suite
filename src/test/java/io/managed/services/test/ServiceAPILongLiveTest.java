@@ -56,6 +56,10 @@ class ServiceAPILongLiveTest extends TestBase {
 
     KafkaResponse kafka;
     ServiceAccount serviceAccount;
+
+    String clientID;
+    String  clientSecret;
+
     boolean topic;
 
     @BeforeAll
@@ -179,8 +183,8 @@ class ServiceAPILongLiveTest extends TestBase {
         assertServiceAccount();
 
         String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
+        clientID = serviceAccount.clientID;
+        clientSecret = serviceAccount.clientSecret;
 
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
 
@@ -208,8 +212,6 @@ class ServiceAPILongLiveTest extends TestBase {
         assertTopic();
 
         String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
 
         forEach(Set.of(TOPICS), topic -> {
             LOGGER.info("start testing topic: {}", topic);
@@ -222,7 +224,7 @@ class ServiceAPILongLiveTest extends TestBase {
     void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
         assertAPI();
         LOGGER.info("start testing message in total metric");
-        messageInTotalMetric(api, KAFKA_INSTANCE_NAME, SERVICE_ACCOUNT_NAME, vertx)
+        messageInTotalMetric(api, KAFKA_INSTANCE_NAME, vertx, clientID, clientSecret)
                 .onComplete(context.succeedingThenComplete());
     }
 }
