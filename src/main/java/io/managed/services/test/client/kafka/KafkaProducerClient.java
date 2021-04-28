@@ -2,10 +2,12 @@ package io.managed.services.test.client.kafka;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import io.vertx.kafka.client.producer.RecordMetadata;
+import io.vertx.kafka.client.producer.impl.KafkaProducerRecordImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -76,5 +78,25 @@ public class KafkaProducerClient {
                     .onFailure(c -> LOGGER.error("failed to close KafkaProducerClient", c));
         }
         return Future.succeededFuture(null);
+    }
+
+
+    public static Future<Void> produce20Messages(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, String topicName) {
+        Promise<Void> p = Promise.promise();
+        KafkaProducer<String, String> producer = createProducerWithPlain(vertx, bootstrapHost, clientID, clientSecret);
+        for (int i = 1; i <= 20; i++) {
+            KafkaProducerRecordImpl<String, String> producerRecord = new KafkaProducerRecordImpl<>(topicName, String.valueOf(i));
+            int finalI = i;
+            producer.send(producerRecord, recordMetadataAsyncResult -> {
+                LOGGER.info("Successfully send message {}, to partition {}", finalI, recordMetadataAsyncResult.result().getPartition());
+                if (finalI == 20) {
+                    LOGGER.info("All the data have been produced and sent");
+                    p.complete();
+                }
+            });
+            producer.flush();
+        }
+        producer.flush();
+        return p.future();
     }
 }

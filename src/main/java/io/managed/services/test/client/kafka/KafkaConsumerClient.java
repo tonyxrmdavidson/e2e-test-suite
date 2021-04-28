@@ -10,9 +10,11 @@ import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class KafkaConsumerClient {
@@ -21,14 +23,14 @@ public class KafkaConsumerClient {
     private final KafkaConsumer<String, String> consumer;
     private final Object lock = new Object();
 
-    public KafkaConsumerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean oauth) {
+    public KafkaConsumerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean oauth, boolean wantLatestPartitionOffset) {
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         if (oauth) {
-            consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret);
+            consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret, wantLatestPartitionOffset);
         } else {
-            consumer = createConsumerWithPlain(vertx, bootstrapHost, clientID, clientSecret);
+            consumer = createConsumerWithPlain(vertx, bootstrapHost, clientID, clientSecret, wantLatestPartitionOffset);
         }
 
     }
@@ -100,13 +102,13 @@ public class KafkaConsumerClient {
     }
 
     public static KafkaConsumer<String, String> createConsumerWithPlain(
-            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
-
+            Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean wantLatestPartitionOffset) {
+        String offset = wantLatestPartitionOffset ? "latest" : "earliest";
         Map<String, String> config = KafkaUtils.plainConfigs(bootstrapHost, clientID, clientSecret);
         config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("group.id", "test-group");
-        config.put("auto.offset.reset", "latest");
+        config.put("auto.offset.reset", offset);
         config.put("enable.auto.commit", "true");
 
         return KafkaConsumer.create(vertx, config);
@@ -114,19 +116,19 @@ public class KafkaConsumerClient {
 
 
     public static KafkaConsumer<String, String> createConsumer(
-            Vertx vertx, String bootstrapHost, String clientID, String clientSecret) {
-        return createConsumer(vertx, bootstrapHost, clientID, clientSecret, "test-group");
+            Vertx vertx, String bootstrapHost, String clientID, String clientSecret, boolean wantLatestPartitionOffset) {
+        return createConsumer(vertx, bootstrapHost, clientID, clientSecret, "test-group", wantLatestPartitionOffset);
     }
 
     public static KafkaConsumer<String, String> createConsumer(
-            Vertx vertx, String bootstrapHost, String clientID, String clientSecret, String groupID) {
+            Vertx vertx, String bootstrapHost, String clientID, String clientSecret, String groupID, boolean wantLatestPartitionOffset) {
         Map<String, String> config = KafkaUtils.configs(bootstrapHost, clientID, clientSecret);
-
         //Standard consumer config
+        String offset = wantLatestPartitionOffset ? "latest" : "earliest";
         config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         config.put("group.id", groupID);
-        config.put("auto.offset.reset", "latest");
+        config.put("auto.offset.reset", offset);
         config.put("enable.auto.commit", "true");
 
         return KafkaConsumer.create(vertx, config);
@@ -140,4 +142,78 @@ public class KafkaConsumerClient {
         }
         return Future.succeededFuture(null);
     }
+
+    public  static Future<List<KafkaConsumer<String, String>>> createNConsumers(Vertx vertx, int n, String topic, String bootstrapHost, String clientID, String clientSecret, String groupID) {
+        LOGGER.info("creating {} Consumers", n);
+        Promise<List<KafkaConsumer<String, String>>> completionPromise = Promise.promise();
+        AtomicInteger startedConsumersCounter = new AtomicInteger(0);
+        List<KafkaConsumer<String, String>> consumerList = new LinkedList<>();
+
+
+        for (int i = 0; i < n; i++) {
+            KafkaConsumer<String, String> consumer =  KafkaConsumerClient.createConsumer(
+                    vertx, bootstrapHost, clientID,  clientSecret,  groupID, false);
+            consumerList.add(consumer);
+            int finalI = i;
+            consumer
+                    .subscribe(topic)
+                    .onSuccess(__ -> {
+                        LOGGER.info("{} consumer subscribed", finalI);
+                        if (startedConsumersCounter.incrementAndGet() == n) {
+                            LOGGER.info("all consumers are listening");
+                            completionPromise.complete(consumerList);
+                        }
+                    })
+                    .onFailure(cause -> {
+                        LOGGER.error("some of consumers didn't subscribe: {}", cause.getMessage());
+                        completionPromise.fail("consumer unable to start");
+                    });
+        }
+        return completionPromise.future();
+    }
+
+    public  static Future<List<PartitionConsumerTuple>> handleListOfConsumers(List<KafkaConsumer<String, String>> consumerList) {
+        Promise<List<PartitionConsumerTuple>> completionPromise = Promise.promise();
+        List<PartitionConsumerTuple> unsafeList = new LinkedList<>();
+        List<PartitionConsumerTuple> partitionConsumerTupleList = Collections.synchronizedList(unsafeList);
+
+        AtomicInteger obtainedMessagesCounter = new AtomicInteger(0);
+        int i = 0;
+        for (KafkaConsumer<String, String> consumer: consumerList) {
+            i++;
+            int finalI = i;
+            LOGGER.info("consumer {} starts listening", finalI);
+            consumer.handler(record -> {
+                obtainedMessagesCounter.getAndIncrement();
+                LOGGER.info("consumer {} : consume partition {}, with offset: {}", finalI, record.partition(), record.offset());
+                PartitionConsumerTuple pt = new PartitionConsumerTuple(record.partition(), finalI);
+                partitionConsumerTupleList.add(pt);
+
+                if (obtainedMessagesCounter.get() == 20) {
+                    LOGGER.info("20 messages obtained");
+                    completionPromise.complete(partitionConsumerTupleList);
+                }
+            });
+        }
+        return completionPromise.future();
+    }
+
+    public static Future<Void> closeListOfConsumer(List<KafkaConsumer<String, String>> consumerList) {
+        Promise<Void> promise = Promise.promise();
+        AtomicInteger closedConsumersCount = new AtomicInteger(0);
+        int consumersCount = consumerList.size();
+        for (KafkaConsumer<String, String> consumer: consumerList) {
+            consumer.close()
+                    .onSuccess(__ -> {
+                        if (closedConsumersCount.incrementAndGet() == consumersCount) {
+                            LOGGER.info("all consumers closed");
+                            promise.complete();
+                        }
+                    })
+                    .onFailure(e -> promise.fail(e.getMessage()));
+        }
+        return promise.future();
+    }
 }
+
+

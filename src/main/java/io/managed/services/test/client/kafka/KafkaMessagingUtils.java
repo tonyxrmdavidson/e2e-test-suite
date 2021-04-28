@@ -10,7 +10,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -109,7 +111,7 @@ public class KafkaMessagingUtils {
             boolean oauth) {
 
         // initialize the consumer and the producer
-        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, oauth);
+        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, oauth, true);
         var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, oauth);
 
         LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
@@ -184,5 +186,48 @@ public class KafkaMessagingUtils {
 
     public static long random(long from, long to) {
         return (long) (Math.random() * ((to - from) + 1)) + from;
+    }
+
+
+    public static boolean isConsumerOwningNPartitions(List<PartitionConsumerTuple> partitionConsumerTupleList, int expectedPartition) {
+        List<Integer> listOfActiveConsumers = partitionConsumerTupleList
+                .stream()
+                .map(PartitionConsumerTuple::getConsumerId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        for (Integer activeConsumerNumber: listOfActiveConsumers) {
+            int consumerOwnsPartitionCount = (int) partitionConsumerTupleList
+                    .stream()
+                    .filter(elem -> elem.getConsumerId() == activeConsumerNumber)
+                    .map(PartitionConsumerTuple::getPartitionId)
+                    .distinct()
+                    .count();
+            if (consumerOwnsPartitionCount == expectedPartition) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isEachPartitionInExclusivelyOwned(List<PartitionConsumerTuple> partitionConsumerTupleList) {
+        List<Integer> listOfConsumersPerPartition = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            int finalI = i;
+            int numberOfConsumersForPartition = (int) partitionConsumerTupleList
+                    .stream()
+                    .filter(el -> el.getPartitionId() == finalI)
+                    .map(PartitionConsumerTuple::getConsumerId)
+                    .distinct()
+                    .count();
+            listOfConsumersPerPartition.add(numberOfConsumersForPartition);
+        }
+
+        Predicate<Integer> eachPartitionConsumedByAtMost1Consumer = s ->  s == 1;
+
+        return listOfConsumersPerPartition
+                .stream()
+                .allMatch(eachPartitionConsumedByAtMost1Consumer);
     }
 }

@@ -1,5 +1,11 @@
 package io.managed.services.test;
 
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaMessagingUtils;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
+import io.managed.services.test.client.kafka.PartitionConsumerTuple;
+import io.managed.services.test.client.kafkaadminapi.CreateTopicPayload;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -9,14 +15,17 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,7 +48,9 @@ public class LongLiveKafkaTest extends TestBase {
     public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
-    static final String METRIC_TOPIC_NAME = "metric-test-topic";
+    private static final String METRIC_TOPIC_NAME = "metric-test-topic";
+    private static final String TEST_GROUP_NAME = "test-consumer-group";
+    private static final String TOPIC_NAME_CONSUMERS = "topic-consumers";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -47,6 +58,7 @@ public class LongLiveKafkaTest extends TestBase {
     private KafkaResponse kafka;
     private ServiceAccount serviceAccount;
     private boolean topic;
+    private KafkaAdminAPI kafkaAdminAPI;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
@@ -154,6 +166,7 @@ public class LongLiveKafkaTest extends TestBase {
 
         LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
         var api = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
+        kafkaAdminAPI = api;
 
         LOGGER.info("apply topics: {}", topics);
         var missingTopics = bwait(KafkaAdminAPIUtils.applyTopics(api, topics));
@@ -177,6 +190,66 @@ public class LongLiveKafkaTest extends TestBase {
             LOGGER.info("start testing topic: {}", topic);
             bwait(testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, ofMinutes(1), 10, 7, 10, true));
         }
+    }
+
+    @DataProvider
+    public Object[][] topicConsumptionByVariousNumberOfConsumersProvider() {
+        return new Object[][] {
+            {1, 3},
+            {2, 2},
+            {3, 1},
+            {5, 1},
+        };
+    }
+
+    @Test(dataProvider = "topicConsumptionByVariousNumberOfConsumersProvider", priority = 4, timeOut = 10 * MINUTES)
+    void singlePermutationPartitionConsumption(int consumerCount, int maxExpectedPartitionsPerConsumer) throws Throwable {
+        LOGGER.info("Partition consumption with 3 topics consumed by {} consumers", consumerCount);
+        //      topic creation
+        LOGGER.info("topic creation");
+        CreateTopicPayload topicPayload = KafkaAdminAPIUtils.setUpDefaultTopicPayload(TOPIC_NAME_CONSUMERS);
+        topicPayload.settings.numPartitions = 3;
+        var x = bwait(KafkaAdminAPIUtils.createCustomTopic(kafkaAdminAPI, topicPayload));
+
+        //fetching connecting data for consumer and producer
+        LOGGER.info("obtain service account");
+        String bootstrapHost = kafka.bootstrapServerHost;
+        String clientID = serviceAccount.clientID;
+        String secret = serviceAccount.clientSecret;
+
+        // setting up producer & creating 20 messages
+        bwait(KafkaProducerClient.produce20Messages(vertx, bootstrapHost, clientID, secret, TOPIC_NAME_CONSUMERS));
+
+        // setting up consumer
+        LOGGER.info("creation of {} consumers", consumerCount);
+        List<KafkaConsumer<String, String>> consumerList = bwait(KafkaConsumerClient.createNConsumers(vertx,
+            consumerCount,
+            TOPIC_NAME_CONSUMERS,
+            bootstrapHost,
+            clientID,
+            secret,
+            TEST_GROUP_NAME));
+
+
+        LOGGER.info("obtaining data about consumption of partitions by consumers");
+        List<PartitionConsumerTuple> partitionConsumerTupleList = bwait(KafkaConsumerClient.handleListOfConsumers(consumerList));
+
+
+        // close all consumers
+        bwait(KafkaConsumerClient.closeListOfConsumer(consumerList));
+
+        bwait(kafkaAdminAPI.deleteTopic(TOPIC_NAME_CONSUMERS));
+        LOGGER.info("topic deleted: {}", TOPIC_NAME_CONSUMERS);
+
+        LOGGER.info("assertions about correct consumption by {} consumers", consumerCount);
+        boolean isEachPartitionOwnedExclusively = KafkaMessagingUtils.isEachPartitionInExclusivelyOwned(partitionConsumerTupleList);
+        boolean hasEachConsumerExpectedNumberOfPartitions = KafkaMessagingUtils.isConsumerOwningNPartitions(partitionConsumerTupleList, maxExpectedPartitionsPerConsumer);
+        if (!hasEachConsumerExpectedNumberOfPartitions) {
+            LOGGER.error("if {} consumers consume 3 partitions, no consumer can consume more than {} partitions", consumerCount, maxExpectedPartitionsPerConsumer);
+        }
+        assertTrue(isEachPartitionOwnedExclusively);
+        assertTrue(hasEachConsumerExpectedNumberOfPartitions);
+
     }
 
     @Test(priority = 5, timeOut = DEFAULT_TIMEOUT)

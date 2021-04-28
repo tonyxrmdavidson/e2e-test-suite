@@ -13,7 +13,9 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+
 import io.vertx.kafka.client.consumer.KafkaConsumer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -154,7 +156,8 @@ public class KafkaAdminAPITest extends TestBase {
             kafka.bootstrapServerHost,
             account.clientID,
             account.clientSecret,
-            TEST_GROUP_NAME);
+            TEST_GROUP_NAME,
+            true);
 
         LOGGER.info("subscribe to topic: {}", TEST_TOPIC_NAME);
         consumer.subscribe(TEST_TOPIC_NAME);

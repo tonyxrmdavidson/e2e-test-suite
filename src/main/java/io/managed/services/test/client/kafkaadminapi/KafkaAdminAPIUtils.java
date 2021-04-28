@@ -48,6 +48,11 @@ public class KafkaAdminAPIUtils {
         return api.createTopic(topicPayload);
     }
 
+    static public Future<Topic> createCustomTopic(KafkaAdminAPI api, CreateTopicPayload topicPayload) {
+        return api.createTopic(topicPayload);
+    }
+
+
     /**
      * Create the missing topics
      *
