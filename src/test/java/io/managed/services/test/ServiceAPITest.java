@@ -2,6 +2,7 @@ package io.managed.services.test;
 
 import io.managed.services.test.client.exception.ResponseException;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -68,6 +69,8 @@ class ServiceAPITest extends TestBase {
     ServiceAccount serviceAccount;
     String topic;
 
+    KafkaAdminAPI adminApi;
+
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
         ServiceAPIUtils.serviceAPI(vertx)
@@ -94,6 +97,7 @@ class ServiceAPITest extends TestBase {
         var ds = deleteServiceAccount();
 
         CompositeFuture.join(dk, dk2, ds)
+//        CompositeFuture.join( dk2, ds)
                 .compose(__ -> sleep(vertx, ofSeconds(60)))
                 .onComplete(context.succeedingThenComplete());
     }
@@ -162,19 +166,21 @@ class ServiceAPITest extends TestBase {
 
         LOGGER.info("create topic with name {} on the instance: {}", TOPIC_NAME, bootstrapHost);
         KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost)
-
-                .compose(api -> KafkaAdminAPIUtils.createDefaultTopic(api, TOPIC_NAME))
+                .compose(api -> {
+                    adminApi = api;
+                    return KafkaAdminAPIUtils.createDefaultTopic(api, TOPIC_NAME);
+                })
                 .onSuccess(__ -> topic = TOPIC_NAME)
 
                 .onComplete(context.succeedingThenComplete());
     }
 
     @Test
-    @Order(2)
+    @Order(4)
     void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
         assertAPI();
         LOGGER.info("start testing message in total metric");
-        messageInTotalMetric(api, KAFKA_INSTANCE_NAME, SERVICE_ACCOUNT_NAME, vertx)
+        messageInTotalMetric(vertx, api, KAFKA_INSTANCE_NAME, serviceAccount)
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -187,10 +193,7 @@ class ServiceAPITest extends TestBase {
         assertTopic();
 
         var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
-
-        testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+        testTopicWithOauth(vertx, bootstrapHost, serviceAccount.clientID, serviceAccount.clientSecret, TOPIC_NAME, 1000, 10, 100)
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -302,7 +305,7 @@ class ServiceAPITest extends TestBase {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void testDeleteProvisioningKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertAPI();
 
@@ -327,7 +330,7 @@ class ServiceAPITest extends TestBase {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void testDeleteKafkaInstance(Vertx vertx, VertxTestContext context) {
         assertKafka();
         assertServiceAccount();
