@@ -18,7 +18,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
 /**
@@ -182,15 +182,23 @@ public class TestUtils {
         return new String(Base64.getDecoder().decode(encodedString));
     }
 
-
     /**
      * Block the Thread and wait for for the Future result and in case of Future failure throw the Future error
      */
     public static <T> T bwait(Future<T> future) throws Throwable {
-        try {
-            return future.toCompletionStage().toCompletableFuture().get();
-        } catch (ExecutionException exception) {
-            throw exception.getCause();
+        if (Vertx.currentContext() != null) {
+            throw new IllegalCallerException("bwait() can not be used in within a Vert.x callback");
         }
+
+        // await for the future to complete
+        var latch = new CountDownLatch(1);
+        future.onComplete(__ -> latch.countDown());
+        latch.await();
+
+        // assert the future result
+        if (future.failed()) {
+            throw future.cause();
+        }
+        return future.result();
     }
 }
