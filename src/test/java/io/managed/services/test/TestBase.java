@@ -4,8 +4,6 @@ import io.managed.services.test.framework.ExtensionContextParameterResolver;
 import io.managed.services.test.framework.IndicativeSentences;
 import io.managed.services.test.framework.TestCallbackListener;
 import io.managed.services.test.framework.TestExceptionCallbackListener;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,5 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @DisplayNameGeneration(IndicativeSentences.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(TestBase.class);
+    protected static final long MINUTES = 60 * 1000;
+    protected static final long DEFAULT_TIMEOUT = 3 * MINUTES;
 }

@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.MessageFactory2;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.testng.SkipException;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,6 +27,9 @@ import java.util.function.Function;
  */
 public class TestUtils {
     private static final Logger LOGGER = LogManager.getLogger(TestUtils.class);
+
+    private static final long MINUTES = 60 * 1000;
+    private static final long DEFAULT_TIMEOUT = 3 * MINUTES;
 
     private static final MessageFactory2 MESSAGE_FACTORY = new ParameterizedMessageFactory();
 
@@ -200,5 +204,11 @@ public class TestUtils {
             throw future.cause();
         }
         return future.result();
+    }
+
+    public static void assumeTeardown() {
+        if (Environment.SKIP_TEARDOWN) {
+            throw new SkipException("skip teardown");
+        }
     }
 }
