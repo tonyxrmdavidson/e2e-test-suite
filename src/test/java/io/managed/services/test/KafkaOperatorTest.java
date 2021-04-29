@@ -54,8 +54,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Tag(TestTag.BINDING_OPERATOR)
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class BindingOperatorTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(BindingOperatorTest.class);
+public class KafkaOperatorTest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 
     // use the kafka long living instance
     static final String KAFKA_INSTANCE_NAME = LongLiveKafkaTest.KAFKA_INSTANCE_NAME;
