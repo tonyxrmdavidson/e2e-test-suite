@@ -70,8 +70,6 @@ class ServiceAPITest extends TestBase {
     String topic;
 
     KafkaAdminAPI adminApi;
-    String clientID;
-    String clientSecret;
 
     @BeforeAll
     void bootstrap(Vertx vertx, VertxTestContext context) {
@@ -179,13 +177,10 @@ class ServiceAPITest extends TestBase {
 
     @Test
     @Order(4)
-//    @Disabled
     void testMessageInTotalMetric(Vertx vertx, VertxTestContext context) {
         assertAPI();
         LOGGER.info("start testing message in total metric");
-        messageInTotalMetric(api, KAFKA_INSTANCE_NAME, vertx, clientID, clientSecret)
-                .compose(__ ->  adminApi.deleteTopic("metric-test-topic"))
-                .compose(__ ->  adminApi.deleteConsumerGroup("test-group"))
+        messageInTotalMetric(vertx, api, KAFKA_INSTANCE_NAME, serviceAccount)
                 .onComplete(context.succeedingThenComplete());
     }
 
@@ -198,10 +193,7 @@ class ServiceAPITest extends TestBase {
         assertTopic();
 
         var bootstrapHost = kafka.bootstrapServerHost;
-        clientID = serviceAccount.clientID;
-        clientSecret = serviceAccount.clientSecret;
-
-        testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, 1000, 10, 100)
+        testTopicWithOauth(vertx, bootstrapHost, serviceAccount.clientID, serviceAccount.clientSecret, TOPIC_NAME, 1000, 10, 100)
                 .onComplete(context.succeedingThenComplete());
     }
 

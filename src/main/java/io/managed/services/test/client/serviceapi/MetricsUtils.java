@@ -41,12 +41,12 @@ public class MetricsUtils {
                 .filter(item -> item.metric.topic != null)
                 .filter(item -> item.metric.name.equals(metric))
                 .filter(item -> item.metric.topic.equals(topicName))
-                .reduce((double) 0, (__, item) -> item.value, (a, b) -> a + b);
+                .reduce((double) 0, (__, item) -> item.value, Double::sum);
     }
 
-    public static Future messageInTotalMetric(ServiceAPI api, String  kafkaInstanceName, Vertx vertx, String clientID, String clientSecret) {
+    public static Future<Void> messageInTotalMetric(Vertx vertx, ServiceAPI api, String  kafkaInstanceName, ServiceAccount serviceAccount) {
         LOGGER.info("start testing message in total metric");
-        Promise promise = Promise.promise();
+        Promise<Void> promise = Promise.promise();
         // retrieve the kafka info
         var kafkaF = getKafkaByName(api, kafkaInstanceName)
                 .map(o -> o.orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", kafkaInstanceName))));
@@ -76,7 +76,7 @@ public class MetricsUtils {
                     String bootstrapHost = kafkaF.result().bootstrapServerHost;
 
                     LOGGER.info("send {} message to the topic: {}", MESSAGE_COUNT, TOPIC_NAME);
-                    return testTopicWithOauth(vertx, bootstrapHost, clientID, clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100);
+                    return testTopicWithOauth(vertx, bootstrapHost, serviceAccount.clientID, serviceAccount.clientSecret, TOPIC_NAME, MESSAGE_COUNT, 10, 100);
                 });
 
         // wait for the metric to be updated or fail with timeout
