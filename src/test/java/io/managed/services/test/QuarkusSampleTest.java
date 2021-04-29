@@ -27,9 +27,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.auth.User;
-import io.vertx.junit5.Timeout;
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -39,7 +36,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.IOException;
@@ -50,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.decodeBase64;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
@@ -65,8 +63,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag(TestTag.BINDING_OPERATOR)
-@ExtendWith(VertxExtension.class)
-@Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class QuarkusSampleTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(QuarkusSampleTest.class);
@@ -97,15 +94,15 @@ public class QuarkusSampleTest extends TestBase {
         assumeTrue(Environment.BF2_GITHUB_TOKEN != null, "the BF2_GITHUB_TOKEN env is null");
     }
 
+    private final Vertx vertx = Vertx.vertx();
 
-    Vertx vertx = Vertx.vertx();
-    CLI cli;
-    User user;
-    ServiceAPI api;
-    OpenShiftClient oc;
-    KafkaResponse kafka;
-    Route route;
-    ServiceBinding binding;
+    private CLI cli;
+    private User user;
+    private ServiceAPI api;
+    private OpenShiftClient oc;
+    private KafkaResponse kafka;
+    private Route route;
+    private ServiceBinding binding;
 
     private void assertBootstrap() {
         assumeTrue(cli != null, "cli is null because the bootstrap has failed");
@@ -193,19 +190,17 @@ public class QuarkusSampleTest extends TestBase {
 
     @Test
     @Order(0)
-    @Timeout(value = 15, timeUnit = TimeUnit.MINUTES)
-    void bootstrap(VertxTestContext context) {
+    @Timeout(value = 15, unit = TimeUnit.MINUTES)
+    void bootstrap() throws Throwable {
         assertENVs();
 
         bootstrapK8sClient();
 
-        bootstrapCLI()
+        bwait(bootstrapCLI());
 
-            .compose(__ -> bootstrapUserAndAPI())
+        bwait(bootstrapUserAndAPI());
 
-            .compose(__ -> bootstrapKafkaInstance())
-
-            .onComplete(context.succeedingThenComplete());
+        bwait(bootstrapKafkaInstance());
     }
 
     private void collectQuarkusAppLogs(ExtensionContext context) throws IOException {
@@ -331,7 +326,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @AfterAll
-    void teardown(VertxTestContext context, ExtensionContext extensionContext) {
+    void teardown(ExtensionContext extensionContext) {
         assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
 
         try {
@@ -380,30 +375,28 @@ public class QuarkusSampleTest extends TestBase {
             LOGGER.error("cleanQuarkusSampleApp error: ", e);
         }
 
-        cleanServiceAccount()
-            .recover(e -> {
-                LOGGER.error("cleanServiceAccount error: ", e);
-                return Future.succeededFuture();
-            })
+        try {
+            bwait(cleanServiceAccount());
+        } catch (Throwable e) {
+            LOGGER.error("cleanServiceAccount error: ", e);
+        }
 
-            .compose(__ -> cleanKafkaInstance())
-            .recover(e -> {
-                LOGGER.error("cleanKafkaInstance error: ", e);
-                return Future.succeededFuture();
-            })
+        try {
+            bwait(cleanKafkaInstance());
+        } catch (Throwable e) {
+            LOGGER.error("cleanKafkaInstance error: ", e);
+        }
 
-            .compose(__ -> cleanCLI())
-            .recover(e -> {
-                LOGGER.error("cleanCLI error: ", e);
-                return Future.succeededFuture();
-            })
-
-            .onComplete(context.succeedingThenComplete());
+        try {
+            bwait(cleanCLI());
+        } catch (Throwable e) {
+            LOGGER.error("cleanCLI error: ", e);
+        }
     }
 
     @Test
     @Order(1)
-    void testCLIConnectCluster(VertxTestContext context) {
+    void testCLIConnectCluster() throws Throwable {
         assertBootstrap();
 
         cleanAccessTokenSecret();
@@ -417,19 +410,13 @@ public class QuarkusSampleTest extends TestBase {
         var config = Serialization.asYaml(kubeConfig);
 
         var kubeconfgipath = cli.getWorkdir() + "/kubeconfig";
-        vertx.fileSystem().writeFile(kubeconfgipath, Buffer.buffer(config))
+        bwait(vertx.fileSystem().writeFile(kubeconfgipath, Buffer.buffer(config)));
 
-            .compose(__ -> {
-                LOGGER.info("cli use kafka instance: {}", kafka.id);
-                return cli.useKafka(kafka.id);
-            })
+        LOGGER.info("cli use kafka instance: {}", kafka.id);
+        bwait(cli.useKafka(kafka.id));
 
-            .compose(__ -> {
-                LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
-                return cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
-            })
-
-            .onComplete(context.succeedingThenComplete());
+        LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
+        bwait(cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath));
     }
 
     @Test
@@ -447,7 +434,7 @@ public class QuarkusSampleTest extends TestBase {
 
     @Test
     @Order(3)
-    void testCreateServiceBinding(VertxTestContext context) {
+    void testCreateServiceBinding() throws Throwable {
         assertBootstrap();
 
         cleanServiceBinding();
@@ -501,24 +488,18 @@ public class QuarkusSampleTest extends TestBase {
             return succeededFuture(Pair.with(isReady, b));
         };
 
+        // wait for for the service binding to be gone
+        bwait(waitFor(vertx, "service binding to be deleted", ofSeconds(3), ofMinutes(1), serviceBindingIsDeleted));
 
-        waitFor(vertx, "service binding to be deleted", ofSeconds(3), ofMinutes(1), serviceBindingIsDeleted)
+        LOGGER.info("create service binding: {}", Json.encode(sb));
+        OperatorUtils.serviceBinding(oc).create(sb);
 
-            .compose(__ -> {
-
-                LOGGER.info("create service binding: {}", Json.encode(sb));
-                OperatorUtils.serviceBinding(oc).create(sb);
-
-                return waitFor(vertx, "service binding to be ready", ofSeconds(3), ofMinutes(1), serviceBindingIsReady)
-                    .onSuccess(b -> binding = b);
-            })
-
-            .onComplete(context.succeedingThenComplete());
+        binding = bwait(waitFor(vertx, "service binding to be ready", ofSeconds(3), ofMinutes(1), serviceBindingIsReady));
     }
 
     @Test
     @Order(4)
-    void testQuarkusSampleApp(VertxTestContext context) {
+    void testQuarkusSampleApp() throws Throwable {
         assertBootstrap();
         assertRoute();
         assertBinding();
@@ -574,7 +555,6 @@ public class QuarkusSampleTest extends TestBase {
 
                 return Pair.with(false, null);
             });
-        waitFor(vertx, "retry data", ofSeconds(1), ofMinutes(3), complete)
-            .onComplete(context.succeedingThenComplete());
+        bwait(waitFor(vertx, "retry data", ofSeconds(1), ofMinutes(3), complete));
     }
 }

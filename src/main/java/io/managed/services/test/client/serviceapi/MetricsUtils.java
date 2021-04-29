@@ -48,6 +48,7 @@ public class MetricsUtils {
         LOGGER.info("start testing message in total metric");
         Promise<Void> promise = Promise.promise();
         // retrieve the kafka info
+        // TODO: Pass the kafka object
         var kafkaF = getKafkaByName(api, kafkaInstanceName)
                 .map(o -> o.orElseThrow(() -> new TestAbortedException(message("can't find the long living kafka instance: {}", kafkaInstanceName))));
 
