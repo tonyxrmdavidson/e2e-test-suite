@@ -203,7 +203,7 @@ class LongLiveKafkaTest extends TestBase {
         assertAPI();
 
         LOGGER.info("start testing message in total metric");
-        bwait(messageInTotalMetric(api, KAFKA_INSTANCE_NAME, SERVICE_ACCOUNT_NAME, vertx));
+        bwait(messageInTotalMetric(vertx, api, KAFKA_INSTANCE_NAME, serviceAccount));
     }
 }
 

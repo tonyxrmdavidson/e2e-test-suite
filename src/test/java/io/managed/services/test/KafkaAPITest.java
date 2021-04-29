@@ -2,7 +2,6 @@ package io.managed.services.test;
 
 import io.managed.services.test.client.exception.HTTPConflictException;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.kafkaadminapi.Topic;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
@@ -52,8 +51,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Tag(TestTag.SERVICE_API)
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class ServiceAPITest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(ServiceAPITest.class);
+class KafkaAPITest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(KafkaAPITest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
     static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.KAFKA_POSTFIX_NAME;
@@ -66,8 +65,6 @@ class ServiceAPITest extends TestBase {
     private KafkaResponse kafka;
     private ServiceAccount serviceAccount;
     private Topic topic;
-
-    KafkaAdminAPI adminApi;
 
     @BeforeAll
     void bootstrap() throws Throwable {
