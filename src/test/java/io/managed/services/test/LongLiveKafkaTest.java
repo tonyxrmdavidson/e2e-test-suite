@@ -20,6 +20,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.Timeout;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -32,9 +33,9 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafk
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static java.time.Duration.ofMinutes;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertTrue;
 
 
 @Tag(TestTag.SERVICE_API)
@@ -46,6 +47,7 @@ class LongLiveKafkaTest extends TestBase {
     public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
+    static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -168,7 +170,8 @@ class LongLiveKafkaTest extends TestBase {
 
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
 
-        var topics = Set.of(TOPICS);
+        var topics = new HashSet<>(Set.of(TOPICS));
+        topics.add(METRIC_TOPIC_NAME);
 
         LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
         var api = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
@@ -203,7 +206,7 @@ class LongLiveKafkaTest extends TestBase {
         assertAPI();
 
         LOGGER.info("start testing message in total metric");
-        bwait(messageInTotalMetric(vertx, api, KAFKA_INSTANCE_NAME, serviceAccount));
+        bwait(messageInTotalMetric(vertx, api, kafka, serviceAccount, METRIC_TOPIC_NAME));
     }
 }
 

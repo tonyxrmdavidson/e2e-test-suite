@@ -364,7 +364,7 @@ public class QuarkusSampleTest extends TestBase {
         }
 
         try {
-            cleanServiceBindingSecrets();
+//            cleanServiceBindingSecrets();
         } catch (Exception e) {
             LOGGER.error("cleanServiceBindingSecrets error: ", e);
         }
