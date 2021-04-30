@@ -10,49 +10,38 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
 import io.managed.services.test.client.serviceapi.TopicResponse;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
-
-import java.util.concurrent.TimeUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertThrows;
+import static org.testng.Assert.assertTrue;
 
 
-@Tag(TestTag.CLI)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+//@Tag(TestTag.CLI)
 public class KafkaCLITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaCLITest.class);
 
-    static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String TOPIC_NAME = "cli-e2e-test-topic";
-    static final int DEFAULT_PARTITIONS = 1;
+    private static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String TOPIC_NAME = "cli-e2e-test-topic";
+    private static final int DEFAULT_PARTITIONS = 1;
 
-    Vertx vertx = Vertx.vertx();
-    CLI cli;
-    boolean loggedIn;
-    KafkaResponse kafkaInstance;
-    ServiceAccount serviceAccount;
-    TopicResponse topic;
+    private final Vertx vertx = Vertx.vertx();
+
+    private CLI cli;
+    private KafkaResponse kafkaInstance;
+    private ServiceAccount serviceAccount;
+    private TopicResponse topic;
 
     private Future<Void> cleanServiceAccount(ServiceAPI api) {
         LOGGER.info("delete service account with name: {}", SERVICE_ACCOUNT_NAME);
@@ -79,8 +68,8 @@ public class KafkaCLITest extends TestBase {
         return Future.succeededFuture();
     }
 
-    @AfterAll
-    void clean() throws Throwable {
+    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    public void clean() throws Throwable {
 
         var api = bwait(ServiceAPIUtils.serviceAPI(vertx));
 
@@ -109,36 +98,8 @@ public class KafkaCLITest extends TestBase {
         }
     }
 
-    void assertCLI() {
-        assumeTrue(cli != null, "cli is null because the bootstrap has failed");
-    }
-
-    void assertLoggedIn() {
-        assumeTrue(loggedIn, "cli is not logged in");
-    }
-
-    void assertKafka() {
-        assumeTrue(kafkaInstance != null, "kafka is null because the testCreateKafkaInstance has failed to create the Kafka instance");
-    }
-
-    void assertCredentials() {
-        assumeTrue(Environment.BF2_GITHUB_TOKEN != null, "the BF2_GITHUB_TOKEN env is null");
-        assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
-        assumeTrue(Environment.SSO_PASSWORD != null, "the SSO_PASSWORD env is null");
-    }
-
-    void assertServiceAccount() {
-        assumeTrue(serviceAccount != null, "serviceAccount is null because the testCreateServiceAccount has failed to create the Service Account");
-    }
-
-    void assertTopic() {
-        assumeTrue(topic != null, "topic is null because the testCreateTopic has failed to create the topic on the Kafka instance");
-    }
-
-    @Test
-    @Order(1)
-    void testDownloadCLI() throws Throwable {
-        assertCredentials();
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testDownloadCLI() throws Throwable {
 
         var downloader = CLIDownloader.defaultDownloader(vertx);
 
@@ -152,11 +113,8 @@ public class KafkaCLITest extends TestBase {
     }
 
 
-    @Test
-    @Order(2)
-    @Timeout(value = 5, unit = TimeUnit.MINUTES)
-    void testLogin() throws Throwable {
-        assertCLI();
+    @Test(dependsOnMethods = "testDownloadCLI", timeOut = DEFAULT_TIMEOUT)
+    public void testLogin() throws Throwable {
 
         LOGGER.info("verify that we aren't logged-in");
         assertThrows(ProcessException.class, () -> bwait(cli.listKafka()));
@@ -166,15 +124,10 @@ public class KafkaCLITest extends TestBase {
 
         LOGGER.info("verify that we are logged-in");
         bwait(cli.listKafka());
-
-        loggedIn = true;
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(3)
-    void testCreateServiceAccount() throws Throwable {
-        assertLoggedIn();
+    @Test(dependsOnMethods = "testLogin", timeOut = DEFAULT_TIMEOUT)
+    public void testCreateServiceAccount() throws Throwable {
 
         LOGGER.info("create a service account");
         serviceAccount = bwait(CLIUtils.createServiceAccount(vertx, cli, SERVICE_ACCOUNT_NAME));
@@ -186,12 +139,8 @@ public class KafkaCLITest extends TestBase {
         LOGGER.info("created service account {} with id {}", serviceAccount.name, serviceAccount.id);
     }
 
-    @Test
-    @Timeout(value = 15, unit = TimeUnit.MINUTES)
-    @Order(4)
-    void testCreateKafkaInstance() throws Throwable {
-        assertLoggedIn();
-        assertServiceAccount();
+    @Test(dependsOnMethods = "testLogin", timeOut = 15 * MINUTES)
+    public void testCreateKafkaInstance() throws Throwable {
 
         LOGGER.info("create kafka instance with name {}", KAFKA_INSTANCE_NAME);
         var kafka = bwait(cli.createKafka(KAFKA_INSTANCE_NAME));
@@ -202,11 +151,8 @@ public class KafkaCLITest extends TestBase {
         LOGGER.info("kafka instance {} with id {} is ready", kafka.name, kafka.id);
     }
 
-    @Test
-    @Order(5)
-    void testGetStatusOfKafkaInstance() throws Throwable {
-        assertLoggedIn();
-        assertKafka();
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    public void testGetStatusOfKafkaInstance() throws Throwable {
 
         LOGGER.info("get kafka instance with name {}", KAFKA_INSTANCE_NAME);
         var kafka = bwait(cli.describeKafka(kafkaInstance.id));
@@ -215,12 +161,8 @@ public class KafkaCLITest extends TestBase {
         LOGGER.info("found kafka instance {} with id {}", kafka.name, kafka.id);
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(6)
-    void testCreateKafkaTopic() throws Throwable {
-        assertLoggedIn();
-        assertKafka();
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    public void testCreateKafkaTopic() throws Throwable {
 
         LOGGER.info("create kafka topic with name {}", KAFKA_INSTANCE_NAME);
         topic = bwait(cli.createTopic(TOPIC_NAME));
@@ -230,11 +172,8 @@ public class KafkaCLITest extends TestBase {
         LOGGER.info("topic created: {}", topic.name);
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(7)
-    void testKafkaMessaging() throws Throwable {
-        assertTopic();
+    @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
+    public void testKafkaMessaging() throws Throwable {
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -251,10 +190,8 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test
-    @Order(8)
-    void testUpdateKafkaTopic() throws Throwable {
-        assertTopic();
+    @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
+    public void testUpdateKafkaTopic() throws Throwable {
 
         var retentionTime = "4";
         var retentionKey = "retention.ms";
@@ -272,10 +209,8 @@ public class KafkaCLITest extends TestBase {
         topic = testTopic;
     }
 
-    @Test
-    @Order(9)
-    void testGetRetentionConfigFromTopic() throws Throwable {
-        assertTopic();
+    @Test(dependsOnMethods = "testUpdateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
+    public void testGetRetentionConfigFromTopic() throws Throwable {
 
         var retentionTime = "4";
         var retentionKey = "retention.ms";
@@ -294,11 +229,8 @@ public class KafkaCLITest extends TestBase {
         assertEquals(retentionValue.get().value, retentionTime);
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(10)
-    void testMessagingOnUpdatedTopic() throws Throwable {
-        assertTopic();
+    @Test(dependsOnMethods = "testUpdateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
+    public void testMessagingOnUpdatedTopic() throws Throwable {
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -315,11 +247,8 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(13)
-    void testDeleteTopic() throws Throwable {
-        assertTopic();
+    @Test(dependsOnMethods = "testCreateKafkaTopic", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteTopic() throws Throwable {
 
         LOGGER.info("delete topic: {}", TOPIC_NAME);
         bwait(cli.deleteTopic(TOPIC_NAME));
@@ -328,20 +257,13 @@ public class KafkaCLITest extends TestBase {
         bwait(waitForTopicDelete(vertx, cli, TOPIC_NAME)); // also verify that the topic doesn't exists anymore
     }
 
-    @Test
-    @Order(14)
-    void testCreateAlreadyCreatedKafka() {
-        assertLoggedIn();
-        assertKafka();
-
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    public void testCreateAlreadyCreatedKafka() {
         assertThrows(ProcessException.class, () -> bwait(cli.createKafka(KAFKA_INSTANCE_NAME)));
     }
 
-    @Test
-    @Timeout(value = 1, unit = TimeUnit.MINUTES)
-    @Order(15)
-    void testDeleteServiceAccount() throws Throwable {
-        assertServiceAccount();
+    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteServiceAccount() throws Throwable {
 
         bwait(cli.deleteServiceAccount(serviceAccount.id));
         LOGGER.info("service account {} with id {} deleted", serviceAccount.name, serviceAccount.id);
@@ -349,12 +271,8 @@ public class KafkaCLITest extends TestBase {
         // TODO: Verify that the service account doesn't exists
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(16)
-    void testDeleteKafkaInstance() throws Throwable {
-        assertLoggedIn();
-        assertKafka();
+    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 2, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteKafkaInstance() throws Throwable {
 
         LOGGER.info("delete kafka instance {} with id {}", kafkaInstance.name, kafkaInstance.id);
         bwait(cli.deleteKafka(kafkaInstance.id));
