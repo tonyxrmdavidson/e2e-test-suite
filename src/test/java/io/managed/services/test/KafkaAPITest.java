@@ -56,7 +56,7 @@ public class KafkaAPITest extends TestBase {
     private ServiceAccount serviceAccount;
 
     @BeforeClass
-    void bootstrap() throws Throwable {
+    public void bootstrap() throws Throwable {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
     }
 
@@ -69,7 +69,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @AfterClass
-    void teardown() {
+    public void teardown() {
 
         // delete kafka instance
         try {
@@ -93,7 +93,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(timeOut = 15 * MINUTES)
-    void testCreateKafkaInstance() throws Throwable {
+    public void testCreateKafkaInstance() throws Throwable {
 
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
@@ -109,7 +109,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    void testCreateServiceAccount() throws Throwable {
+    public void testCreateServiceAccount() throws Throwable {
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
@@ -120,7 +120,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    void testCreateTopics() throws Throwable {
+    public void testCreateTopics() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
 
@@ -134,14 +134,14 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    void testMessageInTotalMetric() throws Throwable {
+    public void testMessageInTotalMetric() throws Throwable {
 
         LOGGER.info("start testing message in total metric");
         bwait(messageInTotalMetric(vertx, api, kafka, serviceAccount, TOPIC_NAME));
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    void testOAuthMessaging() throws Throwable {
+    public void testOAuthMessaging() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -159,7 +159,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    void testFailedOauthMessaging() {
+    public void testFailedOauthMessaging() {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -176,7 +176,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    void testPlainMessaging() throws Throwable {
+    public void testPlainMessaging() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -194,7 +194,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    void testFailedPlainMessaging() {
+    public void testFailedPlainMessaging() {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -211,7 +211,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
-    void testListAndSearchKafkaInstance() throws Throwable {
+    public void testListAndSearchKafkaInstance() throws Throwable {
 
         //List kafka instances
         var kafkaList = bwait(api.getListOfKafkas());
@@ -233,7 +233,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
-    void testCreateKafkaInstanceWithExistingName() {
+    public void testCreateKafkaInstanceWithExistingName() {
 
         // Create Kafka Instance with existing name
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
@@ -247,7 +247,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    void testDeleteProvisioningKafkaInstance() throws Throwable {
+    public void testDeleteProvisioningKafkaInstance() throws Throwable {
 
         // TODO: Move this tests in a separate Class
 
@@ -273,7 +273,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1, timeOut = DEFAULT_TIMEOUT)
-    void testDeleteKafkaInstance() throws Throwable {
+    public void testDeleteKafkaInstance() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
