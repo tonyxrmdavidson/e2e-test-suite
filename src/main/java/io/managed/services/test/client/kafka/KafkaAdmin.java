@@ -50,6 +50,8 @@ public class KafkaAdmin {
 
     public final Admin admin;
 
+    // TODO: This parameters shouldn't be passed top down from the test
+    // TODO: We shouldn't relay on the `__strimzi_canary`
     static final String STRIMZI_TOPIC = "__strimzi_canary";
     static final String STRIMZI_CANARY_GROUP = "strimzi-canary-group";
     static final String GROUP_ID = "new-group-id";
@@ -59,8 +61,6 @@ public class KafkaAdmin {
                 .entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         admin = Admin.create(conf);
-
-
     }
 
     public Future<Void> createTopic(String name) {
