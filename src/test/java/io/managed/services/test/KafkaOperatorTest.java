@@ -16,7 +16,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
-import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -25,83 +24,55 @@ import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.testng.ITestContext;
+import org.testng.TestException;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
+import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertNotNull;
 
 
-@Tag(TestTag.BINDING_OPERATOR)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+//@Tag(TestTag.BINDING_OPERATOR)
 public class KafkaOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 
     // use the kafka long living instance
-    static final String KAFKA_INSTANCE_NAME = LongLiveKafkaTest.KAFKA_INSTANCE_NAME;
+    // TODO: Make KafkaOperatorTest independent from LongLiveKafkaTest
+    private static final String KAFKA_INSTANCE_NAME = LongLiveKafkaTest.KAFKA_INSTANCE_NAME;
 
     private final Vertx vertx = Vertx.vertx();
 
-    User user;
-    ServiceAPI api;
-    KubernetesClient client;
-    boolean accessToken;
+    private User user;
+    private ServiceAPI api;
+    private KubernetesClient client;
 
-    CloudServicesRequest cloudServicesRequest;
-    CloudServiceAccountRequest cloudServiceAccountRequest;
+    private CloudServicesRequest cloudServicesRequest;
 
-    final static String ACCESS_TOKEN_SECRET_NAME = "mk-e2e-api-accesstoken";
-    final static String CLOUD_SERVICE_ACCOUNT_REQUEST_NAME = "mk-e2e-service-account-request";
-    final static String SERVICE_ACCOUNT_NAME = "mk-e2e-bo-sa-" + Environment.KAFKA_POSTFIX_NAME;
-    final static String SERVICE_ACCOUNT_SECRET_NAME = "mk-e2e-service-account-secret";
-    final static String CLOUD_SERVICES_REQUEST_NAME = "mk-e2e-kafka-request";
-    final static String KAFKA_CONNECTION_NAME = "mk-e2e-kafka-connection";
+    private final static String ACCESS_TOKEN_SECRET_NAME = "mk-e2e-api-accesstoken";
+    private final static String CLOUD_SERVICE_ACCOUNT_REQUEST_NAME = "mk-e2e-service-account-request";
+    private final static String SERVICE_ACCOUNT_NAME = "mk-e2e-bo-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    private final static String SERVICE_ACCOUNT_SECRET_NAME = "mk-e2e-service-account-secret";
+    private final static String CLOUD_SERVICES_REQUEST_NAME = "mk-e2e-kafka-request";
+    private final static String KAFKA_CONNECTION_NAME = "mk-e2e-kafka-connection";
 
     private void assertENVs() {
-        assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
-        assumeTrue(Environment.SSO_PASSWORD != null, "the SSO_PASSWORD env is null");
-        assumeTrue(Environment.DEV_CLUSTER_SERVER != null, "the DEV_CLUSTER_SERVER env is null");
-        assumeTrue(Environment.DEV_CLUSTER_TOKEN != null, "the DEV_CLUSTER_TOKEN env is null");
-    }
-
-    private void assertClient() {
-        assumeTrue(client != null, "client is null because the bootstrap method has failed");
-    }
-
-    private void assertUser() {
-        assumeTrue(user != null, "user is null because the bootstrap method has failed");
-    }
-
-    private void assertAccessToken() {
-        assumeTrue(accessToken, "accessToken is false because the createAccessTokenSecret method has failed");
-    }
-
-    private void assertCloudServicesRequest() {
-        assumeTrue(cloudServicesRequest != null, "cloudServicesRequest is null because testCreateCloudServicesRequest has failed");
-    }
-
-    private void assertCloudServiceAccountRequest() {
-        assumeTrue(cloudServiceAccountRequest != null, "cloudServiceAccountRequest is null because testCreateCloudServicesRequest has failed");
+        assertNotNull(Environment.SSO_USERNAME, "the SSO_USERNAME env is null");
+        assertNotNull(Environment.SSO_PASSWORD, "the SSO_PASSWORD env is null");
+        assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
+        assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
     }
 
     private Future<Void> bootstrapUser(Vertx vertx) {
@@ -137,7 +108,7 @@ public class KafkaOperatorTest extends TestBase {
         client = new DefaultKubernetesClient(config);
     }
 
-    @BeforeAll
+    @BeforeClass(timeOut = DEFAULT_TIMEOUT)
     void bootstrap() throws Throwable {
         assertENVs();
 
@@ -180,7 +151,7 @@ public class KafkaOperatorTest extends TestBase {
         }
     }
 
-    private void collectOperatorLogs(ExtensionContext context) throws IOException {
+    private void collectOperatorLogs(ITestContext context) throws IOException {
         LogCollector.saveDeploymentLog(
             TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
             client,
@@ -193,9 +164,9 @@ public class KafkaOperatorTest extends TestBase {
         return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
 
-    @AfterAll
-    void teardown(ExtensionContext context) {
-        assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
+    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    void teardown(ITestContext context) {
+        assumeTeardown();
 
         try {
             cleanKafkaConnection();
@@ -235,11 +206,8 @@ public class KafkaOperatorTest extends TestBase {
         }
     }
 
-    @Test
-    @Order(1)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     void testCreateAccessTokenSecret() {
-        assertClient();
-        assertUser();
 
         // Create Secret
         Map<String, String> data = new HashMap<>();
@@ -247,15 +215,10 @@ public class KafkaOperatorTest extends TestBase {
 
         LOGGER.info("create access token secret with name: {}", ACCESS_TOKEN_SECRET_NAME);
         client.secrets().create(OperatorUtils.buildSecret(ACCESS_TOKEN_SECRET_NAME, data));
-
-        accessToken = true;
     }
 
-    @Test
-    @Order(2)
-    @Timeout(value = 5, unit = TimeUnit.MINUTES)
+    @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
     void testCreateCloudServiceAccountRequest() throws Throwable {
-        assertAccessToken();
 
         var a = new CloudServiceAccountRequest();
         a.getMetadata().setName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME);
@@ -284,14 +247,12 @@ public class KafkaOperatorTest extends TestBase {
                 return Pair.with(false, null);
             });
 
-        cloudServiceAccountRequest = bwait(waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(4), ready));
+        var cloudServiceAccountRequest = bwait(waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(4), ready));
         LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(cloudServiceAccountRequest));
     }
 
-    @Test
-    @Order(2)
+    @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
     void testCreateCloudServicesRequest() throws Throwable {
-        assertAccessToken();
 
         var k = new CloudServicesRequest();
         k.getMetadata().setName(CLOUD_SERVICES_REQUEST_NAME);
@@ -323,13 +284,8 @@ public class KafkaOperatorTest extends TestBase {
         LOGGER.info("CloudServicesRequest is ready: {}", Json.encode(cloudServicesRequest));
     }
 
-
-    @Test
-    @Order(3)
+    @Test(dependsOnMethods = {"testCreateCloudServiceAccountRequest", "testCreateCloudServicesRequest"}, timeOut = DEFAULT_TIMEOUT)
     void testCreateManagedKafkaConnection() throws Throwable {
-        assertAccessToken();
-        assertCloudServiceAccountRequest();
-        assertCloudServicesRequest();
 
         var userKafka = cloudServicesRequest.getStatus().getUserKafkas().stream()
             .filter(k -> k.getName().equals(KAFKA_INSTANCE_NAME))
@@ -337,7 +293,7 @@ public class KafkaOperatorTest extends TestBase {
 
         if (userKafka.isEmpty()) {
             LOGGER.info("CloudServicesRequest: {}", Json.encode(cloudServicesRequest));
-            fail(String.format("failed to find the user kafka instance %s in the CloudServicesRequest %s", KAFKA_INSTANCE_NAME, CLOUD_SERVICES_REQUEST_NAME));
+            throw new TestException(message("failed to find the user kafka instance {} in the CloudServicesRequest {}", KAFKA_INSTANCE_NAME, CLOUD_SERVICES_REQUEST_NAME));
         }
 
         var c = new KafkaConnection();
