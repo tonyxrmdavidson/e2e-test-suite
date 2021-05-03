@@ -109,7 +109,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @BeforeClass(timeOut = DEFAULT_TIMEOUT)
-    void bootstrap() throws Throwable {
+    public void bootstrap() throws Throwable {
         assertENVs();
 
         bwait(bootstrapUser(vertx));
@@ -165,7 +165,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT)
-    void teardown(ITestContext context) {
+    public void teardown(ITestContext context) {
         assumeTeardown();
 
         try {
@@ -207,7 +207,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    void testCreateAccessTokenSecret() {
+    public void testCreateAccessTokenSecret() {
 
         // Create Secret
         Map<String, String> data = new HashMap<>();
@@ -218,7 +218,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
-    void testCreateCloudServiceAccountRequest() throws Throwable {
+    public void testCreateCloudServiceAccountRequest() throws Throwable {
 
         var a = new CloudServiceAccountRequest();
         a.getMetadata().setName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME);
@@ -252,7 +252,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
-    void testCreateCloudServicesRequest() throws Throwable {
+    public void testCreateCloudServicesRequest() throws Throwable {
 
         var k = new CloudServicesRequest();
         k.getMetadata().setName(CLOUD_SERVICES_REQUEST_NAME);
@@ -285,7 +285,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateCloudServiceAccountRequest", "testCreateCloudServicesRequest"}, timeOut = DEFAULT_TIMEOUT)
-    void testCreateManagedKafkaConnection() throws Throwable {
+    public void testCreateManagedKafkaConnection() throws Throwable {
 
         var userKafka = cloudServicesRequest.getStatus().getUserKafkas().stream()
             .filter(k -> k.getName().equals(KAFKA_INSTANCE_NAME))

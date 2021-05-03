@@ -52,17 +52,17 @@ public class LongLiveKafkaTest extends TestBase {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
     }
 
-    void assertKafka() {
+    private void assertKafka() {
         if (kafka == null)
             throw new SkipException("kafka is null because the testPresenceOfLongLiveKafkaInstance has failed to create the Kafka instance");
     }
 
-    void assertServiceAccount() {
+    private void assertServiceAccount() {
         if (serviceAccount == null)
             throw new SkipException("serviceAccount is null because the testPresenceOfTheServiceAccount has failed to create the Service Account");
     }
 
-    void assertTopic() {
+    private void assertTopic() {
         if (!topic)
             throw new SkipException("topic is null because the testPresenceOfTopic has failed to create the Topic");
     }

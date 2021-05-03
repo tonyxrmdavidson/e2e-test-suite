@@ -164,7 +164,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @BeforeClass(timeOut = 15 * MINUTES)
-    void bootstrap() throws Throwable {
+    public void bootstrap() throws Throwable {
         assertENVs();
 
         bootstrapK8sClient();
@@ -299,7 +299,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @AfterClass(timeOut = 5 * MINUTES)
-    void teardown(ITestContext context) {
+    public void teardown(ITestContext context) {
         assumeTeardown();
 
         try {
@@ -368,7 +368,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    void testCLIConnectCluster() throws Throwable {
+    public void testCLIConnectCluster() throws Throwable {
 
         cleanAccessTokenSecret();
         cleanKafkaConnection();
@@ -391,7 +391,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)
-    void testDeployQuarkusSampleApp() {
+    public void testDeployQuarkusSampleApp() {
 
         LOGGER.info("deploy the rhoas-kafka-quickstart-example app");
         oc.resourceList(loadK8sResources(APP_YAML_PATH)).createOrReplace();
@@ -402,7 +402,7 @@ public class QuarkusSampleTest extends TestBase {
 
 
     @Test(dependsOnMethods = "testDeployQuarkusSampleApp", timeOut = DEFAULT_TIMEOUT)
-    void testCreateServiceBinding() throws Throwable {
+    public void testCreateServiceBinding() throws Throwable {
 
         cleanServiceBinding();
 
@@ -465,7 +465,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateServiceBinding", timeOut = 5 * MINUTES)
-    void testQuarkusSampleApp() throws Throwable {
+    public void testQuarkusSampleApp() throws Throwable {
 
         var endpoint = String.format("https://%s", route.getSpec().getHost());
         var client = new QuarkusSample(vertx, endpoint);

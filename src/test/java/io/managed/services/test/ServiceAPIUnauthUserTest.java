@@ -52,7 +52,7 @@ public class ServiceAPIUnauthUserTest extends TestBase {
         "BjVxAPldBNFwRKLOfvJNdY1jNurMY1xVMl2dbEpFBkqJf1lByU";
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    void testUnauthorizedUser() throws Throwable {
+    public void testUnauthorizedUser() throws Throwable {
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         var api = bwait(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_UNAUTHORIZED_PASSWORD));
         assertThrows(HTTPForbiddenException.class, () -> bwait(api.getListOfKafkas()));

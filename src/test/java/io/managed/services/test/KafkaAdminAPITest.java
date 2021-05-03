@@ -52,7 +52,7 @@ public class KafkaAdminAPITest extends TestBase {
     private KafkaConsumer<String, String> kafkaConsumer;
 
     @BeforeClass(timeOut = 10 * MINUTES)
-    void bootstrap() throws Throwable {
+    public void bootstrap() throws Throwable {
         serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
         LOGGER.info("service api initialized");
 

@@ -42,12 +42,12 @@ public class KafkaAPILimitTest extends TestBase {
     }
 
     @AfterClass
-    void teardown() throws Throwable {
+    public void teardown() throws Throwable {
         bwait(cleanServiceAccounts());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    void testLimitServiceAccount() throws Throwable {
+    public void testLimitServiceAccount() throws Throwable {
         AtomicInteger saSuccessCount = new AtomicInteger(0);
 
         // Create Service Account payloads
