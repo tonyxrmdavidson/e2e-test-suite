@@ -16,7 +16,6 @@ import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
-import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.operator.ServiceBinding;
 import io.managed.services.test.operator.ServiceBindingApplication;
@@ -30,23 +29,19 @@ import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.testng.ITestContext;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.decodeBase64;
 import static io.managed.services.test.TestUtils.message;
@@ -59,12 +54,9 @@ import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertNotNull;
 
-@Tag(TestTag.BINDING_OPERATOR)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+//@Tag(TestTag.BINDING_OPERATOR)
 public class QuarkusSampleTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(QuarkusSampleTest.class);
 
@@ -87,11 +79,11 @@ public class QuarkusSampleTest extends TestBase {
     private static final String TEST_LOGS_PATH = Environment.LOG_DIR.resolve("test-logs").toString();
 
     private void assertENVs() {
-        assumeTrue(Environment.SSO_USERNAME != null, "the SSO_USERNAME env is null");
-        assumeTrue(Environment.SSO_PASSWORD != null, "the SSO_PASSWORD env is null");
-        assumeTrue(Environment.DEV_CLUSTER_SERVER != null, "the DEV_CLUSTER_SERVER env is null");
-        assumeTrue(Environment.DEV_CLUSTER_TOKEN != null, "the DEV_CLUSTER_TOKEN env is null");
-        assumeTrue(Environment.BF2_GITHUB_TOKEN != null, "the BF2_GITHUB_TOKEN env is null");
+        assertNotNull(Environment.SSO_USERNAME, "the SSO_USERNAME env is null");
+        assertNotNull(Environment.SSO_PASSWORD, "the SSO_PASSWORD env is null");
+        assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
+        assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
+        assertNotNull(Environment.BF2_GITHUB_TOKEN, "the BF2_GITHUB_TOKEN env is null");
     }
 
     private final Vertx vertx = Vertx.vertx();
@@ -102,23 +94,6 @@ public class QuarkusSampleTest extends TestBase {
     private OpenShiftClient oc;
     private KafkaResponse kafka;
     private Route route;
-    private ServiceBinding binding;
-
-    private void assertBootstrap() {
-        assumeTrue(cli != null, "cli is null because the bootstrap has failed");
-        assumeTrue(user != null, "user is null because the bootstrap has failed");
-        assumeTrue(api != null, "api is null because the bootstrap has failed");
-        assumeTrue(oc != null, "oc is null because the bootstrap has failed");
-        assumeTrue(kafka != null, "kafka is null because the bootstrap has failed");
-    }
-
-    private void assertRoute() {
-        assumeTrue(route != null, "route is null because the testDeployQuarkusSampleApp has failed");
-    }
-
-    private void assertBinding() {
-        assumeTrue(binding != null, "binding is null because the testCreateServiceBinding has failed");
-    }
 
     private static InputStream getResource(String path) {
         return QuarkusSampleTest.class.getClassLoader().getResourceAsStream(path);
@@ -188,9 +163,7 @@ public class QuarkusSampleTest extends TestBase {
             .map(__ -> null);
     }
 
-    @Test
-    @Order(0)
-    @Timeout(value = 15, unit = TimeUnit.MINUTES)
+    @BeforeClass(timeOut = 15 * MINUTES)
     void bootstrap() throws Throwable {
         assertENVs();
 
@@ -203,7 +176,7 @@ public class QuarkusSampleTest extends TestBase {
         bwait(bootstrapKafkaInstance());
     }
 
-    private void collectQuarkusAppLogs(ExtensionContext context) throws IOException {
+    private void collectQuarkusAppLogs(ITestContext context) throws IOException {
 
         // save Deployment
         var d = oc.apps().deployments().withName(APP_DEPLOYMENT_NAME).get();
@@ -215,13 +188,13 @@ public class QuarkusSampleTest extends TestBase {
             oc, Environment.DEV_CLUSTER_NAMESPACE, APP_DEPLOYMENT_NAME);
     }
 
-    private void collectKafkaConnection(ExtensionContext context) throws IOException {
+    private void collectKafkaConnection(ITestContext context) throws IOException {
         // save KafkaConnection CR before delete it
         var c = OperatorUtils.kafkaConnection(oc).withName(KAFKA_INSTANCE_NAME).get();
         LogCollector.saveObject(TestUtils.getLogPath(TEST_LOGS_PATH, context), c);
     }
 
-    private void collectServiceBinding(ExtensionContext context) throws IOException {
+    private void collectServiceBinding(ITestContext context) throws IOException {
         // save KafkaConnection CR before delete it
         var b = OperatorUtils.serviceBinding(oc).withName(SERVICE_BINDING_NAME).get();
         LogCollector.saveObject(TestUtils.getLogPath(TEST_LOGS_PATH, context), b);
@@ -325,22 +298,22 @@ public class QuarkusSampleTest extends TestBase {
         return Future.succeededFuture();
     }
 
-    @AfterAll
-    void teardown(ExtensionContext extensionContext) {
-        assumeFalse(Environment.SKIP_TEARDOWN, "skip teardown");
+    @AfterClass(timeOut = 5 * MINUTES)
+    void teardown(ITestContext context) {
+        assumeTeardown();
 
         try {
-            collectQuarkusAppLogs(extensionContext);
+            collectQuarkusAppLogs(context);
         } catch (Exception e) {
             LOGGER.error("collectQuarkusAppLogs error: ", e);
         }
         try {
-            collectKafkaConnection(extensionContext);
+            collectKafkaConnection(context);
         } catch (Exception e) {
             LOGGER.error("collectKafkaConnection error: ", e);
         }
         try {
-            collectServiceBinding(extensionContext);
+            collectServiceBinding(context);
         } catch (Exception e) {
             LOGGER.error("collectServiceBinding error: ", e);
         }
@@ -364,7 +337,7 @@ public class QuarkusSampleTest extends TestBase {
         }
 
         try {
-//            cleanServiceBindingSecrets();
+            cleanServiceBindingSecrets();
         } catch (Exception e) {
             LOGGER.error("cleanServiceBindingSecrets error: ", e);
         }
@@ -394,10 +367,8 @@ public class QuarkusSampleTest extends TestBase {
         }
     }
 
-    @Test
-    @Order(1)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     void testCLIConnectCluster() throws Throwable {
-        assertBootstrap();
 
         cleanAccessTokenSecret();
         cleanKafkaConnection();
@@ -419,10 +390,8 @@ public class QuarkusSampleTest extends TestBase {
         bwait(cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath));
     }
 
-    @Test
-    @Order(2)
+    @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)
     void testDeployQuarkusSampleApp() {
-        assertBootstrap();
 
         LOGGER.info("deploy the rhoas-kafka-quickstart-example app");
         oc.resourceList(loadK8sResources(APP_YAML_PATH)).createOrReplace();
@@ -432,10 +401,8 @@ public class QuarkusSampleTest extends TestBase {
     }
 
 
-    @Test
-    @Order(3)
+    @Test(dependsOnMethods = "testDeployQuarkusSampleApp", timeOut = DEFAULT_TIMEOUT)
     void testCreateServiceBinding() throws Throwable {
-        assertBootstrap();
 
         cleanServiceBinding();
 
@@ -494,15 +461,11 @@ public class QuarkusSampleTest extends TestBase {
         LOGGER.info("create service binding: {}", Json.encode(sb));
         OperatorUtils.serviceBinding(oc).create(sb);
 
-        binding = bwait(waitFor(vertx, "service binding to be ready", ofSeconds(3), ofMinutes(1), serviceBindingIsReady));
+        bwait(waitFor(vertx, "service binding to be ready", ofSeconds(3), ofMinutes(1), serviceBindingIsReady));
     }
 
-    @Test
-    @Order(4)
+    @Test(dependsOnMethods = "testCreateServiceBinding", timeOut = 5 * MINUTES)
     void testQuarkusSampleApp() throws Throwable {
-        assertBootstrap();
-        assertRoute();
-        assertBinding();
 
         var endpoint = String.format("https://%s", route.getSpec().getHost());
         var client = new QuarkusSample(vertx, endpoint);
