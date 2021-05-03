@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.bwait;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.testng.Assert.assertThrows;
 
 //@Tag(TestTag.SERVICE_API_PERMISSIONS)
 public class ServiceAPIUnauthUserTest extends TestBase {

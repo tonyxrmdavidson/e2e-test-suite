@@ -52,28 +52,6 @@
             <version>0.21.1</version>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>5.7.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-            <version>5.7.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-launcher</artifactId>
-            <scope>compile</scope>
-            <version>1.7.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>5.7.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.12.0</version>
@@ -138,25 +116,25 @@
             <artifactId>javatuples</artifactId>
             <version>1.2</version>
         </dependency>
-        <dependency>
-            <groupId>com.epam.reportportal</groupId>
-            <artifactId>client-java</artifactId>
-            <version>5.0.18-b1zzu1</version>
-            <scope>system</scope>
-            <!-- Workaround for: https://github.com/reportportal/client-java/issues/147 -->
-            <!-- Built from https://github.com/b1zzu/client-java/tree/5.0.18-b1zzu1 -->
-            <systemPath>${basedir}/lib/client-java-5.0.18-b1zzu1.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>com.epam.reportportal</groupId>
-            <artifactId>restendpoint</artifactId>
-            <version>0.2.14</version>
-        </dependency>
-        <dependency>
-            <groupId>com.epam.reportportal</groupId>
-            <artifactId>agent-java-junit5</artifactId>
-            <version>5.0.5</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.epam.reportportal</groupId>-->
+<!--            <artifactId>client-java</artifactId>-->
+<!--            <version>5.0.18-b1zzu1</version>-->
+<!--            <scope>system</scope>-->
+<!--            &lt;!&ndash; Workaround for: https://github.com/reportportal/client-java/issues/147 &ndash;&gt;-->
+<!--            &lt;!&ndash; Built from https://github.com/b1zzu/client-java/tree/5.0.18-b1zzu1 &ndash;&gt;-->
+<!--            <systemPath>${basedir}/lib/client-java-5.0.18-b1zzu1.jar</systemPath>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.epam.reportportal</groupId>-->
+<!--            <artifactId>restendpoint</artifactId>-->
+<!--            <version>0.2.14</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.epam.reportportal</groupId>-->
+<!--            <artifactId>agent-java-junit5</artifactId>-->
+<!--            <version>5.0.5</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.epam.reportportal</groupId>
             <artifactId>logger-java-log4j</artifactId>
@@ -227,33 +205,32 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <forkCount>0</forkCount>
                             <includes>
                                 <include>**/Test*.java</include>
                                 <include>**/*Test.java</include>
                             </includes>
-                            <statelessTestsetReporter
-                                    implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
-                                <disable>false</disable>
-                                <version>3.0</version>
-                                <usePhrasedFileName>false</usePhrasedFileName>
-                                <usePhrasedTestSuiteClassName>true</usePhrasedTestSuiteClassName>
-                                <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
-                                <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
-                            </statelessTestsetReporter>
-                            <consoleOutputReporter
-                                    implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5ConsoleOutputReporter">
-                                <disable>false</disable>
-                                <encoding>UTF-8</encoding>
-                                <usePhrasedFileName>true</usePhrasedFileName>
-                            </consoleOutputReporter>
-                            <statelessTestsetInfoReporter
-                                    implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoReporter">
-                                <disable>false</disable>
-                                <usePhrasedFileName>false</usePhrasedFileName>
-                                <usePhrasedClassNameInRunning>false</usePhrasedClassNameInRunning>
-                                <usePhrasedClassNameInTestCaseSummary>true</usePhrasedClassNameInTestCaseSummary>
-                            </statelessTestsetInfoReporter>
+<!--                            <statelessTestsetReporter-->
+<!--                                    implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">-->
+<!--                                <disable>false</disable>-->
+<!--                                <version>3.0</version>-->
+<!--                                <usePhrasedFileName>false</usePhrasedFileName>-->
+<!--                                <usePhrasedTestSuiteClassName>true</usePhrasedTestSuiteClassName>-->
+<!--                                <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>-->
+<!--                                <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>-->
+<!--                            </statelessTestsetReporter>-->
+<!--                            <consoleOutputReporter-->
+<!--                                    implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5ConsoleOutputReporter">-->
+<!--                                <disable>false</disable>-->
+<!--                                <encoding>UTF-8</encoding>-->
+<!--                                <usePhrasedFileName>true</usePhrasedFileName>-->
+<!--                            </consoleOutputReporter>-->
+<!--                            <statelessTestsetInfoReporter-->
+<!--                                    implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoReporter">-->
+<!--                                <disable>false</disable>-->
+<!--                                <usePhrasedFileName>false</usePhrasedFileName>-->
+<!--                                <usePhrasedClassNameInRunning>false</usePhrasedClassNameInRunning>-->
+<!--                                <usePhrasedClassNameInTestCaseSummary>true</usePhrasedClassNameInTestCaseSummary>-->
+<!--                            </statelessTestsetInfoReporter>-->
                         </configuration>
                     </execution>
                 </executions>

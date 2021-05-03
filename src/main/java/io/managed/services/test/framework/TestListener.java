@@ -14,45 +14,61 @@ public class TestListener implements ITestListener {
 
     @Override
     public void onTestStart(ITestResult result) {
-        LOGGER.info(">> TEST START: {}", result.getName());
+        LOGGER.info("----------------------------");
+        LOGGER.info("-- Start test: {}", result.getName());
+        LOGGER.info("--");
     }
 
     @Override
     public void onTestSuccess(ITestResult result) {
-        LOGGER.info("== TEST COMPLETED: {}", result.getName());
+        LOGGER.warn("--");
+        LOGGER.info("-- Test completed: {}", result.getName());
+        LOGGER.warn("--");
     }
 
     @Override
     public void onTestFailure(ITestResult result) {
-        LOGGER.error(result.getThrowable().getMessage());
-        LOGGER.error("!! TEST FAILED: {}", result.getName());
+        LOGGER.error(result.getThrowable());
+        LOGGER.warn("--");
+        LOGGER.error("-- Test failed: {}", result.getName());
+        LOGGER.warn("--");
     }
 
     @Override
     public void onTestSkipped(ITestResult result) {
-        LOGGER.warn(result.getThrowable().getMessage());
-        LOGGER.warn("|| TEST SKIPPED: {}", result.getName());
+        LOGGER.warn(result.getThrowable());
+        LOGGER.warn("--");
+        LOGGER.warn("-- Test skipped: {}", result.getName());
+        LOGGER.warn("--");
     }
 
     @Override
     public void onTestFailedButWithinSuccessPercentage(ITestResult result) {
-        LOGGER.warn(result.getThrowable().getMessage());
-        LOGGER.warn("?? TEST UNSTABLE: {}", result.getName());
+        LOGGER.warn(result.getThrowable());
+        LOGGER.warn("--");
+        LOGGER.warn("-- Test unstable: {}", result.getName());
+        LOGGER.warn("--");
     }
 
     @Override
     public void onTestFailedWithTimeout(ITestResult result) {
-        LOGGER.warn(result.getThrowable().getMessage());
-        LOGGER.warn("~~ TEST TIMEOUT: {}", result.getName());
+        LOGGER.warn(result.getThrowable());
+        LOGGER.warn("--");
+        LOGGER.warn("-- Timeout: {}", result.getName());
+        LOGGER.warn("--");
     }
 
     @Override
     public void onStart(ITestContext context) {
-        LOGGER.info("++ SUITE START: {}", context.getClass().getName());
+        LOGGER.info("============================");
+        LOGGER.info("== Start suite: {}", context.getClass().getName());
+        LOGGER.info("==");
     }
 
     @Override
     public void onFinish(ITestContext context) {
-        LOGGER.info("++ SUITE FINISHED: {}", context.getClass().getName());
+        LOGGER.info("==");
+        LOGGER.info("== Suite finished: {}", context.getClass().getName());
+        LOGGER.info("==");
     }
 }

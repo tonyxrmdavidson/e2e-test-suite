@@ -10,10 +10,9 @@ import org.testng.annotations.Test;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
 
 //@Tag(TestTag.SMOKE)
@@ -22,7 +21,7 @@ public class SmokeTest extends TestBase {
 
     @Test
     public void smokeTest() {
-        assumeTrue(true);
+        assertTrue(true);
     }
 
     @Test
