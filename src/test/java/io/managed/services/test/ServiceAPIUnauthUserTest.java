@@ -4,24 +4,15 @@ import io.managed.services.test.client.exception.HTTPForbiddenException;
 import io.managed.services.test.client.exception.HTTPUnauthorizedException;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
-
-import java.util.concurrent.TimeUnit;
+import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@Tag(TestTag.SERVICE_API_PERMISSIONS)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+//@Tag(TestTag.SERVICE_API_PERMISSIONS)
 public class ServiceAPIUnauthUserTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPIUnauthUserTest.class);
 
@@ -60,20 +51,20 @@ public class ServiceAPIUnauthUserTest extends TestBase {
         "1eddbbmcV05FWDb8X4opshptnWDzAw4ZPhbjoTBhNEI2JbFssOSYpskNnkB4kKQb" +
         "BjVxAPldBNFwRKLOfvJNdY1jNurMY1xVMl2dbEpFBkqJf1lByU";
 
-    @Test
+    @Test(timeOut = DEFAULT_TIMEOUT)
     void testUnauthorizedUser() throws Throwable {
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         var api = bwait(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_UNAUTHORIZED_PASSWORD));
         assertThrows(HTTPForbiddenException.class, () -> bwait(api.getListOfKafkas()));
     }
 
-    @Test
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithFakeToken() {
         var api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, FAKE_TOKEN);
         assertThrows(HTTPUnauthorizedException.class, () -> bwait(api.getListOfKafkas()));
     }
 
-    @Test
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithoutToken() {
         var api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, "");
         assertThrows(HTTPUnauthorizedException.class, () -> bwait(api.getListOfKafkas()));
