@@ -9,6 +9,7 @@ import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
@@ -26,7 +27,7 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteS
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
-//@Tag(TestTag.SERVICE_API_PERMISSIONS)
+@Test(groups = TestTag.SERVICE_API_PERMISSIONS)
 public class KafkaAPIUserPermissionsTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAPIUserPermissionsTest.class);
 

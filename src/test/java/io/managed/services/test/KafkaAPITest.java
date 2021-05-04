@@ -9,6 +9,7 @@ import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -39,7 +40,7 @@ import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
 
-//@Tag(TestTag.SERVICE_API)
+@Test(groups = TestTag.SERVICE_API)
 public class KafkaAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAPITest.class);
 

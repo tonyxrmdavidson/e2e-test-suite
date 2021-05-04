@@ -4,6 +4,7 @@ import io.managed.services.test.client.exception.HTTPForbiddenException;
 import io.managed.services.test.client.exception.HTTPUnauthorizedException;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,7 +13,7 @@ import org.testng.annotations.Test;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertThrows;
 
-//@Tag(TestTag.SERVICE_API_PERMISSIONS)
+@Test(groups = TestTag.KAFKA_ADMIN_API)
 public class ServiceAPIUnauthUserTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPIUnauthUserTest.class);
 

@@ -16,6 +16,7 @@ import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
+import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.operator.ServiceBinding;
 import io.managed.services.test.operator.ServiceBindingApplication;
@@ -56,7 +57,7 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertNotNull;
 
-//@Tag(TestTag.BINDING_OPERATOR)
+@Test(groups = TestTag.BINDING_OPERATOR)
 public class QuarkusSampleTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(QuarkusSampleTest.class);
 

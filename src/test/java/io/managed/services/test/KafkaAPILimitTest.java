@@ -4,6 +4,7 @@ import io.managed.services.test.client.exception.HTTPForbiddenException;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +22,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
 
 
-//@Tag(TestTag.SERVICE_API)
+@Test(groups = TestTag.SERVICE_API)
 public class KafkaAPILimitTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAPILimitTest.class);
 

@@ -16,6 +16,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
+import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -45,7 +46,7 @@ import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertNotNull;
 
 
-//@Tag(TestTag.BINDING_OPERATOR)
+@Test(groups = TestTag.BINDING_OPERATOR)
 public class KafkaOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 

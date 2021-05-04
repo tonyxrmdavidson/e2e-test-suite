@@ -3,6 +3,7 @@ package io.managed.services.test;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.common.ElectionType;
@@ -24,7 +25,7 @@ import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertThrows;
 
-//@Tag(TestTag.KAFKA_ADMIN_PERMISSIONS)
+@Test(groups = TestTag.KAFKA_ADMIN_PERMISSIONS)
 public class KafkaAdminPermissionTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminPermissionTest.class);
 

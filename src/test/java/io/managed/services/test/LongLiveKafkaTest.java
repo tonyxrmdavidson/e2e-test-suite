@@ -7,6 +7,7 @@ import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,7 +32,7 @@ import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 
-//@Tag(TestTag.SERVICE_API)
+@Test(groups = TestTag.SERVICE_API)
 public class LongLiveKafkaTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(LongLiveKafkaTest.class);
 

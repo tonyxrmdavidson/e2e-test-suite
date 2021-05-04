@@ -10,6 +10,7 @@ import io.managed.services.test.client.kafkaadminapi.Topic;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
@@ -32,7 +33,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
-// TODO: @Tag(TestTag.KAFKA_ADMIN_API)
+@Test(groups = TestTag.KAFKA_ADMIN_API)
 public class KafkaAdminAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPITest.class);
 

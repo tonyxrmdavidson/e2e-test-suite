@@ -1,6 +1,7 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.kafka.KafkaMessagingUtils;
+import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
@@ -15,11 +16,10 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 
-//@Tag(TestTag.SMOKE)
+@Test(groups = TestTag.SMOKE)
 public class SmokeTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(SmokeTest.class);
 
-    @Test
     public void smokeTest() {
         assertTrue(true);
     }

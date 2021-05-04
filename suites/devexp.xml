@@ -1,0 +1,19 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+
+<suite name="KafkaDevExp">
+    <test name="KafkaCLI">
+        <classes>
+            <class name="io.managed.services.test.KafkaCLITest"/>
+        </classes>
+    </test>
+    <test name="KafkaOperator">
+        <classes>
+            <class name="io.managed.services.test.KafkaOperatorTest"/>
+        </classes>
+    </test>
+    <test name="QuarkusSampleTest">
+        <classes>
+            <class name="io.managed.services.test.QuarkusSampleTest"/>
+        </classes>
+    </test>
+</suite>

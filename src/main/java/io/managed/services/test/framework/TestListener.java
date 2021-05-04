@@ -23,7 +23,7 @@ public class TestListener implements ITestListener {
     public void onTestSuccess(ITestResult result) {
         LOGGER.warn("--");
         LOGGER.info("-- Test completed: {}", result.getName());
-        LOGGER.warn("--");
+        LOGGER.warn("----------------------------");
     }
 
     @Override
@@ -31,7 +31,7 @@ public class TestListener implements ITestListener {
         LOGGER.error(result.getThrowable());
         LOGGER.warn("--");
         LOGGER.error("-- Test failed: {}", result.getName());
-        LOGGER.warn("--");
+        LOGGER.warn("----------------------------");
     }
 
     @Override
@@ -39,7 +39,7 @@ public class TestListener implements ITestListener {
         LOGGER.warn(result.getThrowable());
         LOGGER.warn("--");
         LOGGER.warn("-- Test skipped: {}", result.getName());
-        LOGGER.warn("--");
+        LOGGER.warn("----------------------------");
     }
 
     @Override
@@ -47,7 +47,7 @@ public class TestListener implements ITestListener {
         LOGGER.warn(result.getThrowable());
         LOGGER.warn("--");
         LOGGER.warn("-- Test unstable: {}", result.getName());
-        LOGGER.warn("--");
+        LOGGER.warn("----------------------------");
     }
 
     @Override
@@ -55,20 +55,20 @@ public class TestListener implements ITestListener {
         LOGGER.warn(result.getThrowable());
         LOGGER.warn("--");
         LOGGER.warn("-- Timeout: {}", result.getName());
-        LOGGER.warn("--");
+        LOGGER.warn("----------------------------");
     }
 
     @Override
     public void onStart(ITestContext context) {
         LOGGER.info("============================");
-        LOGGER.info("== Start suite: {}", context.getClass().getName());
+        LOGGER.info("== Start suite: {}", context.getName());
         LOGGER.info("==");
     }
 
     @Override
     public void onFinish(ITestContext context) {
         LOGGER.info("==");
-        LOGGER.info("== Suite finished: {}", context.getClass().getName());
-        LOGGER.info("==");
+        LOGGER.info("== Suite finished: {}", context.getName());
+        LOGGER.info("============================");
     }
 }
