@@ -21,17 +21,17 @@ public class TestListener implements ITestListener {
 
     @Override
     public void onTestSuccess(ITestResult result) {
-        LOGGER.warn("--");
+        LOGGER.info("--");
         LOGGER.info("-- Test completed: {}", result.getName());
-        LOGGER.warn("----------------------------");
+        LOGGER.info("----------------------------");
     }
 
     @Override
     public void onTestFailure(ITestResult result) {
         LOGGER.error(result.getThrowable());
-        LOGGER.warn("--");
+        LOGGER.error("--");
         LOGGER.error("-- Test failed: {}", result.getName());
-        LOGGER.warn("----------------------------");
+        LOGGER.error("----------------------------");
     }
 
     @Override

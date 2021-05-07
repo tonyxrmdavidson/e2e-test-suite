@@ -16,6 +16,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
+        <maven.failsafe.version>3.0.0-M5</maven.failsafe.version>
     </properties>
 
     <dependencies>
@@ -116,6 +117,20 @@
         </dependency>
         <dependency>
             <groupId>com.epam.reportportal</groupId>
+            <artifactId>client-java</artifactId>
+            <version>5.0.18-b1zzu1</version>
+            <scope>system</scope>
+            <!-- Workaround for: https://github.com/reportportal/client-java/issues/147 -->
+            <!-- Built from https://github.com/b1zzu/client-java/tree/5.0.18-b1zzu1 -->
+            <systemPath>${basedir}/lib/client-java-5.0.18-b1zzu1.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>io.reactivex.rxjava2</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>2.2.10</version>
+        </dependency>
+        <dependency>
+            <groupId>com.epam.reportportal</groupId>
             <artifactId>agent-java-testng</artifactId>
             <version>5.0.11</version>
         </dependency>
@@ -181,7 +196,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.0.0-M5</version>
+                <version>${maven.failsafe.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -191,12 +206,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <includes>
-                        <include>**/Test*.java</include>
-                        <include>**/*Test.java</include>
-                    </includes>
                     <suiteXmlFiles>
-                        <suiteXmlFile>suites/smoke.xml</suiteXmlFile>
                         <suiteXmlFile>suites/service.xml</suiteXmlFile>
                         <suiteXmlFile>suites/devexp.xml</suiteXmlFile>
                     </suiteXmlFiles>
@@ -213,23 +223,40 @@
     <profiles>
         <profile>
             <id>default</id>
-            <properties>
-                <groups>
-                    service-api,service-api-permissions,binding-operator,cli,kafka-admin-api,kafka-admin-permissions
-                </groups>
-            </properties>
         </profile>
+
         <profile>
-            <id>cli</id>
-            <properties>
-                <groups>cli</groups>
-            </properties>
+            <id>sandbox</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <suiteXmlFiles>
+                                <suiteXmlFile>suites/sandbox.xml</suiteXmlFile>
+                            </suiteXmlFiles>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
+
         <profile>
             <id>smoke</id>
-            <properties>
-                <groups>smoke</groups>
-            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <suiteXmlFiles>
+                                <suiteXmlFile>suites/smoke.xml</suiteXmlFile>
+                            </suiteXmlFiles>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
