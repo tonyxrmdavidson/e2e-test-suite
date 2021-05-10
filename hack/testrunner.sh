@@ -12,13 +12,12 @@ SCRIPT=$0
 # ---
 
 PROFILE_DEFAULT="default"
-TESTCASE_DEFAULT="io.managed.services.test.**"
 
 # Variables
 # ---
 
 PROFILE=${PROFILE:-${PROFILE_DEFAULT}}
-TESTCASE=${TESTCASE:-${TESTCASE_DEFAULT}}
+TESTCASE=${TESTCASE:-}
 REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE:-"false"}
 REPORTPORTAL_ENDPOINT=${REPORTPORTAL_ENDPOINT:-"https://reportportal-cloud-services.apps.ocp4.prod.psi.redhat.com"}
 REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
@@ -36,6 +35,7 @@ function usage() {
   echo "Options:"
   echo "  -p, --profile string       the test profile (default: ${PROFILE_DEFAULT}) (env: PROFILE)"
   echo "  -t, --test string          the class name of the test to run (example: ${SCRIPT} -t ServiceAPITest) (default: all) (env: TESTCASE)"
+  echo " --report                    enable ReportPortal (env: REPORTPORTAL_ENABLE)"
 }
 
 # Utils
@@ -69,6 +69,10 @@ while [[ $# -gt 0 ]]; do
     shift
     shift
     ;;
+  --report)
+    REPORTPORTAL_ENABLE=true
+    shift
+    ;;
   --* | -*)
     usage
     echo
@@ -92,14 +96,24 @@ if [[ ${ENABLE_TEST} == "false" ]]; then
   exit 0
 fi
 
+OPTIONS=()
+if [[ -n "${PROFILE}" ]]; then
+  OPTIONS+=("-P${PROFILE}")
+fi
+
+if [[ -n "${TESTCASE}" ]]; then
+  OPTIONS+=("-Dit.test=${TESTCASE}")
+fi
+
+set -x
+# shellcheck disable=SC2086
 exec mvn verify \
   --offline \
-  "-P${PROFILE}" \
-  "-Dit.test=${TESTCASE}" \
+  --no-transfer-progress \
+  ${OPTIONS[*]} \
   "-Drp.enable=${REPORTPORTAL_ENABLE}" \
   "-Drp.endpoint=${REPORTPORTAL_ENDPOINT}" \
   "-Drp.api.key=${REPORTPORTAL_UUID}" \
   "-Drp.launch=${REPORTPORTAL_LAUNCH}" \
   "-Drp.project=${REPORTPORTAL_PROJECT}" \
-  "-Drp.description=Build: ${BUILD_URL:-"null"}" \
-  --no-transfer-progress
+  "-Drp.description=Build: ${BUILD_URL:-"null"}"
