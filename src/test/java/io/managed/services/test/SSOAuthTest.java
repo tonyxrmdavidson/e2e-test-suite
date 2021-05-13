@@ -5,25 +5,17 @@ import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
-
-import java.util.concurrent.TimeUnit;
+import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.bwait;
 
 
-@Tag(TestTag.SERVICE_API)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class SSOAuthTest extends TestBase {
+@Test(groups = TestTag.SERVICE_API)
+public class SSOAuthTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(SSOAuthTest.class);
 
-    @Test
-    void testRedHatSSOLogin() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testRedHatSSOLogin() throws Throwable {
 
         var auth = new KeycloakOAuth(Vertx.vertx());
 
@@ -37,8 +29,8 @@ class SSOAuthTest extends TestBase {
         LOGGER.info("user authenticated against: {}", Environment.SSO_REDHAT_KEYCLOAK_URI);
     }
 
-    @Test
-    void testMASSSOLogin() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testMASSSOLogin() throws Throwable {
         var auth2 = new KeycloakOAuth(Vertx.vertx());
 
         bwait(auth2.login(
@@ -51,8 +43,8 @@ class SSOAuthTest extends TestBase {
         LOGGER.info("user authenticated against: {}", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
     }
 
-    @Test
-    void testJoinedLogin() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testJoinedLogin() throws Throwable {
         var auth = new KeycloakOAuth(Vertx.vertx());
 
         bwait(auth.login(

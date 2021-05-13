@@ -9,39 +9,32 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static io.managed.services.test.TestUtils.bwait;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertThrows;
 
 
-@Tag(TestTag.SERVICE_API)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class KafkaAPILimitTest extends TestBase {
+@Test(groups = TestTag.SERVICE_API)
+public class KafkaAPILimitTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAPILimitTest.class);
+
+    private static final int SA_LIMIT = 2;
+    private static final String SERVICE_ACCOUNT_NAME_PATTERN = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
 
     private final Vertx vertx = Vertx.vertx();
 
-    ServiceAPI api;
-    static final int SA_LIMIT = 2;
-    static final String SERVICE_ACCOUNT_NAME_PATTERN = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    private ServiceAPI api;
 
-    @BeforeAll
-    void bootstrap() throws Throwable {
+    @BeforeClass
+    public void bootstrap() throws Throwable {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD));
     }
 
@@ -49,18 +42,13 @@ class KafkaAPILimitTest extends TestBase {
         return ServiceAPIUtils.deleteServiceAccountsByOwnerIfExists(api, Environment.SSO_SECONDARY_USERNAME);
     }
 
-    @AfterAll
-    void teardown() throws Throwable {
+    @AfterClass
+    public void teardown() throws Throwable {
         bwait(cleanServiceAccounts());
     }
 
-    void assertAPI() {
-        assumeTrue(api != null, "api is null because the bootstrap has failed");
-    }
-
-    @Test
-    void testLimitServiceAccount() throws Throwable {
-        assertAPI();
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testLimitServiceAccount() throws Throwable {
         AtomicInteger saSuccessCount = new AtomicInteger(0);
 
         // Create Service Account payloads

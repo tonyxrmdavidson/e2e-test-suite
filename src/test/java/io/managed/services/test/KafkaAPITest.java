@@ -3,7 +3,6 @@ package io.managed.services.test;
 import io.managed.services.test.client.exception.HTTPConflictException;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
-import io.managed.services.test.client.kafkaadminapi.Topic;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
@@ -18,17 +17,11 @@ import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.bwait;
@@ -42,32 +35,29 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafk
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDeleted;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static java.time.Duration.ofSeconds;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertThrows;
+import static org.testng.Assert.assertTrue;
 
 
-@Tag(TestTag.SERVICE_API)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class KafkaAPITest extends TestBase {
+@Test(groups = TestTag.SERVICE_API)
+public class KafkaAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAPITest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
     static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.KAFKA_POSTFIX_NAME;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
     static final String TOPIC_NAME = "test-topic";
+    static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
     private final Vertx vertx = Vertx.vertx();
 
     private ServiceAPI api;
     private KafkaResponse kafka;
     private ServiceAccount serviceAccount;
-    private Topic topic;
 
-    @BeforeAll
-    void bootstrap() throws Throwable {
+    @BeforeClass
+    public void bootstrap() throws Throwable {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
     }
 
@@ -79,8 +69,8 @@ class KafkaAPITest extends TestBase {
         return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
 
-    @AfterAll
-    void teardown() {
+    @AfterClass
+    public void teardown() {
 
         // delete kafka instance
         try {
@@ -103,30 +93,8 @@ class KafkaAPITest extends TestBase {
         }
     }
 
-    void assertAPI() {
-        assumeTrue(api != null, "api is null because the bootstrap has failed");
-    }
-
-    void assertKafka() {
-        assumeTrue(kafka != null, "kafka is null because the testCreateKafkaInstance has failed to create the Kafka instance");
-    }
-
-    void assertServiceAccount() {
-        assumeTrue(serviceAccount != null, "serviceAccount is null because the testCreateServiceAccount has failed to create the Service Account");
-    }
-
-    void assertTopic() {
-        assumeTrue(topic != null, "topic is null because the testCreateTopic has failed to create the topic on the Kafka instance");
-    }
-
-    /**
-     * Create a new Kafka instance
-     */
-    @Test
-    @Timeout(value = 15, unit = TimeUnit.MINUTES)
-    @Order(1)
-    void testCreateKafkaInstance() throws Throwable {
-        assertAPI();
+    @Test(timeOut = 15 * MINUTES)
+    public void testCreateKafkaInstance() throws Throwable {
 
         // Create Kafka Instance
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
@@ -141,10 +109,8 @@ class KafkaAPITest extends TestBase {
         kafka = bwait(waitUntilKafkaIsReady(vertx, api, k.id));
     }
 
-    @Test
-    @Order(1)
-    void testCreateServiceAccount() throws Throwable {
-        assertAPI();
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testCreateServiceAccount() throws Throwable {
 
         // Create Service Account
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
@@ -154,107 +120,82 @@ class KafkaAPITest extends TestBase {
         serviceAccount = bwait(api.createServiceAccount(serviceAccountPayload));
     }
 
-    @Test
-    @Order(2)
-    void testCreateTopic() throws Throwable {
-        assertKafka();
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    public void testCreateTopics() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
 
-        LOGGER.info("create topic with name {} on the instance: {}", TOPIC_NAME, bootstrapHost);
         var admin = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
 
-        topic = bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, TOPIC_NAME));
+        LOGGER.info("create topic with name {} on the instance: {}", TOPIC_NAME, bootstrapHost);
+        bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, TOPIC_NAME));
+
+        LOGGER.info("create topic with name {} on the instance: {}", METRIC_TOPIC_NAME, bootstrapHost);
+        bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, METRIC_TOPIC_NAME));
     }
 
-    @Test
-    @Order(4)
-    void testMessageInTotalMetric() throws Throwable {
-        assertAPI();
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    public void testMessageInTotalMetric() throws Throwable {
 
         LOGGER.info("start testing message in total metric");
-        bwait(messageInTotalMetric(vertx, api, KAFKA_INSTANCE_NAME, serviceAccount));
+        bwait(messageInTotalMetric(vertx, api, kafka, serviceAccount, TOPIC_NAME));
     }
 
-    @Test
-    @Order(3)
-    @Timeout(value = 3, unit = TimeUnit.MINUTES)
-    void testOAuthMessaging() throws Throwable {
-        assertKafka();
-        assertServiceAccount();
-        assertTopic();
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    public void testOAuthMessaging() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
-        var topicName = topic.name;
 
         bwait(testTopicWithOauth(
             vertx,
             bootstrapHost,
             clientID,
             clientSecret,
-            topicName,
+            TOPIC_NAME,
             1000,
             10,
             100));
     }
 
-
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(3)
-    void testFailedOauthMessaging() {
-        assertKafka();
-        assertServiceAccount();
-        assertTopic();
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    public void testFailedOauthMessaging() {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
-        var topicName = topic.name;
 
         assertThrows(KafkaException.class, () -> bwait(testTopicWithOauth(
             vertx,
             bootstrapHost,
             clientID,
             "invalid",
-            topicName,
+            TOPIC_NAME,
             1,
             10,
             11)));
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(3)
-    void testPlainMessaging() throws Throwable {
-        assertKafka();
-        assertServiceAccount();
-        assertTopic();
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    public void testPlainMessaging() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
-        var topicName = topic.name;
 
         bwait(testTopicPlain(
             vertx,
             bootstrapHost,
             clientID,
             clientSecret,
-            topicName,
+            TOPIC_NAME,
             1000,
             10,
             100));
     }
 
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    @Order(3)
-    void testFailedPlainMessaging() {
-        assertKafka();
-        assertServiceAccount();
-        assertTopic();
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    public void testFailedPlainMessaging() {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -270,11 +211,8 @@ class KafkaAPITest extends TestBase {
             11)));
     }
 
-
-    @Test
-    @Order(2)
-    void testListAndSearchKafkaInstance() throws Throwable {
-        assertKafka();
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
+    public void testListAndSearchKafkaInstance() throws Throwable {
 
         //List kafka instances
         var kafkaList = bwait(api.getListOfKafkas());
@@ -295,10 +233,8 @@ class KafkaAPITest extends TestBase {
         assertEquals(KAFKA_INSTANCE_NAME, kafka.name);
     }
 
-    @Test
-    @Order(2)
-    void testCreateKafkaInstanceWithExistingName() {
-        assertKafka();
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
+    public void testCreateKafkaInstanceWithExistingName() {
 
         // Create Kafka Instance with existing name
         CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
@@ -311,10 +247,8 @@ class KafkaAPITest extends TestBase {
         assertThrows(HTTPConflictException.class, () -> bwait(api.createKafka(kafkaPayload, true)));
     }
 
-    @Test
-    @Order(5)
-    void testDeleteProvisioningKafkaInstance() throws Throwable {
-        assertAPI();
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteProvisioningKafkaInstance() throws Throwable {
 
         // TODO: Move this tests in a separate Class
 
@@ -339,12 +273,8 @@ class KafkaAPITest extends TestBase {
         bwait(waitUntilKafkaIsDeleted(vertx, api, kafkaToDelete.id));
     }
 
-    @Test
-    @Order(5)
-    void testDeleteKafkaInstance() throws Throwable {
-        assertKafka();
-        assertServiceAccount();
-        assertTopic();
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteKafkaInstance() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;

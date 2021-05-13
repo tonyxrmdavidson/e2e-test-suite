@@ -11,17 +11,13 @@ import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.Timeout;
+import org.testng.SkipException;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.bwait;
@@ -32,20 +28,18 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafk
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static java.time.Duration.ofMinutes;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 
-@Tag(TestTag.SERVICE_API)
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class LongLiveKafkaTest extends TestBase {
+@Test(groups = TestTag.SERVICE_API)
+public class LongLiveKafkaTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(LongLiveKafkaTest.class);
 
     public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
+    static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -54,32 +48,28 @@ class LongLiveKafkaTest extends TestBase {
     private ServiceAccount serviceAccount;
     private boolean topic;
 
-    @BeforeAll
-    void bootstrap() throws Throwable {
+    @BeforeClass
+    public void bootstrap() throws Throwable {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
     }
 
-    void assertAPI() {
-        assumeTrue(api != null, "api is null because the bootstrap has failed");
+    private void assertKafka() {
+        if (kafka == null)
+            throw new SkipException("kafka is null because the testPresenceOfLongLiveKafkaInstance has failed to create the Kafka instance");
     }
 
-    void assertKafka() {
-        assumeTrue(kafka != null, "kafka is null because the testPresenceOfLongLiveKafkaInstance has failed to create the Kafka instance");
+    private void assertServiceAccount() {
+        if (serviceAccount == null)
+            throw new SkipException("serviceAccount is null because the testPresenceOfTheServiceAccount has failed to create the Service Account");
     }
 
-    void assertServiceAccount() {
-        assumeTrue(serviceAccount != null, "serviceAccount is null because the testPresenceOfTheServiceAccount has failed to create the Service Account");
+    private void assertTopic() {
+        if (!topic)
+            throw new SkipException("topic is null because the testPresenceOfTopic has failed to create the Topic");
     }
 
-    void assertTopic() {
-        assumeTrue(topic, "topic is null because the testPresenceOfTopic has failed to create the Topic");
-    }
-
-    @Test
-    @Timeout(value = 15, unit = TimeUnit.MINUTES)
-    @Order(1)
-    void testPresenceOfLongLiveKafkaInstance() throws Throwable {
-        assertAPI();
+    @Test(timeOut = 15 * MINUTES)
+    public void testPresenceOfLongLiveKafkaInstance() throws Throwable {
 
         LOGGER.info("get kafka instance for name: {}", KAFKA_INSTANCE_NAME);
         var optionalKafka = bwait(getKafkaByName(api, KAFKA_INSTANCE_NAME));
@@ -106,10 +96,8 @@ class LongLiveKafkaTest extends TestBase {
         LOGGER.info("kafka is present :{} and created at: {}", KAFKA_INSTANCE_NAME, kafka.createdAt);
     }
 
-    @Test
-    @Order(2)
-    void testPresenceOfServiceAccount() throws Throwable {
-        assertKafka();
+    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testPresenceOfServiceAccount() throws Throwable {
 
         LOGGER.info("get service account by name: {}", SERVICE_ACCOUNT_NAME);
         var optionalSA = bwait(getServiceAccountByName(api, SERVICE_ACCOUNT_NAME));
@@ -131,10 +119,8 @@ class LongLiveKafkaTest extends TestBase {
         serviceAccount = bwait(api.resetCredentialsServiceAccount(optionalSA.get().id));
     }
 
-    @Test
-    @Order(3)
-    void testCleanAdditionalServiceAccounts() throws Throwable {
-        assertAPI();
+    @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
+    public void testCleanAdditionalServiceAccounts() throws Throwable {
 
         var deleted = new ArrayList<String>();
 
@@ -157,18 +143,14 @@ class LongLiveKafkaTest extends TestBase {
         }
     }
 
-    @Test
-    @Order(3)
-    void testPresenceOfTopics() throws Throwable {
-        assertServiceAccount();
+    @Test(priority = 3, timeOut = DEFAULT_TIMEOUT)
+    public void testPresenceOfTopics() throws Throwable {
+        assertKafka();
 
         String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
 
-        LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-
-        var topics = Set.of(TOPICS);
+        var topics = new HashSet<>(Set.of(TOPICS));
+        topics.add(METRIC_TOPIC_NAME);
 
         LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
         var api = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
@@ -181,10 +163,10 @@ class LongLiveKafkaTest extends TestBase {
         assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
     }
 
-
-    @Test
-    @Order(4)
-    void testProduceAndConsumeKafkaMessages() throws Throwable {
+    @Test(priority = 4, timeOut = 10 * MINUTES)
+    public void testProduceAndConsumeKafkaMessages() throws Throwable {
+        assertKafka();
+        assertServiceAccount();
         assertTopic();
 
         String bootstrapHost = kafka.bootstrapServerHost;
@@ -197,13 +179,14 @@ class LongLiveKafkaTest extends TestBase {
         }
     }
 
-    @Test
-    @Order(5)
-    void testMessageInTotalMetric() throws Throwable {
-        assertAPI();
+    @Test(priority = 5, timeOut = DEFAULT_TIMEOUT)
+    public void testMessageInTotalMetric() throws Throwable {
+        assertKafka();
+        assertServiceAccount();
+        assertTopic();
 
         LOGGER.info("start testing message in total metric");
-        bwait(messageInTotalMetric(vertx, api, KAFKA_INSTANCE_NAME, serviceAccount));
+        bwait(messageInTotalMetric(vertx, api, kafka, serviceAccount, METRIC_TOPIC_NAME));
     }
 }
 

@@ -23,6 +23,7 @@ import static java.time.Duration.ofSeconds;
 public abstract class BaseVertxClient {
     private static final Logger LOGGER = LogManager.getLogger(BaseVertxClient.class);
 
+    // TODO: Make vertx public so we can reuse it without passing both vertx and the api
     protected final Vertx vertx;
     protected final WebClient client;
 

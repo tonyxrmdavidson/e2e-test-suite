@@ -1,0 +1,9 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+
+<suite name="SandboxSuite">
+    <test name="QuarkusSampleTest">
+        <classes>
+            <class name="io.managed.services.test.QuarkusSampleTest"/>
+        </classes>
+    </test>
+</suite>

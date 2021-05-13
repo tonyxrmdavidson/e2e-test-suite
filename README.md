@@ -67,10 +67,11 @@ make PROFILE=ci test
 
 ## Writing tests
 
-* Test method must be annotated with annotation `@Test` or `@ParametrizedTest`.
+* Test method must be annotated with annotation `@Test`.
 * Every new test class must extend `TestBase`
 * Environment variables are stored in static `Environment` class
 * Every new and variable used in testsuite must be added to table or env variables
+* The test class must be included in one of the TestNG suites in `suites/`
 
 ## List of environment variables
 

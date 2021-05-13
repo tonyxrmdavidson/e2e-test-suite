@@ -63,7 +63,7 @@ clean:
 	mvn clean
 
 build:
-	mvn test -DskipTests --no-transfer-progress
+	mvn install -DskipTests --no-transfer-progress
 
 test:
 	mvn verify $(TESTCASE_ARGS) $(PROFILE_ARGS) --no-transfer-progress
