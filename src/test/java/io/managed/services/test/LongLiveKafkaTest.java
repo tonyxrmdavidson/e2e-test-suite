@@ -36,7 +36,6 @@ import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInT
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
-import static java.time.Duration.ofMinutes;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -188,7 +187,7 @@ public class LongLiveKafkaTest extends TestBase {
 
         for (var topic : TOPICS) {
             LOGGER.info("start testing topic: {}", topic);
-            bwait(testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, ofMinutes(1), 10, 7, 10, true));
+            bwait(testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, 10, 7, 10));
         }
     }
 

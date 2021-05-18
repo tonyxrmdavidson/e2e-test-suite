@@ -23,48 +23,48 @@ import static org.slf4j.helpers.MessageFormatter.format;
 public class KafkaMessagingUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMessagingUtils.class);
 
-    public static Future<Void> testTopicPlain(
-            Vertx vertx,
-            String bootstrapHost,
-            String clientID,
-            String clientSecret,
-            String topicName,
-            int messageCount,
-            int minMessageSize,
-            int maxMessageSize) {
+    public static Future<Void> testTopic(
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        String topicName,
+        int messageCount,
+        int minMessageSize,
+        int maxMessageSize) {
 
         return testTopic(vertx,
-                bootstrapHost,
-                clientID,
-                clientSecret,
-                topicName,
-                Duration.ofMinutes(1),
-                messageCount,
-                minMessageSize,
-                maxMessageSize,
-                false);
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            topicName,
+            messageCount,
+            minMessageSize,
+            maxMessageSize,
+            KafkaAuthMethod.OAUTH);
     }
 
-    public static Future<Void> testTopicWithOauth(
-            Vertx vertx,
-            String bootstrapHost,
-            String clientID,
-            String clientSecret,
-            String topicName,
-            int messageCount,
-            int minMessageSize,
-            int maxMessageSize) {
+    public static Future<Void> testTopic(
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        String topicName,
+        int messageCount,
+        int minMessageSize,
+        int maxMessageSize,
+        KafkaAuthMethod authMethod) {
 
         return testTopic(vertx,
-                bootstrapHost,
-                clientID,
-                clientSecret,
-                topicName,
-                Duration.ofMinutes(1),
-                messageCount,
-                minMessageSize,
-                maxMessageSize,
-                true);
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            topicName,
+            Duration.ofMinutes(1),
+            messageCount,
+            minMessageSize,
+            maxMessageSize,
+            authMethod);
     }
 
     /**
@@ -82,37 +82,37 @@ public class KafkaMessagingUtils {
      * @return Future
      */
     public static Future<Void> testTopic(
-            Vertx vertx,
-            String bootstrapHost,
-            String clientID,
-            String clientSecret,
-            String topicName,
-            Duration timeout,
-            int messageCount,
-            int minMessageSize,
-            int maxMessageSize,
-            boolean oauth) {
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        String topicName,
+        Duration timeout,
+        int messageCount,
+        int minMessageSize,
+        int maxMessageSize,
+        KafkaAuthMethod authMethod) {
 
         // generate random strings to send as messages
         var messages = generateRandomMessages(messageCount, minMessageSize, maxMessageSize);
 
-        return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, timeout, messages, oauth)
-                .compose(records -> assertMessages(messages, records));
+        return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, timeout, messages, authMethod)
+            .compose(records -> assertMessages(messages, records));
     }
 
     private static Future<List<String>> produceAndConsumeMessages(
-            Vertx vertx,
-            String bootstrapHost,
-            String clientID,
-            String clientSecret,
-            String topicName,
-            Duration timeout,
-            List<String> messages,
-            boolean oauth) {
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        String topicName,
+        Duration timeout,
+        List<String> messages,
+        KafkaAuthMethod authMethod) {
 
         // initialize the consumer and the producer
-        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, oauth, true);
-        var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, oauth);
+        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
+        var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
 
         LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
 
@@ -128,59 +128,59 @@ public class KafkaMessagingUtils {
             });
 
             var completeFuture = CompositeFuture.join(produceFuture, consumeFuture)
-                    .onComplete(__ -> {
-                        vertx.cancelTimer(timeoutTimer);
-                        timeoutPromise.tryComplete();
-                    });
+                .onComplete(__ -> {
+                    vertx.cancelTimer(timeoutTimer);
+                    timeoutPromise.tryComplete();
+                });
 
             var completeOrTimeoutFuture = CompositeFuture.all(completeFuture, timeoutPromise.future());
 
             return completeOrTimeoutFuture
-                    .eventually(__ -> {
-                        // close the producer and consumer in any case
-                        LOGGER.info("close the consumer and the producer for topic {}", topicName);
-                        return CompositeFuture.join(producer.close(), consumer.close())
+                .eventually(__ -> {
+                    // close the producer and consumer in any case
+                    LOGGER.info("close the consumer and the producer for topic {}", topicName);
+                    return CompositeFuture.join(producer.close(), consumer.close())
 
-                                // whatever the close fails or succeed the final result is given from the completeOrTimeoutFuture
-                                .eventually(___ -> completeOrTimeoutFuture);
-                    })
-                    .map(__ -> {
-                        LOGGER.info("producer and consumer has complete for topic {}", topicName);
+                        // whatever the close fails or succeed the final result is given from the completeOrTimeoutFuture
+                        .eventually(___ -> completeOrTimeoutFuture);
+                })
+                .map(__ -> {
+                    LOGGER.info("producer and consumer has complete for topic {}", topicName);
 
-                        List<KafkaConsumerRecord<String, String>> records = consumeFuture.result();
-                        LOGGER.info("received {} messages on topic {}", records.size(), topicName);
+                    List<KafkaConsumerRecord<String, String>> records = consumeFuture.result();
+                    LOGGER.info("received {} messages on topic {}", records.size(), topicName);
 
-                        return records.stream().map(r -> r.value()).collect(Collectors.toList());
-                    });
+                    return records.stream().map(r -> r.value()).collect(Collectors.toList());
+                });
         });
     }
 
     public static List<String> generateRandomMessages(int messageCount, int minMessageSize, int maxMessageSize) {
         return IntStream.range(0, messageCount)
-                .boxed()
-                .map(v -> RandomStringUtils.random((int) random(minMessageSize, maxMessageSize), true, true))
-                .collect(Collectors.toList());
+            .boxed()
+            .map(v -> RandomStringUtils.random((int) random(minMessageSize, maxMessageSize), true, true))
+            .collect(Collectors.toList());
     }
 
     private static Future<Void> assertMessages(List<String> expectedMessages, List<String> receivedMessages) {
 
         var extraReceivedMessages = receivedMessages.stream()
-                .filter(r -> {
-                    var i = expectedMessages.indexOf(r);
-                    if (i != -1) {
-                        expectedMessages.remove(i);
-                        return false;
-                    }
-                    return true;
-                })
-                .collect(Collectors.toList());
+            .filter(r -> {
+                var i = expectedMessages.indexOf(r);
+                if (i != -1) {
+                    expectedMessages.remove(i);
+                    return false;
+                }
+                return true;
+            })
+            .collect(Collectors.toList());
 
         if (extraReceivedMessages.isEmpty() && expectedMessages.isEmpty()) {
             return Future.succeededFuture();
         }
 
         var message = format("failed to send all messages or/and received some extra messages;"
-                + " not-received-messages: {}, extra-received-messages: {}", expectedMessages, extraReceivedMessages).getMessage();
+            + " not-received-messages: {}, extra-received-messages: {}", expectedMessages, extraReceivedMessages).getMessage();
         return Future.failedFuture(new Exception(message));
     }
 
@@ -191,18 +191,18 @@ public class KafkaMessagingUtils {
 
     public static boolean isConsumerOwningNPartitions(List<PartitionConsumerTuple> partitionConsumerTupleList, int expectedPartition) {
         List<Integer> listOfActiveConsumers = partitionConsumerTupleList
-                .stream()
-                .map(PartitionConsumerTuple::getConsumerId)
-                .distinct()
-                .collect(Collectors.toList());
+            .stream()
+            .map(PartitionConsumerTuple::getConsumerId)
+            .distinct()
+            .collect(Collectors.toList());
 
-        for (Integer activeConsumerNumber: listOfActiveConsumers) {
+        for (Integer activeConsumerNumber : listOfActiveConsumers) {
             int consumerOwnsPartitionCount = (int) partitionConsumerTupleList
-                    .stream()
-                    .filter(elem -> elem.getConsumerId() == activeConsumerNumber)
-                    .map(PartitionConsumerTuple::getPartitionId)
-                    .distinct()
-                    .count();
+                .stream()
+                .filter(elem -> elem.getConsumerId() == activeConsumerNumber)
+                .map(PartitionConsumerTuple::getPartitionId)
+                .distinct()
+                .count();
             if (consumerOwnsPartitionCount == expectedPartition) {
                 return true;
             }
@@ -216,18 +216,18 @@ public class KafkaMessagingUtils {
         for (int i = 0; i < 3; i++) {
             int finalI = i;
             int numberOfConsumersForPartition = (int) partitionConsumerTupleList
-                    .stream()
-                    .filter(el -> el.getPartitionId() == finalI)
-                    .map(PartitionConsumerTuple::getConsumerId)
-                    .distinct()
-                    .count();
+                .stream()
+                .filter(el -> el.getPartitionId() == finalI)
+                .map(PartitionConsumerTuple::getConsumerId)
+                .distinct()
+                .count();
             listOfConsumersPerPartition.add(numberOfConsumersForPartition);
         }
 
-        Predicate<Integer> eachPartitionConsumedByAtMost1Consumer = s ->  s == 1;
+        Predicate<Integer> eachPartitionConsumedByAtMost1Consumer = s -> s == 1;
 
         return listOfConsumersPerPartition
-                .stream()
-                .allMatch(eachPartitionConsumedByAtMost1Consumer);
+            .stream()
+            .allMatch(eachPartitionConsumedByAtMost1Consumer);
     }
 }

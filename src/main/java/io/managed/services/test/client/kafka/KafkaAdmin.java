@@ -57,7 +57,7 @@ public class KafkaAdmin {
     static final String GROUP_ID = "new-group-id";
 
     public KafkaAdmin(String bootstrapHost, String clientID, String clientSecret) {
-        Map<String, Object> conf = KafkaUtils.configs(bootstrapHost, clientID, clientSecret)
+        Map<String, Object> conf = KafkaAuthMethod.oAuthConfigs(bootstrapHost, clientID, clientSecret)
                 .entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         admin = Admin.create(conf);
