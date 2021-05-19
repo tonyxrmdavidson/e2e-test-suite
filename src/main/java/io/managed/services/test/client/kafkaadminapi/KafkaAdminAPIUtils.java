@@ -91,8 +91,4 @@ public class KafkaAdminAPIUtils {
         topicPayload.settings.config.add(c2);
         return topicPayload;
     }
-
-
 }
-
-

@@ -139,5 +139,3 @@ public class KafkaConsumerClient implements KafkaAsyncConsumer {
         return Future.succeededFuture(null);
     }
 }
-
-

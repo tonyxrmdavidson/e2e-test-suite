@@ -9,11 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -252,33 +248,5 @@ public class KafkaMessagingUtils {
 
     public static long random(long from, long to) {
         return (long) (Math.random() * ((to - from) + 1)) + from;
-    }
-
-
-    public static boolean isConsumerOwningNPartitions(List<ConsumerRecord> records, int expectedPartition) {
-
-        Map<Integer, Set<Integer>> partitionsByConsumer = new HashMap<>();
-        for (var record : records) {
-            var partitions = partitionsByConsumer.getOrDefault(record.consumerHash(), new HashSet<>());
-            partitions.add(record.record().partition());
-            partitionsByConsumer.put(record.consumerHash(), partitions);
-        }
-
-        // verify that at least one consumer is connected to the expected number of partitions
-        return partitionsByConsumer.values().stream().anyMatch(s -> s.size() == expectedPartition);
-    }
-
-    public static boolean isEachPartitionInExclusivelyOwned(List<ConsumerRecord> records) {
-
-        Map<Integer, Set<Integer>> consumersByPartition = new HashMap<>();
-        for (var record : records) {
-            var consumers = consumersByPartition.getOrDefault(record.record().partition(), new HashSet<>());
-            consumers.add(record.consumerHash());
-            consumersByPartition.put(record.record().partition(), consumers);
-        }
-
-        // verify that there is only one consumer per partition because all consumers have the same consumer
-        // group id and therefore can not share the same partition
-        return consumersByPartition.values().stream().allMatch(s -> s.size() == 1);
     }
 }
