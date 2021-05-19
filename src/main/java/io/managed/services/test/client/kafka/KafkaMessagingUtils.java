@@ -4,15 +4,16 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.Duration;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.function.Predicate;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -96,26 +97,68 @@ public class KafkaMessagingUtils {
         // generate random strings to send as messages
         var messages = generateRandomMessages(messageCount, minMessageSize, maxMessageSize);
 
-        return produceAndConsumeMessages(vertx, bootstrapHost, clientID, clientSecret, topicName, timeout, messages, authMethod)
-            .compose(records -> assertMessages(messages, records));
+        // initialize the consumer and the producer
+        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
+        var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
+
+        return produceAndConsumeMessages(vertx, producer, consumer, topicName, timeout, messages)
+            .compose(records -> assertRecords(messages, records));
     }
 
-    private static Future<List<String>> produceAndConsumeMessages(
+
+    /**
+     * Create a producer and multiple consumers for the kafka instance and send n random messages from
+     * the producer to the consumers and validate that each message reach the destination
+     *
+     * @param vertx             Vertx
+     * @param bootstrapHost     Kafka bootstrapHost
+     * @param clientID          Service Account ID
+     * @param clientSecret      Service Account Secret
+     * @param topicName         Topic Name
+     * @param messageCount      Number of Messages to send
+     * @param minMessageSize    The min number of characters to use when generating the random messages
+     * @param maxMessageSize    The max number of characters to use when generating the random messages
+     * @param numberOfConsumers The max number of consumers to create
+     * @return Future
+     */
+    public static Future<Void> testTopicWithMultipleConsumers(
         Vertx vertx,
         String bootstrapHost,
         String clientID,
         String clientSecret,
         String topicName,
         Duration timeout,
-        List<String> messages,
-        KafkaAuthMethod authMethod) {
+        int messageCount,
+        int minMessageSize,
+        int maxMessageSize,
+        int numberOfConsumers) {
+
+        var authMethod = KafkaAuthMethod.OAUTH;
+        var groupID = "multi-consumer-test";
+
+        // generate random strings to send as messages
+        var messages = generateRandomMessages(messageCount, minMessageSize, maxMessageSize);
 
         // initialize the consumer and the producer
-        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
+        var consumer = new KafkaConsumerClientPool(vertx, bootstrapHost, clientID, clientSecret, groupID, authMethod, numberOfConsumers);
         var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
 
-        LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
+        return produceAndConsumeMessages(vertx, producer, consumer, topicName, timeout, messages)
 
+            // assert the records
+            .compose(records -> assertRecords(messages, records)
+                .compose(__ -> assertUnusedConsumers(consumer, records)));
+    }
+
+    private static Future<List<ConsumerRecord>> produceAndConsumeMessages(
+        Vertx vertx,
+        KafkaProducerClient producer,
+        KafkaAsyncConsumer consumer,
+        String topicName,
+        Duration timeout,
+        List<String> messages) {
+
+        LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
 
         return consumer.receiveAsync(topicName, messages.size()).compose(consumeFuture -> {
             LOGGER.info("start sending {} messages on topic {}", messages.size(), topicName);
@@ -124,7 +167,7 @@ public class KafkaMessagingUtils {
             var timeoutPromise = Promise.promise();
             var timeoutTimer = vertx.setTimer(timeout.toMillis(), __ -> {
                 LOGGER.error("timeout after {} waiting for {} messages on topic {}", timeout, messages.size(), topicName);
-                timeoutPromise.fail(message("timeout after {} waiting for {} messages; host: {}; topic: {}", timeout, messages.size(), bootstrapHost, topicName));
+                timeoutPromise.fail(message("timeout after {} waiting for {} messages on topic: {}", timeout, messages.size(), topicName));
             });
 
             var completeFuture = CompositeFuture.join(produceFuture, consumeFuture)
@@ -147,10 +190,10 @@ public class KafkaMessagingUtils {
                 .map(__ -> {
                     LOGGER.info("producer and consumer has complete for topic {}", topicName);
 
-                    List<KafkaConsumerRecord<String, String>> records = consumeFuture.result();
+                    var records = consumeFuture.result();
                     LOGGER.info("received {} messages on topic {}", records.size(), topicName);
 
-                    return records.stream().map(r -> r.value()).collect(Collectors.toList());
+                    return records;
                 });
         });
     }
@@ -160,6 +203,29 @@ public class KafkaMessagingUtils {
             .boxed()
             .map(v -> RandomStringUtils.random((int) random(minMessageSize, maxMessageSize), true, true))
             .collect(Collectors.toList());
+    }
+
+    private static Future<Void> assertUnusedConsumers(KafkaConsumerClientPool pool, List<ConsumerRecord> records) {
+
+        var consumerHashes = pool.getConsumers().stream().map(c -> c.hashCode()).collect(Collectors.toList());
+
+        for (var record : records) {
+            var i = consumerHashes.indexOf(record.consumerHash());
+            if (i != -1) {
+                consumerHashes.remove(i);
+            }
+        }
+
+        if (consumerHashes.isEmpty()) {
+            return Future.succeededFuture();
+        }
+
+        var message = message("not all consumers has received at least one message; unused-consumers: {}", consumerHashes);
+        return Future.failedFuture(new AssertionError(message));
+    }
+
+    private static Future<Void> assertRecords(List<String> expectedMessages, List<ConsumerRecord> receivedRecords) {
+        return assertMessages(expectedMessages, receivedRecords.stream().map(r -> r.record().value()).collect(Collectors.toList()));
     }
 
     private static Future<Void> assertMessages(List<String> expectedMessages, List<String> receivedMessages) {
@@ -181,7 +247,7 @@ public class KafkaMessagingUtils {
 
         var message = format("failed to send all messages or/and received some extra messages;"
             + " not-received-messages: {}, extra-received-messages: {}", expectedMessages, extraReceivedMessages).getMessage();
-        return Future.failedFuture(new Exception(message));
+        return Future.failedFuture(new AssertionError(message));
     }
 
     public static long random(long from, long to) {
@@ -189,45 +255,30 @@ public class KafkaMessagingUtils {
     }
 
 
-    public static boolean isConsumerOwningNPartitions(List<PartitionConsumerTuple> partitionConsumerTupleList, int expectedPartition) {
-        List<Integer> listOfActiveConsumers = partitionConsumerTupleList
-            .stream()
-            .map(PartitionConsumerTuple::getConsumerId)
-            .distinct()
-            .collect(Collectors.toList());
+    public static boolean isConsumerOwningNPartitions(List<ConsumerRecord> records, int expectedPartition) {
 
-        for (Integer activeConsumerNumber : listOfActiveConsumers) {
-            int consumerOwnsPartitionCount = (int) partitionConsumerTupleList
-                .stream()
-                .filter(elem -> elem.getConsumerId() == activeConsumerNumber)
-                .map(PartitionConsumerTuple::getPartitionId)
-                .distinct()
-                .count();
-            if (consumerOwnsPartitionCount == expectedPartition) {
-                return true;
-            }
+        Map<Integer, Set<Integer>> partitionsByConsumer = new HashMap<>();
+        for (var record : records) {
+            var partitions = partitionsByConsumer.getOrDefault(record.consumerHash(), new HashSet<>());
+            partitions.add(record.record().partition());
+            partitionsByConsumer.put(record.consumerHash(), partitions);
         }
 
-        return false;
+        // verify that at least one consumer is connected to the expected number of partitions
+        return partitionsByConsumer.values().stream().anyMatch(s -> s.size() == expectedPartition);
     }
 
-    public static boolean isEachPartitionInExclusivelyOwned(List<PartitionConsumerTuple> partitionConsumerTupleList) {
-        List<Integer> listOfConsumersPerPartition = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            int finalI = i;
-            int numberOfConsumersForPartition = (int) partitionConsumerTupleList
-                .stream()
-                .filter(el -> el.getPartitionId() == finalI)
-                .map(PartitionConsumerTuple::getConsumerId)
-                .distinct()
-                .count();
-            listOfConsumersPerPartition.add(numberOfConsumersForPartition);
+    public static boolean isEachPartitionInExclusivelyOwned(List<ConsumerRecord> records) {
+
+        Map<Integer, Set<Integer>> consumersByPartition = new HashMap<>();
+        for (var record : records) {
+            var consumers = consumersByPartition.getOrDefault(record.record().partition(), new HashSet<>());
+            consumers.add(record.consumerHash());
+            consumersByPartition.put(record.record().partition(), consumers);
         }
 
-        Predicate<Integer> eachPartitionConsumedByAtMost1Consumer = s -> s == 1;
-
-        return listOfConsumersPerPartition
-            .stream()
-            .allMatch(eachPartitionConsumedByAtMost1Consumer);
+        // verify that there is only one consumer per partition because all consumers have the same consumer
+        // group id and therefore can not share the same partition
+        return consumersByPartition.values().stream().allMatch(s -> s.size() == 1);
     }
 }

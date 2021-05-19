@@ -23,7 +23,7 @@ public class KafkaProducerClient {
     public KafkaProducerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, KafkaAuthMethod authMethod) {
         this.vertx = vertx;
 
-        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
+        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: ***", bootstrapHost, clientID);
         producer = createProducer(vertx, bootstrapHost, clientID, clientSecret, authMethod);
     }
 
