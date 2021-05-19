@@ -55,7 +55,7 @@ public class KafkaAdminPermissionTest extends TestBase {
 
         // delete kafka instance
         try {
-            bwait(ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, SERVICE_ACCOUNT_NAME));
+            bwait(ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, KAFKA_INSTANCE_NAME));
         } catch (Throwable t) {
             LOGGER.error("clean kafka error: ", t);
         }
