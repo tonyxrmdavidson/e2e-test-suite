@@ -12,7 +12,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static io.managed.services.test.TestUtils.waitFor;
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static java.time.Duration.ofSeconds;
 
 public class MetricsUtils {
@@ -52,7 +52,7 @@ public class MetricsUtils {
         var testTopicF = initialInMessagesF
             .compose(__ -> {
                 LOGGER.info("send {} message to the topic: {}", MESSAGE_COUNT, topicName);
-                return testTopicWithOauth(
+                return testTopic(
                     vertx,
                     kafka.bootstrapServerHost,
                     serviceAccount.clientID,

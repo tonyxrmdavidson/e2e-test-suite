@@ -1,5 +1,7 @@
 package io.managed.services.test;
 
+import io.managed.services.test.client.kafkaadminapi.CreateTopicPayload;
+import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -12,9 +14,11 @@ import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.SkipException;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,11 +27,11 @@ import java.util.stream.Collectors;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithMultipleConsumers;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServiceAccountByName;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
-import static java.time.Duration.ofMinutes;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -39,7 +43,8 @@ public class LongLiveKafkaTest extends TestBase {
     public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
-    static final String METRIC_TOPIC_NAME = "metric-test-topic";
+    private static final String MULTI_PARTITION_TOPIC_NAME = "multi-partitions-topic";
+    private static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -47,10 +52,20 @@ public class LongLiveKafkaTest extends TestBase {
     private KafkaResponse kafka;
     private ServiceAccount serviceAccount;
     private boolean topic;
+    private KafkaAdminAPI kafkaAdminAPI;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
+    }
+
+    @AfterClass
+    public void teardown() {
+        try {
+            bwait(kafkaAdminAPI.deleteTopic(MULTI_PARTITION_TOPIC_NAME));
+        } catch (Throwable t) {
+            LOGGER.error("failed to clean topic: {}", MULTI_PARTITION_TOPIC_NAME);
+        }
     }
 
     private void assertKafka() {
@@ -154,6 +169,7 @@ public class LongLiveKafkaTest extends TestBase {
 
         LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
         var api = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
+        kafkaAdminAPI = api;
 
         LOGGER.info("apply topics: {}", topics);
         var missingTopics = bwait(KafkaAdminAPIUtils.applyTopics(api, topics));
@@ -175,8 +191,36 @@ public class LongLiveKafkaTest extends TestBase {
 
         for (var topic : TOPICS) {
             LOGGER.info("start testing topic: {}", topic);
-            bwait(testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, ofMinutes(1), 10, 7, 10, true));
+            bwait(testTopic(vertx, bootstrapHost, clientID, clientSecret, topic, 10, 7, 10));
         }
+    }
+
+    @Test(priority = 4, timeOut = DEFAULT_TIMEOUT)
+    void testTopicWithThreePartitionsAndThreeConsumers() throws Throwable {
+
+        var topicName = MULTI_PARTITION_TOPIC_NAME;
+
+        LOGGER.info("create the topic with 3 partitions: {}", topicName);
+        CreateTopicPayload topicPayload = KafkaAdminAPIUtils.setUpDefaultTopicPayload(topicName);
+        topicPayload.settings.numPartitions = 3;
+        bwait(kafkaAdminAPI.createTopic(topicPayload));
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
+
+        LOGGER.info("test the topic {} with 3 consumers", topicName);
+        bwait(testTopicWithMultipleConsumers(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            topicName,
+            Duration.ofMinutes(1),
+            1000,
+            99,
+            100,
+            3));
     }
 
     @Test(priority = 5, timeOut = DEFAULT_TIMEOUT)

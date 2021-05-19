@@ -1,6 +1,7 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.exception.HTTPConflictException;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
@@ -26,8 +27,7 @@ import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.sleep;
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicPlain;
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
@@ -148,7 +148,7 @@ public class KafkaAPITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        bwait(testTopicWithOauth(
+        bwait(testTopic(
             vertx,
             bootstrapHost,
             clientID,
@@ -156,7 +156,8 @@ public class KafkaAPITest extends TestBase {
             TOPIC_NAME,
             1000,
             10,
-            100));
+            100,
+            KafkaAuthMethod.OAUTH));
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
@@ -165,7 +166,7 @@ public class KafkaAPITest extends TestBase {
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
 
-        assertThrows(KafkaException.class, () -> bwait(testTopicWithOauth(
+        assertThrows(KafkaException.class, () -> bwait(testTopic(
             vertx,
             bootstrapHost,
             clientID,
@@ -173,7 +174,8 @@ public class KafkaAPITest extends TestBase {
             TOPIC_NAME,
             1,
             10,
-            11)));
+            11,
+            KafkaAuthMethod.OAUTH)));
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
@@ -183,7 +185,7 @@ public class KafkaAPITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        bwait(testTopicPlain(
+        bwait(testTopic(
             vertx,
             bootstrapHost,
             clientID,
@@ -191,7 +193,8 @@ public class KafkaAPITest extends TestBase {
             TOPIC_NAME,
             1000,
             10,
-            100));
+            100,
+            KafkaAuthMethod.PLAIN));
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
@@ -200,7 +203,7 @@ public class KafkaAPITest extends TestBase {
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
 
-        assertThrows(KafkaException.class, () -> bwait(testTopicPlain(
+        assertThrows(KafkaException.class, () -> bwait(testTopic(
             vertx,
             bootstrapHost,
             clientID,
@@ -208,7 +211,8 @@ public class KafkaAPITest extends TestBase {
             TOPIC_NAME,
             1,
             10,
-            11)));
+            11,
+            KafkaAuthMethod.PLAIN)));
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
@@ -282,7 +286,7 @@ public class KafkaAPITest extends TestBase {
 
         // Connect the Kafka producer
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        var producer = KafkaProducerClient.createProducer(vertx, bootstrapHost, clientID, clientSecret);
+        var producer = KafkaProducerClient.createProducer(vertx, bootstrapHost, clientID, clientSecret, KafkaAuthMethod.PLAIN);
 
         // Delete the Kafka instance
         LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);

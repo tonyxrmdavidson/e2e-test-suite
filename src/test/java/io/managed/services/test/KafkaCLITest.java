@@ -22,7 +22,7 @@ import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithOauth;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -180,7 +180,7 @@ public class KafkaCLITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        bwait(testTopicWithOauth(
+        bwait(testTopic(
             vertx,
             bootstrapHost,
             clientID,
@@ -237,7 +237,7 @@ public class KafkaCLITest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
 
-        bwait(testTopicWithOauth(
+        bwait(testTopic(
             vertx,
             bootstrapHost,
             clientID,

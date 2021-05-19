@@ -3,6 +3,7 @@ package io.managed.services.test;
 import io.managed.services.test.client.exception.HTTPConflictException;
 import io.managed.services.test.client.exception.HTTPLockedException;
 import io.managed.services.test.client.exception.HTTPNotFoundException;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
@@ -13,7 +14,9 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+
 import io.vertx.kafka.client.consumer.KafkaConsumer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -154,7 +157,9 @@ public class KafkaAdminAPITest extends TestBase {
             kafka.bootstrapServerHost,
             account.clientID,
             account.clientSecret,
-            TEST_GROUP_NAME);
+            KafkaAuthMethod.OAUTH,
+            TEST_GROUP_NAME,
+            "latest");
 
         LOGGER.info("subscribe to topic: {}", TEST_TOPIC_NAME);
         consumer.subscribe(TEST_TOPIC_NAME);
