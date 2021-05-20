@@ -156,34 +156,26 @@ public class KafkaMessagingUtils {
 
         LOGGER.info("start listening for {} messages on topic {}", messages.size(), topicName);
 
-        return consumer.receiveAsync(topicName, messages.size()).compose(consumeFuture -> {
-            LOGGER.info("start sending {} messages on topic {}", messages.size(), topicName);
-            var produceFuture = producer.sendAsync(topicName, messages);
+        return consumer.receiveAsync(topicName, messages.size())
+            .compose(consumeFuture -> {
+                LOGGER.info("start sending {} messages on topic {}", messages.size(), topicName);
+                var produceFuture = producer.sendAsync(topicName, messages);
 
-            var timeoutPromise = Promise.promise();
-            var timeoutTimer = vertx.setTimer(timeout.toMillis(), __ -> {
-                LOGGER.error("timeout after {} waiting for {} messages on topic {}", timeout, messages.size(), topicName);
-                timeoutPromise.fail(message("timeout after {} waiting for {} messages on topic: {}", timeout, messages.size(), topicName));
-            });
-
-            var completeFuture = CompositeFuture.join(produceFuture, consumeFuture)
-                .onComplete(__ -> {
-                    vertx.cancelTimer(timeoutTimer);
-                    timeoutPromise.tryComplete();
+                var timeoutPromise = Promise.promise();
+                var timeoutTimer = vertx.setTimer(timeout.toMillis(), __ -> {
+                    LOGGER.error("timeout after {} waiting for {} messages on topic {}", timeout, messages.size(), topicName);
+                    timeoutPromise.fail(message("timeout after {} waiting for {} messages on topic: {}", timeout, messages.size(), topicName));
                 });
 
-            var completeOrTimeoutFuture = CompositeFuture.all(completeFuture, timeoutPromise.future());
+                var completeFuture = CompositeFuture.join(produceFuture, consumeFuture)
+                    .onComplete(__ -> {
+                        vertx.cancelTimer(timeoutTimer);
+                        timeoutPromise.tryComplete();
+                    });
 
-            return completeOrTimeoutFuture
-                .eventually(__ -> {
-                    // close the producer and consumer in any case
-                    LOGGER.info("close the consumer and the producer for topic {}", topicName);
-                    return CompositeFuture.join(producer.close(), consumer.close())
+                var completeOrTimeoutFuture = CompositeFuture.all(completeFuture, timeoutPromise.future());
 
-                        // whatever the close fails or succeed the final result is given from the completeOrTimeoutFuture
-                        .eventually(___ -> completeOrTimeoutFuture);
-                })
-                .map(__ -> {
+                return completeOrTimeoutFuture.map(__ -> {
                     LOGGER.info("producer and consumer has complete for topic {}", topicName);
 
                     var records = consumeFuture.result();
@@ -191,7 +183,13 @@ public class KafkaMessagingUtils {
 
                     return records;
                 });
-        });
+
+            })
+            .eventually(__ -> {
+                // close the producer and consumer in any case
+                LOGGER.info("close the consumer and the producer for topic {}", topicName);
+                return CompositeFuture.join(producer.close(), consumer.close());
+            });
     }
 
     public static List<String> generateRandomMessages(int messageCount, int minMessageSize, int maxMessageSize) {
