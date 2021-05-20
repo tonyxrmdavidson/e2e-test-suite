@@ -47,7 +47,7 @@ public class KafkaAPILimitTest extends TestBase {
         bwait(cleanServiceAccounts());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
     public void testLimitServiceAccount() throws Throwable {
         AtomicInteger saSuccessCount = new AtomicInteger(0);
 
