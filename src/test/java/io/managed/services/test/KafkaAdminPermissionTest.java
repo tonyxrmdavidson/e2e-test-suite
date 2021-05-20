@@ -1,10 +1,13 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.config.ConfigResource;
@@ -23,6 +26,8 @@ import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.TestUtils.sleep;
+import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertThrows;
 
 @Test(groups = TestTag.KAFKA_ADMIN_PERMISSIONS)
@@ -32,12 +37,15 @@ public class KafkaAdminPermissionTest extends TestBase {
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-pe-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-pe-sa-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String TOPIC_NAME = "test-topic-1";
-    private static final String PERSISTENT_TOPIC = "__strimzi_canary";
+    private static final String STRIMZI_CANARY_TOPIC = "__strimzi_canary";
+    private static final String STRIMZI_CANARY_GROUP = "strimzi-canary-group";
+    private static final String TEST_GROUP_ID = "new-group-id";
 
     private final Vertx vertx = Vertx.vertx();
 
     private ServiceAPI serviceAPI;
     private KafkaAdmin admin;
+    private KafkaConsumer<String, String> consumer;
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT)
     public void teardown() {
@@ -45,6 +53,13 @@ public class KafkaAdminPermissionTest extends TestBase {
         if (admin != null) admin.close();
 
         assumeTeardown();
+
+        // close the consumer
+        try {
+            consumer.close();
+        } catch (Throwable t) {
+            LOGGER.error("failed to close the consumer: ", t);
+        }
 
         // delete service account
         try {
@@ -59,16 +74,21 @@ public class KafkaAdminPermissionTest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("clean kafka error: ", t);
         }
+
+        // close vertx
+        try {
+            vertx.close();
+        } catch (Throwable t) {
+            LOGGER.error("failed to close vertx: ", t);
+        }
     }
 
-    @BeforeClass(timeOut = DEFAULT_TIMEOUT)
+    @BeforeClass(timeOut = 15 * MINUTES)
     public void bootstrap() throws Throwable {
+        // create the serviceAPI
         serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
-    }
 
-    @Test(timeOut = 15 * MINUTES)
-    public void testBootstrapKafkaAdmin() throws Throwable {
-
+        // create the kafka admin
         var kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME));
         LOGGER.info("kafka instance connected/created: {}", kafka.name);
 
@@ -79,9 +99,29 @@ public class KafkaAdminPermissionTest extends TestBase {
         var clientID = serviceAccount.clientID;
         var clientSecret = serviceAccount.clientSecret;
         admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+        LOGGER.info("kafka admin api initialized for instance: {}", bootstrapHost);
+
+        // setup a consumer to create the group
+        consumer = KafkaConsumerClient.createConsumer(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            KafkaAuthMethod.PLAIN,
+            TEST_GROUP_ID,
+            "latest");
+        bwait(consumer.subscribe(STRIMZI_CANARY_TOPIC));
+        consumer.handler(r -> {
+            // ignore
+        });
+        LOGGER.info("started a new consumer in the consumer group: {}", TEST_GROUP_ID);
+
+        bwait(sleep(vertx, ofSeconds(3)));
+        LOGGER.info("close the consumer to release the consumer consumer group");
+        bwait(consumer.close());
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testTopicCreate() throws Throwable {
 
         LOGGER.info("kafka-topics.sh --create <Permitted>, script representation test");
@@ -130,28 +170,28 @@ public class KafkaAdminPermissionTest extends TestBase {
         };
     }
 
-    @Test(dataProvider = "aclProvider", dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(dataProvider = "aclProvider", timeOut = DEFAULT_TIMEOUT)
     public void testACLResource(String testName, ResourceType resourceType) {
         LOGGER.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.addAclResource(resourceType)));
     }
 
-    @Test(dataProvider = "aclListProvider", dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(dataProvider = "aclListProvider", timeOut = DEFAULT_TIMEOUT)
     public void testACLListResource(String testName, ResourceType resourceType) {
         LOGGER.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.listAclResource(resourceType)));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testGetConfigurationTopic() throws Throwable {
 
         LOGGER.info("kafka-configs.sh --describe --entity-type topics <permitted>, script representation test");
-        LOGGER.info("getting entity description for topic with name: {}", PERSISTENT_TOPIC);
-        var r = bwait(admin.getConfigurationTopic(PERSISTENT_TOPIC));
+        LOGGER.info("getting entity description for topic with name: {}", STRIMZI_CANARY_TOPIC);
+        var r = bwait(admin.getConfigurationTopic(STRIMZI_CANARY_TOPIC));
         LOGGER.info("response size: {}", r.size());
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     @Ignore
     public void testGetConfigurationUsers() throws Throwable {
 
@@ -171,7 +211,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         };
     }
 
-    @Test(dataProvider = "configureBrokerProvider", dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(dataProvider = "configureBrokerProvider", timeOut = DEFAULT_TIMEOUT)
     public void testConfigureBrokerResource(String testName, ConfigResource.Type resourceType, AlterConfigOp.OpType opType) {
         LOGGER.info("kafka-config.sh {} <allowed>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.configureBrokerResource(resourceType, opType, "0")));
@@ -185,7 +225,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         LOGGER.info("topic configured: {}", r);
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testGetConfigurationBroker() {
 
         LOGGER.info("kafka-configs.sh --describe --entity-type broker <forbidden>, script representation test");
@@ -193,7 +233,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.getConfigurationBroker("0")));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testConfigurationBrokerLogger() {
 
         LOGGER.info("kafka-configs.sh --describe --entity-type brokerLogger <forbidden>, script representation test");
@@ -201,7 +241,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.getConfigurationBrokerLogger("0")));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     @Ignore
     public void testConfigurationUsersAlter() {
 
@@ -210,7 +250,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertThrows(InvalidRequestException.class, () -> bwait(admin.alterConfigurationUser()));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testConsumerGroupsList() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --list <permitted>, script representation test");
@@ -219,84 +259,84 @@ public class KafkaAdminPermissionTest extends TestBase {
         LOGGER.info("list consumer groups: {}", r);
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testConsumerGroupsDescribe() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --group --describe <permitted>, script representation test");
         LOGGER.info("describing specific consumer group");
-        var r = bwait(admin.describeConsumerGroups());
+        var r = bwait(admin.describeConsumerGroups(STRIMZI_CANARY_GROUP));
         LOGGER.info("describe consumer groups: {}", r);
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testConsumerGroupsDelete() {
 
         LOGGER.info("kafka-consumer-groups.sh --all-groups --delete  <permitted>, script representation test");
         LOGGER.info("deleting group");
         // should fail because the canary consumer group is not empty
-        assertThrows(GroupNotEmptyException.class, () -> bwait(admin.deleteConsumerGroups()));
+        assertThrows(GroupNotEmptyException.class, () -> bwait(admin.deleteConsumerGroups(STRIMZI_CANARY_GROUP)));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testConsumerGroupsResetOffset() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --all-groups --reset-offsets --execute --all-groups --all-topics  <permitted>, script representation test");
-        bwait(admin.resetOffsets());
+        bwait(admin.resetOffsets(STRIMZI_CANARY_TOPIC, TEST_GROUP_ID));
         LOGGER.info("offset successfully reset");
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testConsumerGroupsDeleteOffset() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --delete-offsets  <permitted>, script representation test");
-        bwait(admin.deleteOffset());
+        bwait(admin.deleteOffset(STRIMZI_CANARY_TOPIC, TEST_GROUP_ID));
         LOGGER.info("offset successfully deleted");
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testDeleteRecord() throws Throwable {
 
         LOGGER.info("kafka-delete-records.sh --offset-json-file <permitted>, script representation test");
-        bwait(admin.deleteRecords());
+        bwait(admin.deleteRecords(STRIMZI_CANARY_TOPIC));
         LOGGER.info("record successfully deleted");
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testLeaderElectionUnclean() {
 
         LOGGER.info("kafka-leader-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.UNCLEAN)));
+        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.UNCLEAN, STRIMZI_CANARY_TOPIC)));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testLogDirsDesribe() {
 
         LOGGER.info("kafka-log-dirs.sh --describe <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.logDirs()));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testLeaderElectionPreferred() {
 
         LOGGER.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.PREFERRED)));
+        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.PREFERRED, STRIMZI_CANARY_TOPIC)));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testReassignPartitions() {
 
         LOGGER.info("kafka-reassign-partitions.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.reassignPartitions()));
+        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.reassignPartitions(STRIMZI_CANARY_TOPIC)));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testCreateDelegationToken() {
 
         LOGGER.info("kafka-delegation-tokens.sh create <forbidden>, script representation test");
         assertThrows(DelegationTokenDisabledException.class, () -> bwait(admin.createDelegationToken()));
     }
 
-    @Test(dependsOnMethods = "testBootstrapKafkaAdmin", timeOut = DEFAULT_TIMEOUT)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testDescribeDelegationToken() {
 
         LOGGER.info("kafka-delegation-tokens.sh describe <forbidden>, script representation test");

@@ -52,9 +52,7 @@ public class KafkaAdmin {
 
     // TODO: This parameters shouldn't be passed top down from the test
     // TODO: We shouldn't relay on the `__strimzi_canary`
-    static final String STRIMZI_TOPIC = "__strimzi_canary";
-    static final String STRIMZI_CANARY_GROUP = "strimzi-canary-group";
-    static final String GROUP_ID = "new-group-id";
+
 
     public KafkaAdmin(String bootstrapHost, String clientID, String clientSecret) {
         Map<String, Object> conf = KafkaAuthMethod.oAuthConfigs(bootstrapHost, clientID, clientSecret)
@@ -152,30 +150,30 @@ public class KafkaAdmin {
         return toVertxFuture(admin.listConsumerGroups().all());
     }
 
-    public Future<Map<String, ConsumerGroupDescription>> describeConsumerGroups() {
-        List<String> listOfIds = Collections.singletonList(STRIMZI_CANARY_GROUP);
+    public Future<Map<String, ConsumerGroupDescription>> describeConsumerGroups(String groupID) {
+        List<String> listOfIds = Collections.singletonList(groupID);
         return toVertxFuture(admin.describeConsumerGroups(listOfIds).all());
     }
 
-    public Future<Void> deleteConsumerGroups() {
-        List<String> listOfIds = Collections.singletonList(STRIMZI_CANARY_GROUP);
+    public Future<Void> deleteConsumerGroups(String groupID) {
+        List<String> listOfIds = Collections.singletonList(groupID);
         return toVertxFuture(admin.deleteConsumerGroups(listOfIds).all());
     }
 
-    public Future<Void> resetOffsets() {
-        TopicPartition topicPartition = new TopicPartition(STRIMZI_TOPIC, 0);
+    public Future<Void> resetOffsets(String topicName, String groupID) {
+        TopicPartition topicPartition = new TopicPartition(topicName, 0);
         OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(0, "foo");
         Map map = Map.of(topicPartition, offsetAndMetadata);
-        return toVertxFuture(admin.alterConsumerGroupOffsets(GROUP_ID, map).all());
+        return toVertxFuture(admin.alterConsumerGroupOffsets(groupID, map).all());
     }
 
-    public Future<Void> deleteOffset() {
-        TopicPartition topicPartition = new TopicPartition(STRIMZI_TOPIC, 0);
-        return  toVertxFuture(admin.deleteConsumerGroupOffsets(GROUP_ID, Set.of(topicPartition)).all());
+    public Future<Void> deleteOffset(String topicName, String groupID) {
+        TopicPartition topicPartition = new TopicPartition(topicName, 0);
+        return  toVertxFuture(admin.deleteConsumerGroupOffsets(groupID, Set.of(topicPartition)).all());
     }
 
-    public Future<Void> deleteRecords() {
-        TopicPartition topicPartition = new TopicPartition(STRIMZI_TOPIC, 0);
+    public Future<Void> deleteRecords(String topicName) {
+        TopicPartition topicPartition = new TopicPartition(topicName, 0);
         RecordsToDelete recordsToDelete = RecordsToDelete.beforeOffset(0);
         Map map = new HashMap<TopicPartition, RecordsToDelete>() {
             {
@@ -186,8 +184,8 @@ public class KafkaAdmin {
     }
 
 
-    public Future<Void> electLeader(ElectionType electionType) {
-        TopicPartition topicPartition = new TopicPartition(STRIMZI_TOPIC, 2);
+    public Future<Void> electLeader(ElectionType electionType, String topicName) {
+        TopicPartition topicPartition = new TopicPartition(topicName, 2);
         return toVertxFuture(admin.electLeaders(electionType, Set.of(topicPartition)).all());
     }
 
@@ -195,8 +193,8 @@ public class KafkaAdmin {
         return toVertxFuture(admin.describeLogDirs(List.of(1)).all());
     }
 
-    public Future<Void> reassignPartitions() {
-        TopicPartition topicPartition = new TopicPartition(STRIMZI_TOPIC, 0);
+    public Future<Void> reassignPartitions(String topicName) {
+        TopicPartition topicPartition = new TopicPartition(topicName, 0);
         NewPartitionReassignment newPartitionReassignment = new NewPartitionReassignment(List.of(0));
         Map map = new HashMap<TopicPartition, Optional<NewPartitionReassignment>>() {
             {
