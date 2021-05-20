@@ -47,7 +47,7 @@ import static java.time.Duration.ofSeconds;
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
 
-    public static void extractCLI(String archive, String entry, String dest) throws IOException {
+    public static void extractCLI(String archive, String entryMatch, String dest) throws IOException {
 
         var bi = new BufferedInputStream(Files.newInputStream(Paths.get(archive)));
         var gzi = new GzipCompressorInputStream(bi);
@@ -55,7 +55,7 @@ public class CLIUtils {
 
         ArchiveEntry e;
         while ((e = tar.getNextEntry()) != null) {
-            if (!e.getName().equals(entry)) {
+            if (!e.getName().matches(entryMatch)) {
                 continue;
             }
 

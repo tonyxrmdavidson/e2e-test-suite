@@ -21,9 +21,9 @@ public class CLIDownloader {
     private static final String TMPDIR = "cli";
     private static final String NAME = "rhoas";
 
-    private static final String DOWNLOAD_ASSET_TEMPLATE = "%s_%s_%s_%s.%s"; // rhoas_0.19.0_linux_amd64.tar.gz
+    private static final String DOWNLOAD_ASSET_TEMPLATE = "^%s_\\S+_%s_%s.%s$"; // rhoas_{version}_linux_amd64.tar.gz
     private static final String ARCHIVE_TEMPLATE = "%s.%s"; // rhoas.tar.gz
-    private static final String ARCHIVE_ENTRY_TEMPLATE = "%s_%s_%s_%s/bin/%s"; // rhoas_0.19.0_linux_amd64/bin/rhoas
+    private static final String ARCHIVE_ENTRY_TEMPLATE = "^%s_\\S+_%s_%s/bin/%s$"; // rhoas_{version}_linux_amd64/bin/rhoas
 
     private final Vertx vertx;
     private final GitHub github;
@@ -88,7 +88,7 @@ public class CLIDownloader {
     private Future<Void> downloadCLIReleaseInWorkspace(Release release, String workspace) {
         return getDownloadAssetFromRelease(release)
                 .compose(asset -> downloadCLIAssetInWorkspace(asset, workspace))
-                .compose(archive -> extractCLIBinaryInWorkspace(archive, release, workspace))
+                .compose(archive -> extractCLIBinaryInWorkspace(archive, workspace))
                 .compose(binary -> makeCLIBinaryExecutable(binary));
     }
 
@@ -100,8 +100,8 @@ public class CLIDownloader {
                 .map(__ -> archive);
     }
 
-    private Future<String> extractCLIBinaryInWorkspace(String archive, Release release, String workspace) {
-        var entry = String.format(ARCHIVE_ENTRY_TEMPLATE, NAME, release.tagName, platform, arch, NAME);
+    private Future<String> extractCLIBinaryInWorkspace(String archive, String workspace) {
+        var entry = String.format(ARCHIVE_ENTRY_TEMPLATE, NAME, platform, arch, NAME);
         var binary = workspace + "/" + NAME;
 
         LOGGER.info("extract {} from archive {} to: {}", entry, archive, binary);
@@ -123,10 +123,10 @@ public class CLIDownloader {
     }
 
     private Future<Asset> getDownloadAssetFromRelease(Release release) {
-        var assetName = String.format(DOWNLOAD_ASSET_TEMPLATE, NAME, release.tagName, platform, arch, archiveExt);
+        var assetName = String.format(DOWNLOAD_ASSET_TEMPLATE, NAME, platform, arch, archiveExt);
         LOGGER.info("search for asset '{}' in release: '{}'", assetName, release.toString());
         return release.assets.stream()
-                .filter(a -> a.name.equals(assetName))
+                .filter(a -> a.name.matches(assetName))
                 .findFirst()
                 .map(a -> Future.succeededFuture(a))
                 .orElseGet(() -> Future.failedFuture(format("asset '{}' not found in release: '{}'",
