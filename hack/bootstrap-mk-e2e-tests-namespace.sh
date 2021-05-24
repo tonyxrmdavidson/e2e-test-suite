@@ -16,9 +16,19 @@ trap 's=$?; echo "$0: error on $0:$LINENO"; exit $s' ERR
 
 NAMESPACE_NAME=${NAMESPACE:-"mk-e2e-tests"}
 SERVICE_ACCOUNT_NAME=${NAMESPACE_NAME}-sa
+SANDBOX=${SANDBOX:-"false"}
 
-oc process -f hack/namespace-template.yaml -p NAME="${NAMESPACE_NAME}" |
-  oc apply -f -
+if [[ ${SANDBOX} != "true" ]]; then
+  # create namespace and service account
+  oc process -f hack/namespace-template.yaml -p NAME="${NAMESPACE_NAME}" |
+    oc apply -f -
+else
+
+  # create the service account for the sandbox env
+  oc process -f hack/sandbox-template.yaml -p NAME="${NAMESPACE_NAME}" |
+    oc apply -f -
+fi
+
 
 SECRET_NAME=$(oc get serviceaccount "${SERVICE_ACCOUNT_NAME}" \
   --namespace "${NAMESPACE_NAME}" \
