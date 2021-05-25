@@ -135,7 +135,20 @@ the `./hack/testrunner.sh` script and the following ENVs:
     ```
    ./hack/bootstrap-mk-e2e-tests-namespace.sh
     ```
-3. Update the [vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/staging)
+3. Update the [staging Vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/staging)
+   with the new dev cluster token
+
+#### Recreate the service account for the sandbox cluster
+
+1. Login to the sandbox cluster with the sandbox user
+    ```
+    oc login --token=KUBE_ADMIN_TOKEN --server=DEV_CLUSTER_SERVER
+    ```
+2. Execute the `./hack/bootstrap-mk-e2e-tests-namespace.sh` script
+    ```
+   SANDBOX=true NAMESPACE=THE_SANDBOX_NAMESPACE ./hack/bootstrap-mk-e2e-tests-namespace.sh
+    ```
+3. Update the [sandbox Vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/sandbox)
    with the new dev cluster token
 
 #### Update the rhoas-model dependency
