@@ -18,6 +18,7 @@ import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.sleep;
+import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
@@ -293,14 +295,14 @@ public class KafkaAPITest extends TestBase {
         bwait(api.deleteKafka(kafka.id, true));
         bwait(waitUntilKafkaIsDeleted(vertx, api, kafka.id));
 
-        // give it 1s more
-        bwait(sleep(vertx, ofSeconds(1)));
-
         // Produce Kafka messages
         LOGGER.info("send message to topic: {}", TOPIC_NAME);
-        //SslAuthenticationException
-        assertThrows(Exception.class,
-            () -> bwait(producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world"))));
+
+        waitFor(vertx, "sent message to fail", ofSeconds(1), ofSeconds(30), last ->
+            producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world"))
+                .compose(
+                    __ -> Future.succeededFuture(Pair.with(false, null)),
+                    t -> Future.succeededFuture(Pair.with(true, null))));
 
         LOGGER.info("close kafka producer and consumer");
         bwait(producer.close());
