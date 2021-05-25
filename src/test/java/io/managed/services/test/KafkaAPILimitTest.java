@@ -44,7 +44,14 @@ public class KafkaAPILimitTest extends TestBase {
 
     @AfterClass
     public void teardown() throws Throwable {
-        bwait(cleanServiceAccounts());
+        try {
+            bwait(cleanServiceAccounts());
+        } catch (Throwable t) {
+            LOGGER.info("clean service account error: ", t);
+        }
+
+        // close vertx
+        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)

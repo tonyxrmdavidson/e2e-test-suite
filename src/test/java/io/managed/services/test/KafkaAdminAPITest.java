@@ -65,7 +65,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT)
-    public void teardown() {
+    public void teardown() throws Throwable {
         assumeTeardown();
 
         // delete kafka instance
@@ -81,6 +81,9 @@ public class KafkaAdminAPITest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("failed to clean service account: ", t);
         }
+
+        // close vertx
+        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)

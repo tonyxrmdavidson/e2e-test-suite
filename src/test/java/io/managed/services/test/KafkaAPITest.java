@@ -72,7 +72,7 @@ public class KafkaAPITest extends TestBase {
     }
 
     @AfterClass
-    public void teardown() {
+    public void teardown() throws Throwable {
 
         // delete kafka instance
         try {
@@ -93,6 +93,9 @@ public class KafkaAPITest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("clean service account error: ", t);
         }
+
+        // close vertx
+        bwait(vertx.close());
     }
 
     @Test(timeOut = 15 * MINUTES)

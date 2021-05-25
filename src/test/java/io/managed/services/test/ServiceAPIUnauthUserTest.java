@@ -8,6 +8,7 @@ import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.bwait;
@@ -51,6 +52,11 @@ public class ServiceAPIUnauthUserTest extends TestBase {
         "0KL0owSTYBWvFDkROI-ymDXfcRvEMVKyOdhljQNPZew4Ux4apBi9t-ncB9XabDo1" +
         "1eddbbmcV05FWDb8X4opshptnWDzAw4ZPhbjoTBhNEI2JbFssOSYpskNnkB4kKQb" +
         "BjVxAPldBNFwRKLOfvJNdY1jNurMY1xVMl2dbEpFBkqJf1lByU";
+
+    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    public void teardown() throws Throwable {
+        bwait(vertx.close());
+    }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthorizedUser() throws Throwable {

@@ -97,6 +97,8 @@ public class KafkaCLITest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("cleanWorkdir error: ", t);
         }
+
+        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
