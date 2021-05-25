@@ -47,10 +47,11 @@ public abstract class BaseVertxClient {
 
     protected static WebClientOptions optionsForURI(URI uri) {
         return new WebClientOptions()
-                .setDefaultHost(uri.getHost())
-                .setDefaultPort(getPort(uri))
-                .setSsl(isSsl(uri))
-                .setConnectTimeout((int) Environment.API_TIMEOUT_MS);
+            .setDefaultHost(uri.getHost())
+            .setDefaultPort(getPort(uri))
+            .setSsl(isSsl(uri))
+            .setConnectTimeout((int) Environment.API_TIMEOUT_MS)
+            .addEnabledSecureTransportProtocol("TLSv1.3");
     }
 
     static Integer getPort(URI u) {
@@ -86,7 +87,7 @@ public abstract class BaseVertxClient {
 
             // retry the API call
             return sleep(vertx, ofSeconds(1))
-                    .compose(r -> retry(call, attempts - 1));
+                .compose(r -> retry(call, attempts - 1));
         };
 
         return call.get().recover(t -> {
@@ -99,7 +100,7 @@ public abstract class BaseVertxClient {
                 var r = ((ResponseException) t).response;
                 // retry request in case of error 500 or 504
                 if (r.statusCode() == HttpURLConnection.HTTP_INTERNAL_ERROR
-                        || r.statusCode() == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
+                    || r.statusCode() == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
                 ) {
                     return retry.apply(t);
                 }
@@ -133,6 +134,6 @@ public abstract class BaseVertxClient {
 
     public static Future<HttpResponse<Buffer>> followRedirect(WebClient client, HttpResponse<Buffer> response) {
         return getRedirectLocation(response)
-                .compose(l -> client.getAbs(l).send());
+            .compose(l -> client.getAbs(l).send());
     }
 }
