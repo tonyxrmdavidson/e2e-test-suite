@@ -56,7 +56,7 @@ public class KafkaAPIUserPermissionsTest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT)
-    public void teardown() {
+    public void teardown() throws Throwable {
         assumeTeardown();
 
         try {
@@ -76,6 +76,8 @@ public class KafkaAPIUserPermissionsTest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("clean alien service account error: ", t);
         }
+
+        bwait(vertx.close());
     }
 
     @Test(timeOut = 15 * MINUTES)
@@ -191,6 +193,8 @@ public class KafkaAPIUserPermissionsTest extends TestBase {
 
         LOGGER.info("create kafka topic: {}", topicName);
         assertThrows(SaslAuthenticationException.class, () -> bwait(admin.createTopic(topicName)));
+
+        admin.close();
     }
 
     @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", priority = 1, timeOut = DEFAULT_TIMEOUT)

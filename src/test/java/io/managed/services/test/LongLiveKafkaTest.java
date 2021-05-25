@@ -60,12 +60,14 @@ public class LongLiveKafkaTest extends TestBase {
     }
 
     @AfterClass
-    public void teardown() {
+    public void teardown() throws Throwable {
         try {
             bwait(kafkaAdminAPI.deleteTopic(MULTI_PARTITION_TOPIC_NAME));
         } catch (Throwable t) {
             LOGGER.error("failed to clean topic: {}", MULTI_PARTITION_TOPIC_NAME);
         }
+
+        bwait(vertx.close());
     }
 
     private void assertKafka() {

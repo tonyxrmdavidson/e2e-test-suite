@@ -48,7 +48,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     private KafkaConsumer<String, String> consumer;
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT)
-    public void teardown() {
+    public void teardown() throws Throwable {
         // close KafkaAdmin
         if (admin != null) admin.close();
 
@@ -76,11 +76,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         }
 
         // close vertx
-        try {
-            vertx.close();
-        } catch (Throwable t) {
-            LOGGER.error("failed to close vertx: ", t);
-        }
+        bwait(vertx.close());
     }
 
     @BeforeClass(timeOut = 15 * MINUTES)

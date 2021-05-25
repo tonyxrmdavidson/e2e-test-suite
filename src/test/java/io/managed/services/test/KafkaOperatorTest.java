@@ -166,7 +166,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT)
-    public void teardown(ITestContext context) {
+    public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
 
         try {
@@ -205,6 +205,8 @@ public class KafkaOperatorTest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("cleanServiceAccount error: ", t);
         }
+
+        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)

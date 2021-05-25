@@ -300,7 +300,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @AfterClass(timeOut = 5 * MINUTES)
-    public void teardown(ITestContext context) {
+    public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
 
         try {
@@ -366,6 +366,8 @@ public class QuarkusSampleTest extends TestBase {
         } catch (Throwable e) {
             LOGGER.error("cleanCLI error: ", e);
         }
+
+        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
