@@ -263,14 +263,15 @@ public class QuarkusSampleTest extends TestBase {
 
             // unwrap the optional service account
             .compose(o -> o
-                .map(a -> Future.succeededFuture(a))
-                .orElse(failedFuture(message("failed to find service account with client-id: {}", secretClientID))))
-
-            // delete the service account if founded
-            .compose(a -> {
-                LOGGER.info("delete service account {} with id: {}", a.name, a.id);
-                return api.deleteServiceAccount(a.id);
-            })
+                .map(a -> {
+                    // delete the service account if founded
+                    LOGGER.info("delete service account {} with id: {}", a.name, a.id);
+                    return api.deleteServiceAccount(a.id);
+                })
+                .orElseGet(() -> {
+                    LOGGER.error("failed to find service account with client-id: {}", secretClientID);
+                    return Future.succeededFuture();
+                }))
 
             // delete the secret only after deleting the service account
             .map(__ -> {
