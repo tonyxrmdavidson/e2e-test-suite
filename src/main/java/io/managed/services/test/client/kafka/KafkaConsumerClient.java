@@ -7,11 +7,11 @@ import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.LinkedList;
 import static io.managed.services.test.TestUtils.forEach;
 
 public class KafkaConsumerClient implements KafkaAsyncConsumer {
@@ -88,6 +88,39 @@ public class KafkaConsumerClient implements KafkaAsyncConsumer {
             // unsubscribe from  all partitions
             .compose(__ -> consumer.unsubscribe());
     }
+
+    public  static Future<KafkaConsumer<String, String>> subscribeConsumer(KafkaConsumer<String, String> consumer, String topic) {
+        LOGGER.info("Subscribing consumer");
+        Promise<KafkaConsumer<String, String>> completionPromise = Promise.promise();
+        consumer
+            .subscribe(topic)
+            .onSuccess(__ -> completionPromise.complete(consumer))
+            .onFailure(cause -> {
+                LOGGER.error("Consumers didn't subscribe: {}", cause.getMessage());
+                completionPromise.fail("consumer unable to subscribe");
+            });
+        return completionPromise.future();
+    }
+
+    public  static Future<Void> consumeSingleMessage(KafkaConsumer<String, String> consumer) {
+        // it is necessary to complete promise only once, otherwise caused Exception, already completed promise.
+        AtomicInteger obtainedMessagesCounter = new AtomicInteger(0);
+        Promise<Void> completionPromise = Promise.promise();
+        consumer.handler(record -> {
+            if (obtainedMessagesCounter.incrementAndGet() == 1) completionPromise.complete();
+        });
+        return completionPromise.future();
+    }
+
+    public static Future<Void> closeSingleConsumer(KafkaConsumer<String, String> consumerList) {
+        LOGGER.info("closing consumed");
+        Promise<Void> promise = Promise.promise();
+        consumerList.close()
+            .onSuccess(__ -> promise.complete())
+            .onFailure(e -> promise.fail(e.getMessage()));
+        return promise.future();
+    }
+
 
     private Future<List<ConsumerRecord>> consumeMessages(int expectedMessages) {
         Promise<List<ConsumerRecord>> promise = Promise.promise();

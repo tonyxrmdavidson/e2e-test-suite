@@ -1,5 +1,7 @@
 package io.managed.services.test;
 
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafkaadminapi.CreateTopicPayload;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
@@ -11,6 +13,7 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
+import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.SkipException;
@@ -34,7 +37,7 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServ
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
-
+import io.managed.services.test.client.kafka.KafkaAdmin;
 
 @Test(groups = TestTag.SERVICE_API)
 public class LongLiveKafkaTest extends TestBase {
@@ -45,6 +48,9 @@ public class LongLiveKafkaTest extends TestBase {
     private static final String[] TOPICS = {"ll-topic-az", "ll-topic-cb", "ll-topic-fc", "ll-topic-bf", "ll-topic-cd"};
     private static final String MULTI_PARTITION_TOPIC_NAME = "multi-partitions-topic";
     private static final String METRIC_TOPIC_NAME = "metric-test-topic";
+
+    static final String TEST_CANARY_NAME = "__strimzi_canary";
+    public static final String  TEST_CANARY_GROUP = "canary-group";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -179,6 +185,46 @@ public class LongLiveKafkaTest extends TestBase {
         topic = true;
 
         assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
+    }
+
+    @Test(priority = 4, timeOut = DEFAULT_TIMEOUT)
+    void testPresenceOfCanaryTopic() throws Throwable {
+        assertKafka();
+        String bootstrapHost = kafka.bootstrapServerHost;
+        String clientID = serviceAccount.clientID;
+        String clientSecret = serviceAccount.clientSecret;
+
+        var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+
+        LOGGER.info("testing presence of canary topic: {}", TEST_CANARY_NAME);
+        var response = bwait(admin.listTopics());
+        boolean isCanaryTopicPresent = response.stream().filter(e -> e.equals(TEST_CANARY_NAME)).count() == 1;
+        assertTrue(isCanaryTopicPresent, message("canary topic is missing"));
+    }
+
+
+    @Test(priority = 4, timeOut = DEFAULT_TIMEOUT, dependsOnMethods = {"testPresenceOfCanaryTopic"})
+    void testCanaryLiveliness() throws Throwable {
+        assertKafka();
+        LOGGER.info("testing Liveliness of canary: {}", TEST_CANARY_NAME);
+        String bootstrapHost = kafka.bootstrapServerHost;
+        String clientID = serviceAccount.clientID;
+        String secret = serviceAccount.clientSecret;
+
+        LOGGER.info("creation of single consumer in separated consumer group");
+        KafkaConsumer<String, String> consumer =  KafkaConsumerClient.createConsumer(
+                vertx,
+                bootstrapHost,
+                clientID,
+                secret,
+                KafkaAuthMethod.PLAIN,
+                TEST_CANARY_GROUP,
+                "latest"
+        );
+
+        KafkaConsumerClient.subscribeConsumer(consumer, TEST_CANARY_NAME);
+        bwait(KafkaConsumerClient.consumeSingleMessage(consumer));
+        bwait(KafkaConsumerClient.closeSingleConsumer(consumer));
     }
 
     @Test(priority = 4, timeOut = 10 * MINUTES)
