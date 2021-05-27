@@ -13,7 +13,6 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.SkipException;
@@ -199,7 +198,7 @@ public class LongLiveKafkaTest extends TestBase {
         LOGGER.info("testing presence of canary topic: {}", TEST_CANARY_NAME);
         var response = bwait(admin.listTopics());
         boolean isCanaryTopicPresent = response.stream().filter(e -> e.equals(TEST_CANARY_NAME)).count() == 1;
-        assertTrue(isCanaryTopicPresent, message("canary topic is missing"));
+        assertTrue(isCanaryTopicPresent, message("supposed canary topic {} is missing, whereas following topics are present {}", TEST_CANARY_NAME, response));
     }
 
 
@@ -210,21 +209,14 @@ public class LongLiveKafkaTest extends TestBase {
         String bootstrapHost = kafka.bootstrapServerHost;
         String clientID = serviceAccount.clientID;
         String secret = serviceAccount.clientSecret;
-
-        LOGGER.info("creation of single consumer in separated consumer group");
-        KafkaConsumer<String, String> consumer =  KafkaConsumerClient.createConsumer(
+        var consumerClient = new KafkaConsumerClient(
                 vertx,
                 bootstrapHost,
-                clientID,
-                secret,
-                KafkaAuthMethod.PLAIN,
+                clientID, secret,
+                KafkaAuthMethod.OAUTH,
                 TEST_CANARY_GROUP,
-                "latest"
-        );
-
-        KafkaConsumerClient.subscribeConsumer(consumer, TEST_CANARY_NAME);
-        bwait(KafkaConsumerClient.consumeSingleMessage(consumer));
-        bwait(KafkaConsumerClient.closeSingleConsumer(consumer));
+                "latest");
+        bwait(consumerClient.receiveAsync(TEST_CANARY_NAME, 1));
     }
 
     @Test(priority = 4, timeOut = 10 * MINUTES)
