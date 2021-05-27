@@ -25,7 +25,7 @@ public class KafkaAdminAPIUtils {
         var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
         var auth = new KeycloakOAuth(vertx);
 
-        LOGGER.info("authenticate user: {} against: {}", username, password);
+        LOGGER.info("authenticate user: {} with password: {}", username, password);
         return auth.login(
                 Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
                 Environment.MAS_SSO_REDHAT_REDIRECT_URI,

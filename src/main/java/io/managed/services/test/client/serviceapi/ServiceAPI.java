@@ -13,6 +13,7 @@ import java.net.HttpURLConnection;
 public class ServiceAPI extends BaseVertxClient {
 
     final TokenCredentials token;
+    private static final String API_BASE = "/api/kafkas_mgmt/v1/";
 
     public ServiceAPI(Vertx vertx, String uri, String token) {
         super(vertx, uri);
@@ -25,7 +26,7 @@ public class ServiceAPI extends BaseVertxClient {
 
 
     public Future<KafkaResponse> createKafka(CreateKafkaPayload payload, Boolean async) {
-        return retry(() -> client.post("/api/managed-services-api/v1/kafkas")
+        return retry(() -> client.post(API_BASE + "kafkas")
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .sendJson(payload)
@@ -34,7 +35,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<KafkaListResponse> getListOfKafkaByName(String name) {
-        return retry(() -> client.get("/api/managed-services-api/v1/kafkas")
+        return retry(() -> client.get(API_BASE + "kafkas")
                 .authentication(token)
                 .addQueryParam("page", "1")
                 .addQueryParam("size", "10")
@@ -45,7 +46,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<KafkaListResponse> getListOfKafkas() {
-        return retry(() -> client.get("/api/managed-services-api/v1/kafkas")
+        return retry(() -> client.get(API_BASE + "kafkas")
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
@@ -53,7 +54,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<KafkaResponse> getKafka(String id) {
-        return retry(() -> client.get(String.format("/api/managed-services-api/v1/kafkas/%s", id))
+        return retry(() -> client.get(String.format(API_BASE + "kafkas/%s", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
@@ -61,7 +62,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<Void> deleteKafka(String id, Boolean async) {
-        return retry(() -> client.delete(String.format("/api/managed-services-api/v1/kafkas/%s?async=%s", id, async))
+        return retry(() -> client.delete(String.format(API_BASE + "kafkas/%s?async=%s", id, async))
                 .authentication(token)
                 .addQueryParam("async", async.toString())
                 .send()
@@ -70,7 +71,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<ServiceAccount> createServiceAccount(CreateServiceAccountPayload payload) {
-        return retry(() -> client.post("/api/managed-services-api/v1/serviceaccounts")
+        return retry(() -> client.post(API_BASE + "serviceaccounts")
                 .authentication(token)
                 .sendJson(payload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_ACCEPTED)) // TODO: report issue: swagger says 200
@@ -78,7 +79,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<ServiceAccountList> getListOfServiceAccounts() {
-        return retry(() -> client.get("/api/managed-services-api/v1/serviceaccounts")
+        return retry(() -> client.get(API_BASE + "serviceaccounts")
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
@@ -86,7 +87,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<ServiceAccount> resetCredentialsServiceAccount(String id) {
-        return retry(() -> client.post(String.format("/api/managed-services-api/v1/serviceaccounts/%s/reset-credentials", id))
+        return retry(() -> client.post(String.format(API_BASE + "serviceaccounts/%s/reset-credentials", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
@@ -94,7 +95,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<Void> deleteServiceAccount(String id) {
-        return retry(() -> client.delete(String.format("/api/managed-services-api/v1/serviceaccounts/%s", id))
+        return retry(() -> client.delete(String.format(API_BASE + "serviceaccounts/%s", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_NO_CONTENT))
@@ -102,7 +103,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<KafkaUserMetricsResponse> queryMetrics(String kafkaId) {
-        return retry(() -> client.get(String.format("/api/managed-services-api/v1/kafkas/%s/metrics/query", kafkaId))
+        return retry(() -> client.get(String.format(API_BASE + "kafkas/%s/metrics/query", kafkaId))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, 200))
