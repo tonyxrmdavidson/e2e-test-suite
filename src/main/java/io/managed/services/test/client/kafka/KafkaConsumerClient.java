@@ -7,11 +7,9 @@ import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import java.util.LinkedList;
 import static io.managed.services.test.TestUtils.forEach;
 
 public class KafkaConsumerClient implements KafkaAsyncConsumer {
@@ -88,6 +86,7 @@ public class KafkaConsumerClient implements KafkaAsyncConsumer {
             // unsubscribe from  all partitions
             .compose(__ -> consumer.unsubscribe());
     }
+
 
     private Future<List<ConsumerRecord>> consumeMessages(int expectedMessages) {
         Promise<List<ConsumerRecord>> promise = Promise.promise();
