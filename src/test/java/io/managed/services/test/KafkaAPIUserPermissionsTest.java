@@ -3,6 +3,7 @@ package io.managed.services.test;
 import io.managed.services.test.client.exception.HTTPNotFoundException;
 import io.managed.services.test.client.exception.HTTPUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
 import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
@@ -84,13 +85,7 @@ public class KafkaAPIUserPermissionsTest extends TestBase {
     public void testMainUserCreateKafkaInstance() throws Throwable {
 
         // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        // add postfix to the name based on owner
-        kafkaPayload.name = KAFKA_INSTANCE_NAME;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
-
+        CreateKafkaPayload kafkaPayload = KafkaUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, mainAPI, kafkaPayload));

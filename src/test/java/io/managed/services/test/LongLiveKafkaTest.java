@@ -1,8 +1,10 @@
 package io.managed.services.test;
 
+
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.kafkaadminapi.CreateTopicPayload;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
@@ -53,15 +55,17 @@ public class LongLiveKafkaTest extends TestBase {
 
     private final Vertx vertx = Vertx.vertx();
 
-    private ServiceAPI api;
+    private ServiceAPI serviceAPI;
     private KafkaResponse kafka;
     private ServiceAccount serviceAccount;
     private boolean topic;
     private KafkaAdminAPI kafkaAdminAPI;
 
+    private static final  int KAFKA_DELETION_TIMEOUT_IN_HOURS = 48;
+
     @BeforeClass
     public void bootstrap() throws Throwable {
-        api = bwait(ServiceAPIUtils.serviceAPI(vertx));
+        serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -91,25 +95,67 @@ public class LongLiveKafkaTest extends TestBase {
     }
 
     @Test(timeOut = 15 * MINUTES)
+    public void testRecreateOldKafkaInstance() throws Throwable {
+        var optionalKafka = bwait(getKafkaByName(serviceAPI, KAFKA_INSTANCE_NAME));
+        if (optionalKafka.isEmpty()) {
+            fail(message("for some reason the long living kafka instance with name: {} doesn't exist, but it should", KAFKA_INSTANCE_NAME));
+        }
+
+        // kafka is present
+        KafkaResponse kafkaResponse = optionalKafka.get();
+        long upTimeInHours = KafkaUtils.getUpTimeInHours(kafkaResponse);
+        LOGGER.info("long live kafka instance up time is: {} hours", upTimeInHours);
+
+        if (upTimeInHours >= (KAFKA_DELETION_TIMEOUT_IN_HOURS - 1)) {
+            LOGGER.info("kafka instance will be recreated due to it's up time: ({}) moving close to expiration: ({}) ", upTimeInHours, KAFKA_DELETION_TIMEOUT_IN_HOURS);
+            // delete kafka instance which lives for almost max time.
+            try {
+                bwait(ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, KAFKA_INSTANCE_NAME));
+            } catch (Throwable t) {
+                LOGGER.error("failed to clean kafka instance: ", t);
+            }
+
+            LOGGER.info("waiting for deletion of old kafka instance");
+            bwait(ServiceAPIUtils.waitUntilKafkaIsDeleted(vertx, serviceAPI, kafkaResponse.id));
+
+
+            CreateKafkaPayload kafkaPayload = KafkaUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
+
+            LOGGER.info("waiting for creation of new kafka instance");
+            kafkaResponse = bwait(serviceAPI.createKafka(kafkaPayload, true));
+            kafka = bwait(waitUntilKafkaIsReady(vertx, serviceAPI, kafkaResponse.id));
+
+
+            LOGGER.info("recreation of former kafka's instance topics");
+            String bootstrapHost = kafka.bootstrapServerHost;
+
+            var topics = new HashSet<>(Set.of(TOPICS));
+            topics.add(METRIC_TOPIC_NAME);
+
+            LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
+            kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
+            LOGGER.info("apply topics: {}", topics);
+            bwait(KafkaAdminAPIUtils.applyTopics(kafkaAdminAPI, topics));
+
+        }
+    }
+
+    @Test(priority = 1, timeOut = 15 * MINUTES)
     public void testPresenceOfLongLiveKafkaInstance() throws Throwable {
 
         LOGGER.info("get kafka instance for name: {}", KAFKA_INSTANCE_NAME);
-        var optionalKafka = bwait(getKafkaByName(api, KAFKA_INSTANCE_NAME));
+        var optionalKafka = bwait(getKafkaByName(serviceAPI, KAFKA_INSTANCE_NAME));
 
         if (optionalKafka.isEmpty()) {
             LOGGER.error("kafka is not present: {}", KAFKA_INSTANCE_NAME);
 
             LOGGER.info("try to recreate the kafka instance: {}", KAFKA_INSTANCE_NAME);
             // Create Kafka Instance
-            var kafkaPayload = new CreateKafkaPayload();
-            kafkaPayload.name = KAFKA_INSTANCE_NAME;
-            kafkaPayload.multiAZ = true;
-            kafkaPayload.cloudProvider = "aws";
-            kafkaPayload.region = "us-east-1";
+            CreateKafkaPayload kafkaPayload = KafkaUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
 
             LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-            var k = bwait(api.createKafka(kafkaPayload, true));
-            kafka = bwait(waitUntilKafkaIsReady(vertx, api, k.id));
+            var k = bwait(serviceAPI.createKafka(kafkaPayload, true));
+            kafka = bwait(waitUntilKafkaIsReady(vertx, serviceAPI, k.id));
 
             fail(message("for some reason the long living kafka instance with name: {} didn't exists anymore but we have recreated it", KAFKA_INSTANCE_NAME));
         }
@@ -118,11 +164,13 @@ public class LongLiveKafkaTest extends TestBase {
         LOGGER.info("kafka is present :{} and created at: {}", KAFKA_INSTANCE_NAME, kafka.createdAt);
     }
 
-    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+
+
+    @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
     public void testPresenceOfServiceAccount() throws Throwable {
 
         LOGGER.info("get service account by name: {}", SERVICE_ACCOUNT_NAME);
-        var optionalSA = bwait(getServiceAccountByName(api, SERVICE_ACCOUNT_NAME));
+        var optionalSA = bwait(getServiceAccountByName(serviceAPI, SERVICE_ACCOUNT_NAME));
 
         if (optionalSA.isEmpty()) {
             LOGGER.error("service account is not present: {}", SERVICE_ACCOUNT_NAME);
@@ -133,21 +181,22 @@ public class LongLiveKafkaTest extends TestBase {
             serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
 
             LOGGER.info("create service account: {}", serviceAccountPayload.name);
-            serviceAccount = bwait(api.createServiceAccount(serviceAccountPayload));
-            fail(message("for some reason the long living service account with name: {} didn't exists anymore but we have recreated it", SERVICE_ACCOUNT_NAME));
+
+            serviceAccount = bwait(serviceAPI.createServiceAccount(serviceAccountPayload));
+            fail(message("for some reason the long living service account with name: {} didn't exists anymore but we have recreate it", SERVICE_ACCOUNT_NAME));
         }
 
         LOGGER.info("reset credentials for service account: {}", SERVICE_ACCOUNT_NAME);
-        serviceAccount = bwait(api.resetCredentialsServiceAccount(optionalSA.get().id));
+        serviceAccount = bwait(serviceAPI.resetCredentialsServiceAccount(optionalSA.get().id));
     }
 
-    @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 3, timeOut = DEFAULT_TIMEOUT)
     public void testCleanAdditionalServiceAccounts() throws Throwable {
 
         var deleted = new ArrayList<String>();
 
         LOGGER.info("get all service accounts");
-        var accountsList = bwait(api.getListOfServiceAccounts());
+        var accountsList = bwait(serviceAPI.getListOfServiceAccounts());
 
         var accounts = accountsList.items.stream()
             .filter(a -> a.owner.equals(Environment.SSO_USERNAME))
@@ -156,7 +205,7 @@ public class LongLiveKafkaTest extends TestBase {
 
         for (var a : accounts) {
             LOGGER.warn("delete service account: {}", a);
-            bwait(api.deleteServiceAccount(a.id));
+            bwait(serviceAPI.deleteServiceAccount(a.id));
             deleted.add(a.name);
         }
 
@@ -165,7 +214,7 @@ public class LongLiveKafkaTest extends TestBase {
         }
     }
 
-    @Test(priority = 3, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 4, timeOut = DEFAULT_TIMEOUT)
     public void testPresenceOfTopics() throws Throwable {
         assertKafka();
 
@@ -182,11 +231,11 @@ public class LongLiveKafkaTest extends TestBase {
         var missingTopics = bwait(KafkaAdminAPIUtils.applyTopics(api, topics));
 
         topic = true;
-
         assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
     }
 
-    @Test(priority = 4, timeOut = DEFAULT_TIMEOUT)
+
+    @Test(priority = 5, timeOut = DEFAULT_TIMEOUT)
     void testPresenceOfCanaryTopic() throws Throwable {
         assertKafka();
         String bootstrapHost = kafka.bootstrapServerHost;
@@ -202,7 +251,7 @@ public class LongLiveKafkaTest extends TestBase {
     }
 
 
-    @Test(priority = 4, timeOut = DEFAULT_TIMEOUT, dependsOnMethods = {"testPresenceOfCanaryTopic"})
+    @Test(priority = 6, timeOut = DEFAULT_TIMEOUT, dependsOnMethods = {"testPresenceOfCanaryTopic"})
     void testCanaryLiveliness() throws Throwable {
         assertKafka();
         LOGGER.info("testing Liveliness of canary: {}", TEST_CANARY_NAME);
@@ -219,7 +268,8 @@ public class LongLiveKafkaTest extends TestBase {
         bwait(consumerClient.receiveAsync(TEST_CANARY_NAME, 1));
     }
 
-    @Test(priority = 4, timeOut = 10 * MINUTES)
+
+    @Test(priority = 7, timeOut = 10 * MINUTES)
     public void testProduceAndConsumeKafkaMessages() throws Throwable {
         assertKafka();
         assertServiceAccount();
@@ -235,7 +285,7 @@ public class LongLiveKafkaTest extends TestBase {
         }
     }
 
-    @Test(priority = 4, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 8, timeOut = DEFAULT_TIMEOUT)
     void testTopicWithThreePartitionsAndThreeConsumers() throws Throwable {
 
         var topicName = MULTI_PARTITION_TOPIC_NAME;
@@ -263,14 +313,14 @@ public class LongLiveKafkaTest extends TestBase {
             3));
     }
 
-    @Test(priority = 5, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 9, timeOut = DEFAULT_TIMEOUT)
     public void testMessageInTotalMetric() throws Throwable {
         assertKafka();
         assertServiceAccount();
         assertTopic();
 
         LOGGER.info("start testing message in total metric");
-        bwait(messageInTotalMetric(vertx, api, kafka, serviceAccount, METRIC_TOPIC_NAME));
+        bwait(messageInTotalMetric(vertx, serviceAPI, kafka, serviceAccount, METRIC_TOPIC_NAME));
     }
 }
 
