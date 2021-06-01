@@ -69,7 +69,7 @@ public class KafkaCLITest extends TestBase {
         return Future.succeededFuture();
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void clean() throws Throwable {
 
         var api = bwait(ServiceAPIUtils.serviceAPI(vertx));

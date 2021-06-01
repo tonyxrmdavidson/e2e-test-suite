@@ -1,7 +1,8 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafkaadminapi.CreateTopicPayload;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
@@ -36,7 +37,6 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getServ
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
-import io.managed.services.test.client.kafka.KafkaAdmin;
 
 @Test(groups = TestTag.SERVICE_API)
 public class LongLiveKafkaTest extends TestBase {
@@ -64,7 +64,7 @@ public class LongLiveKafkaTest extends TestBase {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
     }
 
-    @AfterClass
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
         try {
             bwait(kafkaAdminAPI.deleteTopic(MULTI_PARTITION_TOPIC_NAME));

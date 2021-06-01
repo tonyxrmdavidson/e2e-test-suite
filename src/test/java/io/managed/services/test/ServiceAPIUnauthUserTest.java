@@ -53,7 +53,7 @@ public class ServiceAPIUnauthUserTest extends TestBase {
         "1eddbbmcV05FWDb8X4opshptnWDzAw4ZPhbjoTBhNEI2JbFssOSYpskNnkB4kKQb" +
         "BjVxAPldBNFwRKLOfvJNdY1jNurMY1xVMl2dbEpFBkqJf1lByU";
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
         bwait(vertx.close());
     }
