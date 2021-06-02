@@ -300,7 +300,7 @@ public class QuarkusSampleTest extends TestBase {
         return Future.succeededFuture();
     }
 
-    @AfterClass(timeOut = 5 * MINUTES)
+    @AfterClass(timeOut = 5 * MINUTES, alwaysRun = true)
     public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
 

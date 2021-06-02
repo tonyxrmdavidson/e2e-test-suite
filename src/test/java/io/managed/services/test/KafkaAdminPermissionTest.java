@@ -47,7 +47,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     private KafkaAdmin admin;
     private KafkaConsumer<String, String> consumer;
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
         // close KafkaAdmin
         if (admin != null) admin.close();

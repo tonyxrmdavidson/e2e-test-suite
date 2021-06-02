@@ -71,7 +71,7 @@ public class KafkaAPITest extends TestBase {
         return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
 
-    @AfterClass
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
 
         // delete kafka instance

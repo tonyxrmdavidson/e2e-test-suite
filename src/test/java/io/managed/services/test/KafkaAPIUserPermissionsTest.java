@@ -55,7 +55,7 @@ public class KafkaAPIUserPermissionsTest extends TestBase {
         alienAPI = bwait(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_ALIEN_USERNAME, Environment.SSO_ALIEN_PASSWORD));
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
         assumeTeardown();
 

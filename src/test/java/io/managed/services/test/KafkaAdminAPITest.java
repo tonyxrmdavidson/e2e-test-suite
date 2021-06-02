@@ -64,7 +64,7 @@ public class KafkaAdminAPITest extends TestBase {
         LOGGER.info("kafka instance created: {}", Json.encode(kafka));
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
         assumeTeardown();
 

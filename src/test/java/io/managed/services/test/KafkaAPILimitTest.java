@@ -42,7 +42,7 @@ public class KafkaAPILimitTest extends TestBase {
         return ServiceAPIUtils.deleteServiceAccountsByOwnerIfExists(api, Environment.SSO_SECONDARY_USERNAME);
     }
 
-    @AfterClass
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
         try {
             bwait(cleanServiceAccounts());

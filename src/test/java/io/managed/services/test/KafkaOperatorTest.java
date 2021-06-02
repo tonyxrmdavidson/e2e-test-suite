@@ -165,7 +165,7 @@ public class KafkaOperatorTest extends TestBase {
         return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT)
+    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
 
