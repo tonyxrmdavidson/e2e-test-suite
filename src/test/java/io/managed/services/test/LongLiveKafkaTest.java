@@ -111,7 +111,7 @@ public class LongLiveKafkaTest extends TestBase {
             var k = bwait(api.createKafka(kafkaPayload, true));
             kafka = bwait(waitUntilKafkaIsReady(vertx, api, k.id));
 
-            fail(message("for some reason the long living kafka instance with name: {} didn't exists anymore but we have recreate it", KAFKA_INSTANCE_NAME));
+            fail(message("for some reason the long living kafka instance with name: {} didn't exists anymore but we have recreated it", KAFKA_INSTANCE_NAME));
         }
 
         kafka = optionalKafka.get();
@@ -134,7 +134,7 @@ public class LongLiveKafkaTest extends TestBase {
 
             LOGGER.info("create service account: {}", serviceAccountPayload.name);
             serviceAccount = bwait(api.createServiceAccount(serviceAccountPayload));
-            fail(message("for some reason the long living service account with name: {} didn't exists anymore but we have recreate it", SERVICE_ACCOUNT_NAME));
+            fail(message("for some reason the long living service account with name: {} didn't exists anymore but we have recreated it", SERVICE_ACCOUNT_NAME));
         }
 
         LOGGER.info("reset credentials for service account: {}", SERVICE_ACCOUNT_NAME);
