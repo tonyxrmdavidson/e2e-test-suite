@@ -79,12 +79,7 @@ public class ServiceAPIUtils {
      */
     public static Future<KafkaResponse> applyKafkaInstance(Vertx vertx, ServiceAPI api, String name) {
 
-        CreateKafkaPayload payload = new CreateKafkaPayload();
-        payload.name = name;
-        payload.multiAZ = true;
-        payload.cloudProvider = "aws";
-        payload.region = "us-east-1";
-
+        CreateKafkaPayload payload = createKafkaPayload(name);
         return applyKafkaInstance(vertx, api, payload);
     }
 
@@ -108,6 +103,15 @@ public class ServiceAPIUtils {
                             .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id));
                 }))
                 .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
+    }
+
+    public static CreateKafkaPayload createKafkaPayload(String kafkaInstanceName) {
+        var kafkaPayload = new CreateKafkaPayload();
+        kafkaPayload.name = kafkaInstanceName;
+        kafkaPayload.multiAZ = true;
+        kafkaPayload.cloudProvider = "aws";
+        kafkaPayload.region = "us-east-1";
+        return kafkaPayload;
     }
 
     /**

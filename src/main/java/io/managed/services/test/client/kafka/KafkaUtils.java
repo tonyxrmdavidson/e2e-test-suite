@@ -1,7 +1,5 @@
 package io.managed.services.test.client.kafka;
 
-import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -13,8 +11,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.joda.time.Duration;
-import org.joda.time.Instant;
 
 public class KafkaUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaUtils.class);
@@ -55,23 +51,4 @@ public class KafkaUtils {
                 })
                 .map(Optional::ofNullable);
     }
-
-    public static long getUpTimeInHours(KafkaResponse kafkaResponse) {
-        Instant creationTime = new Instant(kafkaResponse.createdAt);
-        Duration upTime = new Duration(creationTime, new Instant());
-        return upTime.getStandardHours();
-    }
-
-
-    public static CreateKafkaPayload createKafkaPayload(String kafkaInstanceName) {
-        var kafkaPayload = new CreateKafkaPayload();
-        kafkaPayload.name = kafkaInstanceName;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
-        return kafkaPayload;
-    }
-
-
-
 }

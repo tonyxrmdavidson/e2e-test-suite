@@ -4,7 +4,6 @@ package io.managed.services.test;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.kafka.KafkaUtils;
 import io.managed.services.test.client.kafkaadminapi.CreateTopicPayload;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
@@ -26,6 +25,7 @@ import org.testng.annotations.Test;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -103,7 +103,7 @@ public class LongLiveKafkaTest extends TestBase {
 
         // kafka is present
         KafkaResponse kafkaResponse = optionalKafka.get();
-        long upTimeInHours = KafkaUtils.getUpTimeInHours(kafkaResponse);
+        long upTimeInHours = kafkaResponse.getUpTimeInHours();
         LOGGER.info("long live kafka instance up time is: {} hours", upTimeInHours);
 
         if (upTimeInHours >= (KAFKA_DELETION_TIMEOUT_IN_HOURS - 1)) {
@@ -119,7 +119,7 @@ public class LongLiveKafkaTest extends TestBase {
             bwait(ServiceAPIUtils.waitUntilKafkaIsDeleted(vertx, serviceAPI, kafkaResponse.id));
 
 
-            CreateKafkaPayload kafkaPayload = KafkaUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
+            CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
 
             LOGGER.info("waiting for creation of new kafka instance");
             kafkaResponse = bwait(serviceAPI.createKafka(kafkaPayload, true));
@@ -127,18 +127,12 @@ public class LongLiveKafkaTest extends TestBase {
 
 
             LOGGER.info("recreation of former kafka's instance topics");
-            String bootstrapHost = kafka.bootstrapServerHost;
-
-            var topics = new HashSet<>(Set.of(TOPICS));
-            topics.add(METRIC_TOPIC_NAME);
-
-            LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
-            kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
-            LOGGER.info("apply topics: {}", topics);
-            bwait(KafkaAdminAPIUtils.applyTopics(kafkaAdminAPI, topics));
+            applyTestTopics();
 
         }
     }
+
+
 
     @Test(priority = 1, timeOut = 15 * MINUTES)
     public void testPresenceOfLongLiveKafkaInstance() throws Throwable {
@@ -151,7 +145,7 @@ public class LongLiveKafkaTest extends TestBase {
 
             LOGGER.info("try to recreate the kafka instance: {}", KAFKA_INSTANCE_NAME);
             // Create Kafka Instance
-            CreateKafkaPayload kafkaPayload = KafkaUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
+            CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
 
             LOGGER.info("create kafka instance: {}", kafkaPayload.name);
             var k = bwait(serviceAPI.createKafka(kafkaPayload, true));
@@ -218,18 +212,7 @@ public class LongLiveKafkaTest extends TestBase {
     public void testPresenceOfTopics() throws Throwable {
         assertKafka();
 
-        String bootstrapHost = kafka.bootstrapServerHost;
-
-        var topics = new HashSet<>(Set.of(TOPICS));
-        topics.add(METRIC_TOPIC_NAME);
-
-        LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
-        var api = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
-        kafkaAdminAPI = api;
-
-        LOGGER.info("apply topics: {}", topics);
-        var missingTopics = bwait(KafkaAdminAPIUtils.applyTopics(api, topics));
-
+        var missingTopics = applyTestTopics();
         topic = true;
         assertTrue(missingTopics.isEmpty(), message("the topics: {} where missing and has been created", missingTopics));
     }
@@ -321,6 +304,19 @@ public class LongLiveKafkaTest extends TestBase {
 
         LOGGER.info("start testing message in total metric");
         bwait(messageInTotalMetric(vertx, serviceAPI, kafka, serviceAccount, METRIC_TOPIC_NAME));
+    }
+
+
+    private List<String> applyTestTopics() throws Throwable {
+        String bootstrapHost = kafka.bootstrapServerHost;
+        var topics = new HashSet<>(Set.of(TOPICS));
+        topics.add(METRIC_TOPIC_NAME);
+
+        LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
+        kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
+
+        LOGGER.info("apply topics: {}", topics);
+        return bwait(KafkaAdminAPIUtils.applyTopics(kafkaAdminAPI, topics));
     }
 }
 
