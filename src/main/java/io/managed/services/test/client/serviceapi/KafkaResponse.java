@@ -1,5 +1,6 @@
 package io.managed.services.test.client.serviceapi;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -17,6 +18,7 @@ public class KafkaResponse {
     public String owner;
     public String name;
     @JsonProperty("bootstrap_server_host")
+    @JsonAlias({"bootstrapServerHost"})
     public String bootstrapServerHost;
     @JsonProperty("created_at")
     public String createdAt;
