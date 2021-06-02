@@ -1,14 +1,15 @@
 package io.managed.services.test.client.serviceapi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KafkaUserMetricItem {
 
     public KafkaUserMetric metric;
 
-    @JsonProperty("Timestamp")
+    @JsonProperty("timestamp")
     public Double timestamp;
-    @JsonProperty("Value")
+    @JsonProperty("value")
     public Double value;
 }
