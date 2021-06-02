@@ -13,6 +13,7 @@ import io.managed.services.test.client.serviceapi.TopicResponse;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -151,7 +152,7 @@ public class KafkaCLITest extends TestBase {
         LOGGER.info("wait for kafka instance: {}", kafka.id);
         kafkaInstance = bwait(waitForKafkaReady(vertx, cli, kafka.id));
 
-        LOGGER.info("kafka instance {} with id {} is ready", kafka.name, kafka.id);
+        LOGGER.info("kafka instance is ready: {}", Json.encode(kafkaInstance));
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
