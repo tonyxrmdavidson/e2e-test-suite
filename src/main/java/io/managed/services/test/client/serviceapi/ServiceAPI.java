@@ -71,7 +71,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<ServiceAccount> createServiceAccount(CreateServiceAccountPayload payload) {
-        return retry(() -> client.post(API_BASE + "serviceaccounts")
+        return retry(() -> client.post(API_BASE + "service_accounts")
                 .authentication(token)
                 .sendJson(payload)
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_ACCEPTED)) // TODO: report issue: swagger says 200
@@ -79,7 +79,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<ServiceAccountList> getListOfServiceAccounts() {
-        return retry(() -> client.get(API_BASE + "serviceaccounts")
+        return retry(() -> client.get(API_BASE + "service_accounts")
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
@@ -87,7 +87,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<ServiceAccount> resetCredentialsServiceAccount(String id) {
-        return retry(() -> client.post(String.format(API_BASE + "serviceaccounts/%s/reset-credentials", id))
+        return retry(() -> client.post(String.format(API_BASE + "service_accounts/%s/reset_credentials", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
@@ -95,7 +95,7 @@ public class ServiceAPI extends BaseVertxClient {
     }
 
     public Future<Void> deleteServiceAccount(String id) {
-        return retry(() -> client.delete(String.format(API_BASE + "serviceaccounts/%s", id))
+        return retry(() -> client.delete(String.format(API_BASE + "service_accounts/%s", id))
                 .authentication(token)
                 .send()
                 .compose(r -> assertResponse(r, HttpURLConnection.HTTP_NO_CONTENT))
