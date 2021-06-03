@@ -83,6 +83,7 @@ public abstract class BaseVertxClient {
                 // retry request in case of error 500 or 504
                 if (r.statusCode() == HttpURLConnection.HTTP_INTERNAL_ERROR
                     || r.statusCode() == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
+                    || r.statusCode() == HttpURLConnection.HTTP_UNAVAILABLE
                 ) {
                     return true;
                 }
