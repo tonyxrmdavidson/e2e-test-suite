@@ -190,7 +190,10 @@ public class CLI {
 
         Function<Throwable, Boolean> condition = t -> {
             if (t instanceof ProcessException) {
-                if (t.getMessage().contains("504") || t.getMessage().contains("500") || t.getMessage().contains("internal")) {
+                if (t.getMessage().contains("504")
+                    || t.getMessage().contains("500")
+                    || t.getMessage().contains("503")
+                    || t.getMessage().contains("internal")) {
                     return true;
                 }
             }
