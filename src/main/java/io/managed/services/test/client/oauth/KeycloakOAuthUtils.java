@@ -97,4 +97,22 @@ public class KeycloakOAuthUtils {
             });
 
     }
+
+    private static  <T> Future<T> retry(Vertx vertx, Supplier<Future<T>> call) {
+
+        Function<Throwable, Boolean> condition = t -> {
+            if (t instanceof NoStackTraceThrowable) {
+                // retry request in case of Service Unavailable: Access Denied
+                if (t.getMessage().startsWith("Service Unavailable:")) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        return TestUtils.retry(vertx, call, condition);
+    }
+
+
 }
