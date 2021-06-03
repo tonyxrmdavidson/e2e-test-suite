@@ -49,7 +49,7 @@ public class LongLiveKafkaTest extends TestBase {
     private static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
     static final String TEST_CANARY_NAME = "__strimzi_canary";
-    public static final String  TEST_CANARY_GROUP = "canary-group";
+    public static final String TEST_CANARY_GROUP = "canary-group";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -210,12 +210,12 @@ public class LongLiveKafkaTest extends TestBase {
         String clientID = serviceAccount.clientID;
         String secret = serviceAccount.clientSecret;
         var consumerClient = new KafkaConsumerClient(
-                vertx,
-                bootstrapHost,
-                clientID, secret,
-                KafkaAuthMethod.OAUTH,
-                TEST_CANARY_GROUP,
-                "latest");
+            vertx,
+            bootstrapHost,
+            clientID, secret,
+            KafkaAuthMethod.OAUTH,
+            TEST_CANARY_GROUP,
+            "latest");
         bwait(consumerClient.receiveAsync(TEST_CANARY_NAME, 1));
     }
 
@@ -237,6 +237,9 @@ public class LongLiveKafkaTest extends TestBase {
 
     @Test(priority = 4, timeOut = DEFAULT_TIMEOUT)
     void testTopicWithThreePartitionsAndThreeConsumers() throws Throwable {
+        assertKafka();
+        assertServiceAccount();
+        assertTopic();
 
         var topicName = MULTI_PARTITION_TOPIC_NAME;
 
