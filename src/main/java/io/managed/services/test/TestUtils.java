@@ -18,9 +18,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
+import java.util.function.Supplier;
+
+import static java.time.Duration.ofSeconds;
 
 /**
  * Test utils contains static help methods
@@ -32,6 +37,8 @@ public class TestUtils {
     private static final long DEFAULT_TIMEOUT = 3 * MINUTES;
 
     private static final MessageFactory2 MESSAGE_FACTORY = new ParameterizedMessageFactory();
+
+    private static final List<Throwable> retries = new LinkedList<>();
 
     /**
      * Wait until the passed async lambda function return true
@@ -145,6 +152,62 @@ public class TestUtils {
         Promise<Void> p = Promise.promise();
         x.setTimer(d.toMillis(), l -> p.complete());
         return p.future();
+    }
+
+
+    public static <T> Future<T> retry(Vertx x, Supplier<Future<T>> call) {
+
+        // retry in case of any error
+        return retry(x, call, __ -> true, Environment.RETRY_CALL_THRESHOLD);
+    }
+
+    public static <T> Future<T> retry(
+        Vertx x,
+        Supplier<Future<T>> call,
+        Function<Throwable, Boolean> condition) {
+
+        return retry(x, call, condition, Environment.RETRY_CALL_THRESHOLD);
+    }
+
+    /**
+     * Retry the call supplier if the supplier returns a failed future and
+     * the condition returns true.
+     *
+     * @param x         Vertx
+     * @param call      The supplier to call the first time and retry in case of failure
+     * @param condition The condition to retry the call supplier
+     * @param attempts  The max number of attempts before returning the last failure
+     * @param <T>       T
+     * @return Future
+     */
+    public static <T> Future<T> retry(
+        Vertx x,
+        Supplier<Future<T>> call,
+        Function<Throwable, Boolean> condition,
+        int attempts) {
+
+        Function<Throwable, Future<T>> retry = t -> {
+            // add the error to the list of retries
+            retries.add(t);
+
+            LOGGER.error("skip error: ", t);
+
+            // retry the API call
+            return sleep(x, ofSeconds(1))
+                .compose(r -> retry(x, call, condition, attempts - 1));
+        };
+
+        return call.get().recover(t -> {
+            if (attempts > 0 && condition.apply(t)) {
+                // retry the call if there are available attempts and if the condition returns true
+                return retry.apply(t);
+            }
+            return Future.failedFuture(t);
+        });
+    }
+
+    public static List<Throwable> getRetries() {
+        return retries;
     }
 
     /**

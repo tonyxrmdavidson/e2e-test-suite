@@ -75,7 +75,7 @@ public class Environment {
     private static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
     private static final String WAIT_READY_MS_ENV = "WAIT_READY_MS";
 
-    private static final String API_CALL_THRESHOLD_ENV = "API_CALL_THRESHOLD";
+    private static final String RETRY_CALL_THRESHOLD_ENV = "RETRY_CALL_THRESHOLD";
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
 
     /*
@@ -132,7 +132,7 @@ public class Environment {
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
     public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
-    public static final int API_CALL_THRESHOLD = getOrDefault(API_CALL_THRESHOLD_ENV, Integer::parseInt, 10);
+    public static final int RETRY_CALL_THRESHOLD = getOrDefault(RETRY_CALL_THRESHOLD_ENV, Integer::parseInt, 2);
     public static final boolean SKIP_TEARDOWN = getOrDefault(SKIP_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
 

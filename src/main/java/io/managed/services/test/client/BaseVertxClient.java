@@ -1,6 +1,7 @@
 package io.managed.services.test.client;
 
 import io.managed.services.test.Environment;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -16,9 +17,6 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import static io.managed.services.test.TestUtils.sleep;
-import static java.time.Duration.ofSeconds;
 
 public abstract class BaseVertxClient {
     private static final Logger LOGGER = LogManager.getLogger(BaseVertxClient.class);
@@ -77,24 +75,8 @@ public abstract class BaseVertxClient {
     }
 
     public <T> Future<T> retry(Supplier<Future<T>> call) {
-        return retry(call, Environment.API_CALL_THRESHOLD);
-    }
 
-    public <T> Future<T> retry(Supplier<Future<T>> call, int attempts) {
-
-        Function<Throwable, Future<T>> retry = t -> {
-            LOGGER.error("skip error: ", t);
-
-            // retry the API call
-            return sleep(vertx, ofSeconds(1))
-                .compose(r -> retry(call, attempts - 1));
-        };
-
-        return call.get().recover(t -> {
-            if (attempts <= 0) {
-                // no more attempts remaining
-                return Future.failedFuture(t);
-            }
+        Function<Throwable, Boolean> condition = t -> {
 
             if (t instanceof ResponseException) {
                 var r = ((ResponseException) t).response;
@@ -102,18 +84,20 @@ public abstract class BaseVertxClient {
                 if (r.statusCode() == HttpURLConnection.HTTP_INTERNAL_ERROR
                     || r.statusCode() == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
                 ) {
-                    return retry.apply(t);
+                    return true;
                 }
             }
 
             if (t instanceof VertxException) {
                 if (t.getMessage().equals("Connection was closed")) {
-                    return retry.apply(t);
+                    return true;
                 }
             }
 
-            return Future.failedFuture(t);
-        });
+            return false;
+        };
+
+        return TestUtils.retry(vertx, call, condition);
     }
 
     public static <T> Future<HttpResponse<T>> assertResponse(HttpResponse<T> response, Integer statusCode) {

@@ -1,9 +1,12 @@
 package io.managed.services.test.client.oauth;
 
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
@@ -20,6 +23,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.managed.services.test.client.BaseVertxClient.getRedirectLocation;
 
@@ -27,28 +31,28 @@ public class KeycloakOAuthUtils {
     private static final Logger LOGGER = LogManager.getLogger(KeycloakOAuthUtils.class);
 
     public static Future<HttpResponse<Buffer>> followRedirects(
-            WebClientSession session,
-            HttpResponse<Buffer> response
+        WebClientSession session,
+        HttpResponse<Buffer> response
     ) {
         return followRedirects(session, response, __ -> true);
     }
 
     public static Future<HttpResponse<Buffer>> followRedirects(
-            WebClientSession session,
-            HttpResponse<Buffer> response,
-            Function<HttpResponse<Buffer>, Boolean> condition) {
+        WebClientSession session,
+        HttpResponse<Buffer> response,
+        Function<HttpResponse<Buffer>, Boolean> condition) {
 
         var c = response.statusCode();
         if ((c >= 300 && c < 400)
-                && condition.apply(response)) {
+            && condition.apply(response)) {
 
             // handle redirects
             return getRedirectLocation(response)
-                    .compose(l -> {
-                        LOGGER.info("follow redirect to: {}", l);
-                        return session.getAbs(l).send();
-                    })
-                    .compose(r -> followRedirects(session, r, condition));
+                .compose(l -> {
+                    LOGGER.info("follow redirect to: {}", l);
+                    return session.getAbs(l).send();
+                })
+                .compose(r -> followRedirects(session, r, condition));
         }
 
         return Future.succeededFuture(response);
@@ -60,7 +64,7 @@ public class KeycloakOAuthUtils {
     }
 
     public static Future<HttpResponse<Buffer>> postUsernamePassword(
-            WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
+        WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
 
         Document d = Jsoup.parse(response.bodyAsString());
         String actionURI = d.select("#kc-form-login").attr("action");
@@ -77,21 +81,20 @@ public class KeycloakOAuthUtils {
         return session.postAbs(actionURI).sendForm(f);
     }
 
-
-    public static Future<User> authenticateUser(OAuth2Auth oauth2, String redirectURI, HttpResponse<Buffer> response) {
+    public static Future<User> authenticateUser(Vertx vertx, OAuth2Auth oauth2, String redirectURI, HttpResponse<Buffer> response) {
 
         return getRedirectLocation(response)
-                .compose(locationURI -> {
-                    List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
-                    String code = queries.stream()
-                            .filter(v -> v.getName().equals("code")).findFirst()
-                            .orElseThrow().getValue();
+            .compose(locationURI -> {
+                List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
+                String code = queries.stream()
+                    .filter(v -> v.getName().equals("code")).findFirst()
+                    .orElseThrow().getValue();
 
-                    LOGGER.info("authenticate user; code={}", code);
-                    return oauth2.authenticate(new JsonObject()
-                            .put("code", code)
-                            .put("redirect_uri", redirectURI));
-                });
+                LOGGER.info("authenticate user; code={}", code);
+                return retry(vertx, () -> oauth2.authenticate(new JsonObject()
+                    .put("code", code)
+                    .put("redirect_uri", redirectURI)));
+            });
 
     }
 }
