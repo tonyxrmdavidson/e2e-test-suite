@@ -38,7 +38,7 @@ public class TestUtils {
 
     private static final MessageFactory2 MESSAGE_FACTORY = new ParameterizedMessageFactory();
 
-    private static final List<Throwable> retries = new LinkedList<>();
+    private static final List<Throwable> RETRIES = new LinkedList<>();
 
     /**
      * Wait until the passed async lambda function return true
@@ -188,7 +188,7 @@ public class TestUtils {
 
         Function<Throwable, Future<T>> retry = t -> {
             // add the error to the list of retries
-            retries.add(t);
+            RETRIES.add(t);
 
             LOGGER.error("skip error: ", t);
 
@@ -207,7 +207,7 @@ public class TestUtils {
     }
 
     public static List<Throwable> getRetries() {
-        return retries;
+        return RETRIES;
     }
 
     /**
