@@ -1,6 +1,6 @@
 package io.managed.services.test.cli;
 
-import io.managed.services.test.Environment;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAccountList;
@@ -20,11 +20,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.cli.ProcessUtils.stdout;
 import static io.managed.services.test.cli.ProcessUtils.stdoutAsJson;
 import static java.time.Duration.ofMinutes;
-import static java.time.Duration.ofSeconds;
 
 public class CLI {
     private static final Logger LOGGER = LogManager.getLogger(CLI.class);
@@ -189,32 +187,20 @@ public class CLI {
     }
 
     public <T> Future<T> retry(Supplier<Future<T>> call) {
-        return retry(call, Environment.API_CALL_THRESHOLD);
-    }
 
-    public <T> Future<T> retry(Supplier<Future<T>> call, int attempts) {
-
-        Function<Throwable, Future<T>> retry = t -> {
-            LOGGER.error("skip error: ", t);
-
-            // retry the CLI call
-            return sleep(vertx, ofSeconds(1))
-                .compose(r -> retry(call, attempts - 1));
-        };
-
-        return call.get().recover(t -> {
-            if (attempts <= 0) {
-                // no more attempts remaining
-                return Future.failedFuture(t);
-            }
-
+        Function<Throwable, Boolean> condition = t -> {
             if (t instanceof ProcessException) {
-                if (t.getMessage().contains("504") || t.getMessage().contains("500") || t.getMessage().contains("internal")) {
-                    return retry.apply(t);
+                if (t.getMessage().contains("504")
+                    || t.getMessage().contains("500")
+                    || t.getMessage().contains("503")
+                    || t.getMessage().contains("internal")) {
+                    return true;
                 }
             }
 
-            return Future.failedFuture(t);
-        });
+            return false;
+        };
+
+        return TestUtils.retry(vertx, call, condition);
     }
 }
