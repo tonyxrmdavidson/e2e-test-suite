@@ -84,13 +84,7 @@ public class KafkaAPIUserPermissionsTest extends TestBase {
     public void testMainUserCreateKafkaInstance() throws Throwable {
 
         // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        // add postfix to the name based on owner
-        kafkaPayload.name = KAFKA_INSTANCE_NAME;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
-
+        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
 
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, mainAPI, kafkaPayload));

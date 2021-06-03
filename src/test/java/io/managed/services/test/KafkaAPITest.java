@@ -102,13 +102,7 @@ public class KafkaAPITest extends TestBase {
     public void testCreateKafkaInstance() throws Throwable {
 
         // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        // add postfix to the name based on owner
-        kafkaPayload.name = KAFKA_INSTANCE_NAME;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
-
+        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
         LOGGER.info("create kafka instance: {}", kafkaPayload.name);
         var k = bwait(api.createKafka(kafkaPayload, true));
         kafka = bwait(waitUntilKafkaIsReady(vertx, api, k.id));
@@ -246,12 +240,7 @@ public class KafkaAPITest extends TestBase {
     public void testCreateKafkaInstanceWithExistingName() {
 
         // Create Kafka Instance with existing name
-        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        kafkaPayload.name = KAFKA_INSTANCE_NAME;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
-
+        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
         LOGGER.info("create kafka instance with existing name: {}", kafkaPayload.name);
         assertThrows(HTTPConflictException.class, () -> bwait(api.createKafka(kafkaPayload, true)));
     }
@@ -262,12 +251,7 @@ public class KafkaAPITest extends TestBase {
         // TODO: Move this tests in a separate Class
 
         // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = new CreateKafkaPayload();
-        // add postfix to the name based on owner
-        kafkaPayload.name = KAFKA2_INSTANCE_NAME;
-        kafkaPayload.multiAZ = true;
-        kafkaPayload.cloudProvider = "aws";
-        kafkaPayload.region = "us-east-1";
+        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA2_INSTANCE_NAME);
 
         LOGGER.info("create kafka instance: {}", KAFKA2_INSTANCE_NAME);
         var kafkaToDelete = bwait(api.createKafka(kafkaPayload, true));
