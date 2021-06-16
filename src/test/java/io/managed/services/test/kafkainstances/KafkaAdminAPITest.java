@@ -39,6 +39,12 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
+/**
+ * Test the main endpoints of the kafka-admin-api[1] that is deployed alongside each Kafka Instance
+ * and used to administrate the Kafka Instance itself.
+ *
+ * 1. https://github.com/bf2fc6cc711aee1a0c2a/kafka-admin-api
+ */
 @Test(groups = TestTag.KAFKA_ADMIN_API)
 public class KafkaAdminAPITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPITest.class);
@@ -57,6 +63,11 @@ public class KafkaAdminAPITest extends TestBase {
     private ServiceAPI serviceAPI;
     private KafkaResponse kafka;
     private KafkaConsumer<String, String> kafkaConsumer;
+
+    // TODO: Test unath user
+    // TODO: Test same org user
+    // TODO: Test diff org user
+    // TODO: Test update topic with random values
 
     @BeforeClass(timeOut = 10 * MINUTES)
     public void bootstrap() throws Throwable {
