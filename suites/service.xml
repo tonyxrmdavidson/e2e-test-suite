@@ -21,11 +21,6 @@
             <class name="io.managed.services.test.KafkaAPIUserPermissionsTest"/>
         </classes>
     </test>
-    <test name="KafkaAPILimitTest">
-        <classes>
-            <class name="io.managed.services.test.KafkaAPILimitTest"/>
-        </classes>
-    </test>
     <test name="KafkaInstancesTest">
         <classes>
             <class name="io.managed.services.test.kafkainstances.LongLiveKafkaInstanceTest"/>
