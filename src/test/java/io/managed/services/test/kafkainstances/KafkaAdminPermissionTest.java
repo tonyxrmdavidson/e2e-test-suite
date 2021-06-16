@@ -32,6 +32,12 @@ import static io.managed.services.test.TestUtils.sleep;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertThrows;
 
+/**
+ * Test the configured ACLs for a Kafka Instance using the Kafka Admin[1] library which is the same Java library used
+ * by the kafka bin scripts.
+ *
+ * 1. https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/admin/Admin.java
+ */
 @Test(groups = TestTag.KAFKA_ADMIN_PERMISSIONS)
 public class KafkaAdminPermissionTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminPermissionTest.class);

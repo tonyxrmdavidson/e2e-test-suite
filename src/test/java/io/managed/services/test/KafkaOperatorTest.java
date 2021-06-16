@@ -17,6 +17,7 @@ import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
+import io.managed.services.test.kafkainstances.LongLiveKafkaInstanceTest;
 import io.managed.services.test.operator.OperatorUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -52,7 +53,7 @@ public class KafkaOperatorTest extends TestBase {
 
     // use the kafka long living instance
     // TODO: Make KafkaOperatorTest independent from LongLiveKafkaTest
-    private static final String KAFKA_INSTANCE_NAME = LongLiveKafkaTest.KAFKA_INSTANCE_NAME;
+    private static final String KAFKA_INSTANCE_NAME = LongLiveKafkaInstanceTest.KAFKA_INSTANCE_NAME;
 
     private final Vertx vertx = Vertx.vertx();
 

@@ -1,6 +1,8 @@
-package io.managed.services.test;
+package io.managed.services.test.kafkainstances;
 
 
+import io.managed.services.test.Environment;
+import io.managed.services.test.TestBase;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
@@ -40,9 +42,15 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUnt
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
+
+/**
+ * Test a Long Live Kafka Instance that will be deleted only before it expires but otherwise it will continue to run
+ * also after the tests are concluded. This is a very basic test to ensure that an update doesn't break
+ * an existing Kafka Instance.
+ */
 @Test(groups = TestTag.SERVICE_API)
-public class LongLiveKafkaTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(LongLiveKafkaTest.class);
+public class LongLiveKafkaInstanceTest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(LongLiveKafkaInstanceTest.class);
 
     public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
     public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
@@ -94,8 +102,20 @@ public class LongLiveKafkaTest extends TestBase {
             throw new SkipException("topic is null because the testPresenceOfTopic has failed to create the Topic");
     }
 
+    private List<String> applyTestTopics() throws Throwable {
+        String bootstrapHost = kafka.bootstrapServerHost;
+        var topics = new HashSet<>(Set.of(TOPICS));
+        topics.add(METRIC_TOPIC_NAME);
+
+        LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
+        kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
+
+        LOGGER.info("apply topics: {}", topics);
+        return bwait(KafkaAdminAPIUtils.applyTopics(kafkaAdminAPI, topics));
+    }
+
     @Test(timeOut = 15 * MINUTES)
-    public void testRecreateOldKafkaInstance() throws Throwable {
+    public void recreateTheLongLiveKafkaInstanceIfItIsNearToExpiration() throws Throwable {
         var optionalKafka = bwait(getKafkaByName(serviceAPI, KAFKA_INSTANCE_NAME));
         if (optionalKafka.isEmpty()) {
             fail(message("for some reason the long living kafka instance with name: {} doesn't exist, but it should", KAFKA_INSTANCE_NAME));
@@ -118,21 +138,17 @@ public class LongLiveKafkaTest extends TestBase {
             LOGGER.info("waiting for deletion of old kafka instance");
             bwait(ServiceAPIUtils.waitUntilKafkaIsDeleted(vertx, serviceAPI, kafkaResponse.id));
 
-
             CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
 
             LOGGER.info("waiting for creation of new kafka instance");
             kafkaResponse = bwait(serviceAPI.createKafka(kafkaPayload, true));
             kafka = bwait(waitUntilKafkaIsReady(vertx, serviceAPI, kafkaResponse.id));
 
-
             LOGGER.info("recreation of former kafka's instance topics");
             applyTestTopics();
 
         }
     }
-
-
 
     @Test(priority = 1, timeOut = 15 * MINUTES)
     public void testPresenceOfLongLiveKafkaInstance() throws Throwable {
@@ -157,8 +173,6 @@ public class LongLiveKafkaTest extends TestBase {
         kafka = optionalKafka.get();
         LOGGER.info("kafka is present :{} and created at: {}", KAFKA_INSTANCE_NAME, kafka.createdAt);
     }
-
-
 
     @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
     public void testPresenceOfServiceAccount() throws Throwable {
@@ -185,7 +199,7 @@ public class LongLiveKafkaTest extends TestBase {
     }
 
     @Test(priority = 3, timeOut = DEFAULT_TIMEOUT)
-    public void testCleanAdditionalServiceAccounts() throws Throwable {
+    public void cleanAdditionalServiceAccounts() throws Throwable {
 
         var deleted = new ArrayList<String>();
 
@@ -307,19 +321,6 @@ public class LongLiveKafkaTest extends TestBase {
 
         LOGGER.info("start testing message in total metric");
         bwait(messageInTotalMetric(vertx, serviceAPI, kafka, serviceAccount, METRIC_TOPIC_NAME));
-    }
-
-
-    private List<String> applyTestTopics() throws Throwable {
-        String bootstrapHost = kafka.bootstrapServerHost;
-        var topics = new HashSet<>(Set.of(TOPICS));
-        topics.add(METRIC_TOPIC_NAME);
-
-        LOGGER.info("login to the kafka admin api: {}", bootstrapHost);
-        kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
-
-        LOGGER.info("apply topics: {}", topics);
-        return bwait(KafkaAdminAPIUtils.applyTopics(kafkaAdminAPI, topics));
     }
 }
 
