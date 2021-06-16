@@ -62,6 +62,10 @@ public class KafkaAdminAPITest extends TestBase {
 
         kafka = bwait(applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME));
         LOGGER.info("kafka instance created: {}", Json.encode(kafka));
+
+        var bootstrapServerHost = kafka.bootstrapServerHost;
+        kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapServerHost));
+        LOGGER.info("kafka admin api client initialized");
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -87,12 +91,6 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testConnectKafkaAdminAPI() throws Throwable {
-        var bootstrapServerHost = kafka.bootstrapServerHost;
-        kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapServerHost));
-    }
-
-    @Test(dependsOnMethods = "testConnectKafkaAdminAPI", timeOut = DEFAULT_TIMEOUT)
     public void testCreateTopic() throws Throwable {
         // getting test-topic should fail because the topic shouldn't exists
         assertThrows(HTTPNotFoundException.class,
@@ -100,13 +98,16 @@ public class KafkaAdminAPITest extends TestBase {
         LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
 
         LOGGER.info("create topic: {}", TEST_TOPIC_NAME);
+        // TODO: Randomize topic configuration where possible
         bwait(KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME));
 
         LOGGER.info("topic created: {}", TEST_TOPIC_NAME);
+
+        // TODO: Test the topic
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testCreateExistingTopic() {
+    public void testFailToCreateTopicIfItAlreadyExist() {
         // create existing topic should fail
         assertThrows(HTTPConflictException.class,
             () -> bwait(KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME)));
@@ -123,7 +124,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testGetNotExistingTopic() {
+    public void testFailToGetTopicIfItDoesNotExist() {
         // get none existing topic should fail
         assertThrows(HTTPNotFoundException.class,
             () -> bwait(kafkaAdminAPI.getTopic(TEST_NOT_EXISTING_TOPIC_NAME)));
@@ -142,8 +143,8 @@ public class KafkaAdminAPITest extends TestBase {
         assertEquals(1, filteredTopics.size());
     }
 
-    @Test(dependsOnMethods = "testConnectKafkaAdminAPI", timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteNotExistingTopic() {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testFailToDeleteTopicIfItDoesNotExist() {
         // deleting not existing topic should fail
         assertThrows(HTTPNotFoundException.class,
             () -> bwait(kafkaAdminAPI.deleteTopic(TEST_NOT_EXISTING_TOPIC_NAME)));
@@ -151,7 +152,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testStartConsumerGroup() throws Throwable {
+    public void startConsumerGroup() throws Throwable {
         LOGGER.info("create or retrieve service account: {}", SERVICE_ACCOUNT_NAME);
         var account = bwait(ServiceAPIUtils.applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME));
 
@@ -182,7 +183,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testStartConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
     public void testGetAllConsumerGroups() throws Throwable {
         var groups = bwait(kafkaAdminAPI.getAllConsumerGroups());
         LOGGER.info("got consumer groups: {}", Json.encode(groups));
@@ -191,7 +192,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testStartConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
     public void testGetConsumerGroup() throws Throwable {
         var group = bwait(kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME));
         LOGGER.info("consumer group: {}", Json.encode(group));
@@ -201,31 +202,31 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testStartConsumerGroup", timeOut = DEFAULT_TIMEOUT)
-    public void testGetNotExistingConsumerGroup() {
+    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    public void testFailToGetConsumerGroupIfItDoesNotExist() {
         // get consumer group non existing consumer group should fail
         assertThrows(HTTPNotFoundException.class,
             () -> bwait(kafkaAdminAPI.getConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)));
         LOGGER.info("consumer group '{}' doesn't exists", TEST_NOT_EXISTING_GROUP_NAME);
     }
 
-    @Test(dependsOnMethods = "testStartConsumerGroup", timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteActiveConsumerGroup() {
+    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    public void testFailToDeleteConsumerGroupIfItIsActive() {
         // deleting active consumer group should fail
         assertThrows(HTTPLockedException.class,
             () -> bwait(kafkaAdminAPI.deleteConsumerGroup(TEST_GROUP_NAME)));
         LOGGER.info("active consumer group cannot be deleted: {}", TEST_GROUP_NAME);
     }
 
-    @Test(dependsOnMethods = "testStartConsumerGroup", timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteNotExistingConsumerGroup() {
+    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    public void testFailToDeleteConsumerGroupIfItDoesNotExist() {
         // deleting not existing consumer group should fail
         assertThrows(HTTPNotFoundException.class,
             () -> bwait(kafkaAdminAPI.deleteConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)));
         LOGGER.info("not existing consumer group cannot be deleted: {}", TEST_NOT_EXISTING_TOPIC_NAME);
     }
 
-    @Test(dependsOnMethods = "testStartConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "startConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteConsumerGroup() throws Throwable {
         LOGGER.info("close kafka consumer");
         bwait(kafkaConsumer.close());
@@ -236,6 +237,7 @@ public class KafkaAdminAPITest extends TestBase {
         // consumer group should had been deleted
         assertThrows(HTTPNotFoundException.class,
             () -> bwait(kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME)));
+        LOGGER.info("consumer group not found : {}", TEST_GROUP_NAME);
     }
 
     @Test(dependsOnMethods = "testCreateTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
