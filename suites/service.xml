@@ -31,9 +31,9 @@
             <class name="io.managed.services.test.KafkaAPILimitTest"/>
         </classes>
     </test>
-    <test name="KafkaAdminAPITest">
+    <test name="KafkaInstancesTest">
         <classes>
-            <class name="io.managed.services.test.KafkaAdminAPITest"/>
+            <class name="io.managed.services.test.kafkainstances.KafkaAdminAPITest"/>
         </classes>
     </test>
     <test name="KafkaAdminPermissionTest">

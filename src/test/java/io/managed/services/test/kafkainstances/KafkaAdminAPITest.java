@@ -1,5 +1,8 @@
-package io.managed.services.test;
+package io.managed.services.test.kafkainstances;
 
+import io.managed.services.test.Environment;
+import io.managed.services.test.IsReady;
+import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.HTTPConflictException;
 import io.managed.services.test.client.exception.HTTPLockedException;
 import io.managed.services.test.client.exception.HTTPNotFoundException;
