@@ -41,7 +41,7 @@ import static org.testng.Assert.assertTrue;
 
 /**
  * Test the main endpoints of the kafka-admin-api[1] that is deployed alongside each Kafka Instance
- * and used to administrate the Kafka Instance itself.
+ * and used to administer the Kafka Instance itself.
  *
  * 1. https://github.com/bf2fc6cc711aee1a0c2a/kafka-admin-api
  */
