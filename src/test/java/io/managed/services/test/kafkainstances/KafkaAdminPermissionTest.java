@@ -1,5 +1,7 @@
-package io.managed.services.test;
+package io.managed.services.test.kafkainstances;
 
+import io.managed.services.test.Environment;
+import io.managed.services.test.TestBase;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;

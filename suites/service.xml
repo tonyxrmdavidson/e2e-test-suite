@@ -34,11 +34,7 @@
     <test name="KafkaInstancesTest">
         <classes>
             <class name="io.managed.services.test.kafkainstances.KafkaAdminAPITest"/>
-        </classes>
-    </test>
-    <test name="KafkaAdminPermissionTest">
-        <classes>
-            <class name="io.managed.services.test.KafkaAdminPermissionTest"/>
+            <class name="io.managed.services.test.kafkainstances.KafkaAdminPermissionTest"/>
         </classes>
     </test>
 </suite>
