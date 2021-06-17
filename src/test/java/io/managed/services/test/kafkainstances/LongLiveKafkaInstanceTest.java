@@ -236,9 +236,10 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     @Test(priority = 5, timeOut = DEFAULT_TIMEOUT)
     void testPresenceOfCanaryTopic() throws Throwable {
         assertKafka();
-        String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String clientSecret = serviceAccount.clientSecret;
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var clientSecret = serviceAccount.clientSecret;
 
         var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
@@ -252,10 +253,13 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     @Test(priority = 6, timeOut = DEFAULT_TIMEOUT, dependsOnMethods = {"testPresenceOfCanaryTopic"})
     void testCanaryLiveliness() throws Throwable {
         assertKafka();
-        LOGGER.info("testing Liveliness of canary: {}", TEST_CANARY_NAME);
-        String bootstrapHost = kafka.bootstrapServerHost;
-        String clientID = serviceAccount.clientID;
-        String secret = serviceAccount.clientSecret;
+
+        LOGGER.info("testing liveliness of canary: {}", TEST_CANARY_NAME);
+
+        var bootstrapHost = kafka.bootstrapServerHost;
+        var clientID = serviceAccount.clientID;
+        var secret = serviceAccount.clientSecret;
+
         var consumerClient = new KafkaConsumerClient(
             vertx,
             bootstrapHost,
