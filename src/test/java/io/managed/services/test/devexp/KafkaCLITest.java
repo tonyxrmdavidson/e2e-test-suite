@@ -34,6 +34,17 @@ import static org.testng.Assert.assertTrue;
 /**
  * Test the application services CLI[1] kafka commands.
  *
+ * The tests download the CLI from github to the local machine where the test suite is running
+ * and perform all operations using the CLI.
+ *
+ * By default the latest version of the CLI is downloaded otherwise a specific version can be set using
+ * the CLI_VERSION env. The CLI platform (linux, mac, win) and arch (amd64, arm) is automatically detected
+ * or it can be enforced using the CLI_PLATFORM and CLI_ARCH env.
+ *
+ * The SSO_USERNAME and SSO_PASSWORD will be used to login to the service through the CLI.
+ *
+ * The tested environment is given by the SERVICE_API_URI and MAS_SSO_REDHAT_KEYCLOAK_URI env.
+ *
  * 1. https://github.com/redhat-developer/app-services-cli
  */
 @Test(groups = TestTag.CLI)
