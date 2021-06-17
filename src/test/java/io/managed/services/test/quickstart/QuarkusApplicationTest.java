@@ -62,6 +62,12 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertNotNull;
 
+/**
+ * This tests aims to cover the service discovery quickstart[1] by creating a Kafka Instance, deploy
+ * the Quarkus Application on Openshift and use the RHOAS Operator to bind the Instance to the App.
+ *
+ * 1. https://github.com/redhat-developer/app-services-guides/tree/main/service-discovery
+ */
 @Test(groups = TestTag.BINDING_OPERATOR)
 public class QuarkusApplicationTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(QuarkusApplicationTest.class);
@@ -378,7 +384,6 @@ public class QuarkusApplicationTest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testCLIConnectCluster() throws Throwable {
-
         cleanAccessTokenSecret();
         cleanKafkaConnection();
 
@@ -400,7 +405,7 @@ public class QuarkusApplicationTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)
-    public void testDeployQuarkusSampleApp() {
+    public void testDeployQuarkusApplication() {
 
         LOGGER.info("deploy the rhoas-kafka-quickstart-example app");
         oc.resourceList(loadK8sResources(APP_YAML_PATH)).createOrReplace();
@@ -410,9 +415,8 @@ public class QuarkusApplicationTest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testDeployQuarkusSampleApp", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testDeployQuarkusApplication", timeOut = DEFAULT_TIMEOUT)
     public void testCreateServiceBinding() throws Throwable {
-
         cleanServiceBinding();
 
         var application = new ServiceBindingApplication();
@@ -474,7 +478,7 @@ public class QuarkusApplicationTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateServiceBinding", timeOut = 5 * MINUTES)
-    public void testQuarkusSampleApp() throws Throwable {
+    public void testQuarkusApplication() throws Throwable {
 
         var endpoint = String.format("https://%s", route.getSpec().getHost());
         var client = new QuarkusSample(vertx, endpoint);
