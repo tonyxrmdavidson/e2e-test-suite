@@ -1,4 +1,4 @@
-package io.managed.services.test;
+package io.managed.services.test.devexp;
 
 
 import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequest;
@@ -13,6 +13,10 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.managed.services.test.Environment;
+import io.managed.services.test.IsReady;
+import io.managed.services.test.TestBase;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;

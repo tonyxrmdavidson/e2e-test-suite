@@ -116,6 +116,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
 
     @Test(timeOut = 15 * MINUTES)
     public void recreateTheLongLiveKafkaInstanceIfItIsNearToExpiration() throws Throwable {
+        // TODO: Use a Kafka Instance that never expires
         var optionalKafka = bwait(getKafkaByName(serviceAPI, KAFKA_INSTANCE_NAME));
         if (optionalKafka.isEmpty()) {
             fail(message("for some reason the long living kafka instance with name: {} doesn't exist, but it should", KAFKA_INSTANCE_NAME));

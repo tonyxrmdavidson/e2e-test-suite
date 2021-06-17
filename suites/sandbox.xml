@@ -3,7 +3,7 @@
 <suite name="SandboxSuite">
     <test name="QuarkusSampleTest">
         <classes>
-            <class name="io.managed.services.test.QuarkusSampleTest"/>
+            <class name="io.managed.services.test.devexp.QuarkusSampleTest"/>
         </classes>
     </test>
 </suite>

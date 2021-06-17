@@ -1,5 +1,7 @@
-package io.managed.services.test;
+package io.managed.services.test.controlmanager;
 
+import io.managed.services.test.Environment;
+import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.HTTPConflictException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
@@ -43,8 +45,8 @@ import static org.testng.Assert.assertTrue;
 
 
 @Test(groups = TestTag.SERVICE_API)
-public class KafkaAPITest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaAPITest.class);
+public class KafkaControlManagerAPITest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(KafkaControlManagerAPITest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
     static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.KAFKA_POSTFIX_NAME;

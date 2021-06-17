@@ -1,4 +1,4 @@
-package io.managed.services.test;
+package io.managed.services.test.devexp;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -8,6 +8,11 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
+import io.managed.services.test.Environment;
+import io.managed.services.test.IsReady;
+import io.managed.services.test.TestBase;
+import io.managed.services.test.TestUtils;
+import io.managed.services.test.WriteStreamConsumer;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
