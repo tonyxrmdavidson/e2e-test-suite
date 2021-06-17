@@ -30,6 +30,20 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteS
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
+/**
+ * Test the User authn and authz for the control manager api.
+ * <p>
+ * This tests uses 4 users:
+ * - main user:      SSO_USERNAME, SSO_PASSWORD
+ * - secondary user: SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD
+ * - alien user:     SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD
+ * - unauth user:    SSO_UNAUTHORIZED_USERNAME, SSO_UNAUTHORIZED_PASSWORD
+ * <p>
+ * Conditions:
+ * - The main user and secondary user should be part of the same organization
+ * - The alien user should be part of a different organization as the main user
+ * - The unauth user should not be allowed to use the API
+ */
 @Test(groups = TestTag.SERVICE_API_PERMISSIONS)
 public class KafkaControlManagerAPIPermissionsTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaControlManagerAPIPermissionsTest.class);
@@ -78,7 +92,7 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
     private ServiceAPI alienAPI;
     private KafkaResponse kafka;
 
-    @BeforeClass(timeOut = DEFAULT_TIMEOUT)
+    @BeforeClass(timeOut = 15 * MINUTES)
     public void bootstrap() throws Throwable {
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
@@ -89,6 +103,10 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_ALIEN_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         alienAPI = bwait(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_ALIEN_USERNAME, Environment.SSO_ALIEN_PASSWORD));
+
+        LOGGER.info("create kafka instance: {}", KAFKA_INSTANCE_NAME);
+        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
+        kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, mainAPI, kafkaPayload));
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -116,18 +134,8 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
         bwait(vertx.close());
     }
 
-    @Test(timeOut = 15 * MINUTES)
-    public void testMainUserCreateKafkaInstance() throws Throwable {
-
-        // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
-
-        LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-        kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, mainAPI, kafkaPayload));
-    }
-
-    @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testSecondaryUserListKafkaInstances() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testSecondaryUserCanReadTheKafkaInstance() throws Throwable {
 
         // Get kafka instance list by another user with same org
         LOGGER.info("fetch list of kafka instance from the secondary user in the same org");
@@ -141,8 +149,8 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testAlienUserListKafkaInstances() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testAlienUserCanNotReadTheKafkaInstance() throws Throwable {
 
         // Get list of kafka Instance in org 1 and test it should be there
         LOGGER.info("fetch list of kafka instance from the alin user in a different org");
@@ -159,8 +167,8 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
      * Use the secondary user to create a service account and consume and produce messages on the
      * kafka instance created by the main user
      */
-    @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testSecondaryUserCreateTopicUsingKafkaBin() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testSecondaryUserCanNotCreateTopicOnTheKafkaInstance() throws Throwable {
 
         // Create Service Account by another user
         CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
@@ -185,8 +193,8 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
         admin.close();
     }
 
-    @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testAlienUserCreateTopicUsingKafkaAdminAPI() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testAlienUserCanNotCreateTopicOnTheKafkaInstance() throws Throwable {
 
         LOGGER.info("initialize kafka admin api for kafka instance: {}", kafka.bootstrapServerHost);
         var admin = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, kafka.bootstrapServerHost, Environment.SSO_ALIEN_USERNAME, Environment.SSO_ALIEN_PASSWORD));
@@ -200,8 +208,8 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
     /**
      * A user in org A is not allowed to create topic to produce and consume messages on a kafka instance in org B
      */
-    @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testAlienUserCreateTopicUsingKafkaBin() throws Throwable {
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    public void testAlienUserCanNotCreateTopicOnTheKafkaInstanceUsingKafkaBin() throws Throwable {
 
         // Create Service Account of Org 2
         var serviceAccountPayload = new CreateServiceAccountPayload();
@@ -227,14 +235,14 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
         admin.close();
     }
 
-    @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", priority = 1, timeOut = DEFAULT_TIMEOUT)
-    public void testSecondaryUserDeleteKafkaInstance() {
+    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testSecondaryUserCanNotDeleteTheKafkaInstance() {
         // should fail
         assertThrows(HTTPNotFoundException.class, () -> bwait(secondaryAPI.deleteKafka(kafka.id, true)));
     }
 
-    @Test(dependsOnMethods = "testMainUserCreateKafkaInstance", priority = 1, timeOut = DEFAULT_TIMEOUT)
-    public void testAlienUserDeleteKafkaInstance() {
+    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testAlienUserCanNotDeleteTheKafkaInstance() {
         // should fail
         assertThrows(HTTPNotFoundException.class, () -> bwait(alienAPI.deleteKafka(kafka.id, true)));
     }

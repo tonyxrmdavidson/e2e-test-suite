@@ -60,6 +60,9 @@ public class KafkaControlManagerAPITest extends TestBase {
     private KafkaResponse kafka;
     private ServiceAccount serviceAccount;
 
+    // TODO: Test delete Service Account
+    // TODO: Test create existing Service Account
+
     @BeforeClass
     public void bootstrap() throws Throwable {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
@@ -143,7 +146,7 @@ public class KafkaControlManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    public void testOAuthMessaging() throws Throwable {
+    public void testMessagingKafkaInstanceUsingOAuth() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -162,7 +165,7 @@ public class KafkaControlManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    public void testFailedOauthMessaging() {
+    public void testFailedToMessageKafkaInstanceUsingOAuthAndFakeSecret() {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -180,7 +183,7 @@ public class KafkaControlManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    public void testPlainMessaging() throws Throwable {
+    public void testMessagingKafkaInstanceUsingPlainAuth() throws Throwable {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -199,7 +202,7 @@ public class KafkaControlManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    public void testFailedPlainMessaging() {
+    public void testFailedToMessageKafkaInstanceUsingPlainAuthAndFakeSecret() {
 
         var bootstrapHost = kafka.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -239,33 +242,12 @@ public class KafkaControlManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
-    public void testCreateKafkaInstanceWithExistingName() {
+    public void testFailToCreateKafkaInstanceIfItAlreadyExist() {
 
         // Create Kafka Instance with existing name
         CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
         LOGGER.info("create kafka instance with existing name: {}", kafkaPayload.name);
         assertThrows(HTTPConflictException.class, () -> bwait(api.createKafka(kafkaPayload, true)));
-    }
-
-    @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteProvisioningKafkaInstance() throws Throwable {
-
-        // TODO: Move this tests in a separate Class
-
-        // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA2_INSTANCE_NAME);
-
-        LOGGER.info("create kafka instance: {}", KAFKA2_INSTANCE_NAME);
-        var kafkaToDelete = bwait(api.createKafka(kafkaPayload, true));
-
-        LOGGER.info("wait 3 seconds before start deleting");
-        bwait(sleep(vertx, ofSeconds(3)));
-
-        LOGGER.info("delete kafka: {}", kafkaToDelete.id);
-        bwait(api.deleteKafka(kafkaToDelete.id, true));
-
-        LOGGER.info("wait for kafka to be deleted: {}", kafkaToDelete.id);
-        bwait(waitUntilKafkaIsDeleted(vertx, api, kafkaToDelete.id));
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1, timeOut = DEFAULT_TIMEOUT)
@@ -295,5 +277,24 @@ public class KafkaControlManagerAPITest extends TestBase {
 
         LOGGER.info("close kafka producer and consumer");
         bwait(producer.close());
+    }
+
+    @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteProvisioningKafkaInstance() throws Throwable {
+
+        // Create Kafka Instance
+        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA2_INSTANCE_NAME);
+
+        LOGGER.info("create kafka instance: {}", KAFKA2_INSTANCE_NAME);
+        var kafkaToDelete = bwait(api.createKafka(kafkaPayload, true));
+
+        LOGGER.info("wait 3 seconds before start deleting");
+        bwait(sleep(vertx, ofSeconds(3)));
+
+        LOGGER.info("delete kafka: {}", kafkaToDelete.id);
+        bwait(api.deleteKafka(kafkaToDelete.id, true));
+
+        LOGGER.info("wait for kafka to be deleted: {}", kafkaToDelete.id);
+        bwait(waitUntilKafkaIsDeleted(vertx, api, kafkaToDelete.id));
     }
 }

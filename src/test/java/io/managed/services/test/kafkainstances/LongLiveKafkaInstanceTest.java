@@ -69,7 +69,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     private boolean topic;
     private KafkaAdminAPI kafkaAdminAPI;
 
-    private static final  int KAFKA_DELETION_TIMEOUT_IN_HOURS = 48;
+    private static final int KAFKA_DELETION_TIMEOUT_IN_HOURS = 48;
 
     @BeforeClass
     public void bootstrap() throws Throwable {

@@ -65,7 +65,7 @@ import static org.testng.Assert.assertNotNull;
 /**
  * This tests aims to cover the service discovery quickstart[1] by creating a Kafka Instance, deploy
  * the Quarkus Application on Openshift and use the RHOAS Operator to bind the Instance to the App.
- *
+ * <p>
  * 1. https://github.com/redhat-developer/app-services-guides/tree/main/service-discovery
  */
 @Test(groups = TestTag.BINDING_OPERATOR)

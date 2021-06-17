@@ -53,16 +53,16 @@ import static org.testng.Assert.assertNotNull;
 
 /**
  * Test the application services operator[1] kafka operations.
- *
+ * <p>
  * The tests expect the operator to be already installed on the dev cluster, the dev cluster is given by
  * the DEV_CLUSTER_SERVER env. The tested CRs will be created in the DEV_CLUSTER_NAMESPACE set namespace.
- *
+ * <p>
  * The DEV_CLUSTER_NAMESPACE can and the DEV_CLUSTER_TOKEN should be created using
  * the ./hack/bootstrap-mk-e2e-tests-namespace.sh script.
- *
+ * <p>
  * The operator must be configured to target the desired environment by manually setting the CLOUD_SERVICES_API
  * on the operator installed ClusterServiceVersion.
- *
+ * <p>
  * 1. https://github.com/redhat-developer/app-services-operator
  */
 @Test(groups = TestTag.BINDING_OPERATOR)
