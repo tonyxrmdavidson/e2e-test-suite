@@ -34,10 +34,12 @@ import static org.testng.Assert.assertTrue;
  * Test the User authn and authz for the control manager api.
  * <p>
  * This tests uses 4 users:
- * - main user:      SSO_USERNAME, SSO_PASSWORD
- * - secondary user: SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD
- * - alien user:     SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD
- * - unauth user:    SSO_UNAUTHORIZED_USERNAME, SSO_UNAUTHORIZED_PASSWORD
+ * <ul>
+ *  <li>main user:      SSO_USERNAME, SSO_PASSWORD</li>
+ *  <li>secondary user: SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD</li>
+ *  <li>alien user:     SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD</li>
+ *  <li>unauth user:    SSO_UNAUTHORIZED_USERNAME, SSO_UNAUTHORIZED_PASSWORD</li>
+ * </ul>
  * <p>
  * Conditions:
  * - The main user and secondary user should be part of the same organization
