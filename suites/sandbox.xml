@@ -1,9 +1,9 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
 
 <suite name="SandboxSuite">
-    <test name="QuarkusSampleTest">
+    <test name="QuarkusApplicationTest">
         <classes>
-            <class name="io.managed.services.test.devexp.QuarkusSampleTest"/>
+            <class name="io.managed.services.test.quickstart.QuarkusApplicationTest"/>
         </classes>
     </test>
 </suite>

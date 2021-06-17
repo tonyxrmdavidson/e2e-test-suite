@@ -1,4 +1,4 @@
-package io.managed.services.test.devexp;
+package io.managed.services.test.quickstart;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -63,8 +63,8 @@ import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertNotNull;
 
 @Test(groups = TestTag.BINDING_OPERATOR)
-public class QuarkusSampleTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(QuarkusSampleTest.class);
+public class QuarkusApplicationTest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(QuarkusApplicationTest.class);
 
     // NOTE: Some of the names are hard coded because generated from CLI or hard coded in the yaml files
 
@@ -102,7 +102,7 @@ public class QuarkusSampleTest extends TestBase {
     private Route route;
 
     private static InputStream getResource(String path) {
-        return QuarkusSampleTest.class.getClassLoader().getResourceAsStream(path);
+        return QuarkusApplicationTest.class.getClassLoader().getResourceAsStream(path);
     }
 
     private List<HasMetadata> loadK8sResources(String path) {
