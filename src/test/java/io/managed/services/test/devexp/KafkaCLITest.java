@@ -31,6 +31,11 @@ import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
 
+/**
+ * Test the application services CLI[1] kafka commands.
+ *
+ * 1. https://github.com/redhat-developer/app-services-cli
+ */
 @Test(groups = TestTag.CLI)
 public class KafkaCLITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaCLITest.class);
@@ -179,7 +184,7 @@ public class KafkaCLITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testKafkaMessaging() throws Throwable {
+    public void testKafkaInstanceTopic() throws Throwable {
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -236,7 +241,7 @@ public class KafkaCLITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testUpdateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testMessagingOnUpdatedTopic() throws Throwable {
+    public void testKafkaInstanceUpdatedTopic() throws Throwable {
 
         var bootstrapHost = kafkaInstance.bootstrapServerHost;
         var clientID = serviceAccount.clientID;
@@ -261,11 +266,6 @@ public class KafkaCLITest extends TestBase {
 
         LOGGER.info("wait for topic to be deleted: {}", TOPIC_NAME);
         bwait(waitForTopicDelete(vertx, cli, TOPIC_NAME)); // also verify that the topic doesn't exists anymore
-    }
-
-    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testCreateAlreadyCreatedKafka() {
-        assertThrows(ProcessException.class, () -> bwait(cli.createKafka(KAFKA_INSTANCE_NAME)));
     }
 
     @Test(dependsOnMethods = "testCreateServiceAccount", priority = 1, timeOut = DEFAULT_TIMEOUT)
