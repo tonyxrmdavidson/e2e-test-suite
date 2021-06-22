@@ -7,4 +7,7 @@ public class ConsumerGroupList {
     public int offset;
     public int limit;
     public int count;
+    public int size;
+    public int page;
+    public int total;
 }
