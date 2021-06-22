@@ -1,5 +1,8 @@
 package io.managed.services.test.client.kafkaadminapi;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GroupCoordinator {
     public boolean hasRack;
     public String host;
