@@ -147,16 +147,16 @@ public class CLI {
     }
 
     public Future<ServiceAccountList> listServiceAccountAsJson() {
-        return retry(() -> exec("serviceaccount", "list", "-o", "json")
+        return retry(() -> exec("service-account", "list", "-o", "json")
             .map(p -> stdoutAsJson(p, ServiceAccountList.class)));
     }
 
     public Future<Process> deleteServiceAccount(String id) {
-        return retry(() -> exec("serviceaccount", "delete", "--id", id, "-y"));
+        return retry(() -> exec("service-account", "delete", "--id", id, "-y"));
     }
 
     public Future<Process> createServiceAccount(String name, Path path) {
-        return retry(() -> exec("serviceaccount", "create", "--name", name, "--file-format", "json", "--file-location", path.toString(), "--overwrite"));
+        return retry(() -> exec("service-account", "create", "--name", name, "--file-format", "json", "--file-location", path.toString(), "--overwrite"));
     }
 
     public Future<TopicResponse> createTopic(String topicName) {
