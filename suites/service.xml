@@ -1,44 +1,22 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
 
-<suite name="KafkaService">
+<suite name="ManageKafka">
     <test name="SSOAuthTest">
         <classes>
             <class name="io.managed.services.test.SSOAuthTest"/>
         </classes>
     </test>
-    <test name="ServiceAPIUnauthUserTest">
+    <test name="ControlManagerTest">
         <classes>
-            <class name="io.managed.services.test.ServiceAPIUnauthUserTest"/>
+            <class name="io.managed.services.test.controlmanager.KafkaControlManagerAPITest"/>
+            <class name="io.managed.services.test.controlmanager.KafkaControlManagerAPIPermissionsTest"/>
         </classes>
     </test>
-    <test name="LongLiveKafkaTest">
+    <test name="KafkaInstancesTest">
         <classes>
-            <class name="io.managed.services.test.LongLiveKafkaTest"/>
-        </classes>
-    </test>
-    <test name="KafkaAPITest">
-        <classes>
-            <class name="io.managed.services.test.KafkaAPITest"/>
-        </classes>
-    </test>
-    <test name="KafkaAPIUserPermissionsTest">
-        <classes>
-            <class name="io.managed.services.test.KafkaAPIUserPermissionsTest"/>
-        </classes>
-    </test>
-    <test name="KafkaAPILimitTest">
-        <classes>
-            <class name="io.managed.services.test.KafkaAPILimitTest"/>
-        </classes>
-    </test>
-    <test name="KafkaAdminAPITest">
-        <classes>
-            <class name="io.managed.services.test.KafkaAdminAPITest"/>
-        </classes>
-    </test>
-    <test name="KafkaAdminPermissionTest">
-        <classes>
-            <class name="io.managed.services.test.KafkaAdminPermissionTest"/>
+            <class name="io.managed.services.test.kafkainstances.LongLiveKafkaInstanceTest"/>
+            <class name="io.managed.services.test.kafkainstances.KafkaAdminAPITest"/>
+            <class name="io.managed.services.test.kafkainstances.KafkaAdminPermissionTest"/>
         </classes>
     </test>
 </suite>

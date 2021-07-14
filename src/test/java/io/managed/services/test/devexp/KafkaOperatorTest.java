@@ -1,4 +1,4 @@
-package io.managed.services.test;
+package io.managed.services.test.devexp;
 
 
 import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequest;
@@ -13,10 +13,15 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.managed.services.test.Environment;
+import io.managed.services.test.IsReady;
+import io.managed.services.test.TestBase;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
+import io.managed.services.test.kafkainstances.LongLiveKafkaInstanceTest;
 import io.managed.services.test.operator.OperatorUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -46,13 +51,27 @@ import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertNotNull;
 
 
+/**
+ * Test the application services operator[1] kafka operations.
+ * <p>
+ * The tests expect the operator to be already installed on the dev cluster, the dev cluster is given by
+ * the DEV_CLUSTER_SERVER env. The tested CRs will be created in the DEV_CLUSTER_NAMESPACE set namespace.
+ * <p>
+ * The DEV_CLUSTER_NAMESPACE can and the DEV_CLUSTER_TOKEN should be created using
+ * the ./hack/bootstrap-mk-e2e-tests-namespace.sh script.
+ * <p>
+ * The operator must be configured to target the desired environment by manually setting the CLOUD_SERVICES_API
+ * on the operator installed ClusterServiceVersion.
+ * <p>
+ * 1. https://github.com/redhat-developer/app-services-operator
+ */
 @Test(groups = TestTag.BINDING_OPERATOR)
 public class KafkaOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 
     // use the kafka long living instance
     // TODO: Make KafkaOperatorTest independent from LongLiveKafkaTest
-    private static final String KAFKA_INSTANCE_NAME = LongLiveKafkaTest.KAFKA_INSTANCE_NAME;
+    private static final String KAFKA_INSTANCE_NAME = LongLiveKafkaInstanceTest.KAFKA_INSTANCE_NAME;
 
     private final Vertx vertx = Vertx.vertx();
 

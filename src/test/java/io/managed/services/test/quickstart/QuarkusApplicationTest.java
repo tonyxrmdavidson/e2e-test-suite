@@ -1,4 +1,4 @@
-package io.managed.services.test;
+package io.managed.services.test.quickstart;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -8,6 +8,11 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
+import io.managed.services.test.Environment;
+import io.managed.services.test.IsReady;
+import io.managed.services.test.TestBase;
+import io.managed.services.test.TestUtils;
+import io.managed.services.test.WriteStreamConsumer;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
@@ -57,9 +62,15 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertNotNull;
 
+/**
+ * This tests aims to cover the service discovery quickstart[1] by creating a Kafka Instance, deploy
+ * the Quarkus Application on Openshift and use the RHOAS Operator to bind the Instance to the App.
+ * <p>
+ * 1. https://github.com/redhat-developer/app-services-guides/tree/main/service-discovery
+ */
 @Test(groups = TestTag.BINDING_OPERATOR)
-public class QuarkusSampleTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(QuarkusSampleTest.class);
+public class QuarkusApplicationTest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(QuarkusApplicationTest.class);
 
     // NOTE: Some of the names are hard coded because generated from CLI or hard coded in the yaml files
 
@@ -97,7 +108,7 @@ public class QuarkusSampleTest extends TestBase {
     private Route route;
 
     private static InputStream getResource(String path) {
-        return QuarkusSampleTest.class.getClassLoader().getResourceAsStream(path);
+        return QuarkusApplicationTest.class.getClassLoader().getResourceAsStream(path);
     }
 
     private List<HasMetadata> loadK8sResources(String path) {
@@ -373,7 +384,6 @@ public class QuarkusSampleTest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testCLIConnectCluster() throws Throwable {
-
         cleanAccessTokenSecret();
         cleanKafkaConnection();
 
@@ -395,7 +405,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)
-    public void testDeployQuarkusSampleApp() {
+    public void testDeployQuarkusApplication() {
 
         LOGGER.info("deploy the rhoas-kafka-quickstart-example app");
         oc.resourceList(loadK8sResources(APP_YAML_PATH)).createOrReplace();
@@ -405,9 +415,8 @@ public class QuarkusSampleTest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testDeployQuarkusSampleApp", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testDeployQuarkusApplication", timeOut = DEFAULT_TIMEOUT)
     public void testCreateServiceBinding() throws Throwable {
-
         cleanServiceBinding();
 
         var application = new ServiceBindingApplication();
@@ -469,7 +478,7 @@ public class QuarkusSampleTest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateServiceBinding", timeOut = 5 * MINUTES)
-    public void testQuarkusSampleApp() throws Throwable {
+    public void testQuarkusApplication() throws Throwable {
 
         var endpoint = String.format("https://%s", route.getSpec().getHost());
         var client = new QuarkusSample(vertx, endpoint);

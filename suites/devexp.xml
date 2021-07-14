@@ -3,17 +3,17 @@
 <suite name="KafkaDevExp">
     <test name="KafkaCLI">
         <classes>
-            <class name="io.managed.services.test.KafkaCLITest"/>
+            <class name="io.managed.services.test.devexp.KafkaCLITest"/>
         </classes>
     </test>
     <test name="KafkaOperator">
         <classes>
-            <class name="io.managed.services.test.KafkaOperatorTest"/>
+            <class name="io.managed.services.test.devexp.KafkaOperatorTest"/>
         </classes>
     </test>
-    <test name="QuarkusSampleTest">
+    <test name="QuarkusApplicationTest">
         <classes>
-            <class name="io.managed.services.test.QuarkusSampleTest"/>
+            <class name="io.managed.services.test.quickstart.QuarkusApplicationTest"/>
         </classes>
     </test>
 </suite>
