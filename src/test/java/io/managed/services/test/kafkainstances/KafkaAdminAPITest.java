@@ -8,6 +8,7 @@ import io.managed.services.test.client.exception.HTTPLockedException;
 import io.managed.services.test.client.exception.HTTPNotFoundException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafkaadminapi.ConsumerGroup;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.kafkaadminapi.Topic;
@@ -17,9 +18,7 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-
 import io.vertx.kafka.client.consumer.KafkaConsumer;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -27,7 +26,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,6 +33,8 @@ import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
+import static java.time.Duration.ofMinutes;
+import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -185,13 +185,11 @@ public class KafkaAdminAPITest extends TestBase {
             // ignore
         });
 
-        LOGGER.info("wait for consumer group to ");
-
         IsReady<Object> subscribed = last -> consumer.assignment().map(partitions -> {
             var o = partitions.stream().filter(p -> p.getTopic().equals(TEST_TOPIC_NAME)).findAny();
             return Pair.with(o.isPresent(), null);
         });
-        bwait(waitFor(vertx, "consumer group to subscribe", Duration.ofSeconds(2), Duration.ofMinutes(2), subscribed));
+        bwait(waitFor(vertx, "consumer group to subscribe", ofSeconds(2), ofMinutes(2), subscribed));
 
         kafkaConsumer = consumer;
     }
@@ -208,7 +206,17 @@ public class KafkaAdminAPITest extends TestBase {
 
     @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
     public void testGetConsumerGroup() throws Throwable {
-        var group = bwait(kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME));
+        IsReady<ConsumerGroup> ready = last -> kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME).map(consumerGroup -> {
+            if (last) {
+                LOGGER.warn("last consumer group: {}", Json.encode(consumerGroup));
+            }
+
+            // wait for the consumer group to show at least one consumer
+            // because it could take a few seconds for the kafka admin api to
+            // report the connected consumer
+            return Pair.with(consumerGroup.consumers.size() > 0, consumerGroup);
+        });
+        var group = bwait(waitFor(vertx, "consumers in consumer group", ofSeconds(2), ofMinutes(1), ready));
         LOGGER.info("consumer group: {}", Json.encode(group));
 
         assertEquals(group.groupId, TEST_GROUP_NAME);
