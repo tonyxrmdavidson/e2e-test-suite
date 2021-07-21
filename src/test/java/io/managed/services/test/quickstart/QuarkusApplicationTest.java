@@ -291,7 +291,6 @@ public class QuarkusApplicationTest extends TestBase {
 
                 return null;
             });
-
     }
 
     private Future<Void> cleanKafkaInstance() {
@@ -413,7 +412,6 @@ public class QuarkusApplicationTest extends TestBase {
         route = oc.routes().withName(APP_ROUTE_NAME).get();
         LOGGER.info("app deployed to: {}", route.getSpec().getHost());
     }
-
 
     @Test(dependsOnMethods = "testDeployQuarkusApplication", timeOut = DEFAULT_TIMEOUT)
     public void testCreateServiceBinding() throws Throwable {
