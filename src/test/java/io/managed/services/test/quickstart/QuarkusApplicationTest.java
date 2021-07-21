@@ -186,6 +186,12 @@ public class QuarkusApplicationTest extends TestBase {
         bwait(bootstrapUserAndAPI());
 
         bwait(bootstrapKafkaInstance());
+
+        try {
+            OperatorUtils.patchTheOperatorCloudServiceAPIEnv(oc);
+        } catch (Throwable t) {
+            LOGGER.error("failed to patch the CLOUD_SERVICES_API env:", t);
+        }
     }
 
     private void collectQuarkusAppLogs(ITestContext context) throws IOException {

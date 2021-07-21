@@ -46,7 +46,7 @@ import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
@@ -149,6 +149,12 @@ public class KafkaOperatorTest extends TestBase {
         bootstrapK8sClient();
 
         bwait(bootstrapKafkaInstance(vertx, api));
+
+        try {
+            OperatorUtils.patchTheOperatorCloudServiceAPIEnv(client);
+        } catch (Throwable t) {
+            LOGGER.error("failed to patch the CLOUD_SERVICES_API env:", t);
+        }
     }
 
     private void cleanAccessTokenSecret() {
@@ -196,10 +202,6 @@ public class KafkaOperatorTest extends TestBase {
         return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
 
-    private Future<Void> cleanKafkaInstance() {
-        return deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
-    }
-
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
@@ -242,7 +244,7 @@ public class KafkaOperatorTest extends TestBase {
         }
 
         try {
-            bwait(cleanKafkaInstance());
+            bwait(cleanKafkaInstance(api, KAFKA_INSTANCE_NAME));
         } catch (Throwable t) {
             LOGGER.error("cleanKafkaInstance error: ", t);
         }
