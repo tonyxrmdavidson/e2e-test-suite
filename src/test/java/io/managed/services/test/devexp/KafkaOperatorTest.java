@@ -11,8 +11,8 @@ import com.openshift.cloud.v1alpha.models.KafkaConnectionSpec;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftClient;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.TestBase;
@@ -75,7 +75,7 @@ public class KafkaOperatorTest extends TestBase {
 
     private User user;
     private ServiceAPI api;
-    private KubernetesClient client;
+    private OpenShiftClient oc;
     private KafkaResponse kafka;
 
     private CloudServicesRequest cloudServicesRequest;
@@ -125,7 +125,7 @@ public class KafkaOperatorTest extends TestBase {
             .build();
 
         LOGGER.info("initialize kubernetes client");
-        client = new DefaultKubernetesClient(config);
+        oc = new DefaultOpenShiftClient(config);
     }
 
     private Future<Void> bootstrapKafkaInstance(Vertx vertx, ServiceAPI api) {
@@ -151,48 +151,48 @@ public class KafkaOperatorTest extends TestBase {
         bwait(bootstrapKafkaInstance(vertx, api));
 
         try {
-            OperatorUtils.patchTheOperatorCloudServiceAPIEnv(client);
+            OperatorUtils.patchTheOperatorCloudServiceAPIEnv(oc);
         } catch (Throwable t) {
             LOGGER.error("failed to patch the CLOUD_SERVICES_API env:", t);
         }
     }
 
     private void cleanAccessTokenSecret() {
-        Secret s = client.secrets().withName(ACCESS_TOKEN_SECRET_NAME).get();
+        Secret s = oc.secrets().withName(ACCESS_TOKEN_SECRET_NAME).get();
         if (s != null) {
             LOGGER.info("clean secret: {}", s.getMetadata().getName());
-            client.secrets().delete(s);
+            oc.secrets().delete(s);
         }
     }
 
     private void cleanCloudServiceAccountRequest() {
-        var a = OperatorUtils.cloudServiceAccountRequest(client).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get();
+        var a = OperatorUtils.cloudServiceAccountRequest(oc).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get();
         if (a != null) {
             LOGGER.info("clean CloudServiceAccountRequest: {}", a.getMetadata().getName());
-            OperatorUtils.cloudServiceAccountRequest(client).delete(a);
+            OperatorUtils.cloudServiceAccountRequest(oc).delete(a);
         }
     }
 
     private void cleanCloudServicesRequest() {
-        var k = OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get();
+        var k = OperatorUtils.cloudServicesRequest(oc).withName(CLOUD_SERVICES_REQUEST_NAME).get();
         if (k != null) {
             LOGGER.info("clean CloudServicesRequest: {}", k.getMetadata().getName());
-            OperatorUtils.cloudServicesRequest(client).delete(k);
+            OperatorUtils.cloudServicesRequest(oc).delete(k);
         }
     }
 
     private void cleanKafkaConnection() {
-        var c = OperatorUtils.kafkaConnection(client).withName(KAFKA_CONNECTION_NAME).get();
+        var c = OperatorUtils.kafkaConnection(oc).withName(KAFKA_CONNECTION_NAME).get();
         if (c != null) {
             LOGGER.info("clean ManagedKafkaConnection: {}", c.getMetadata().getName());
-            OperatorUtils.kafkaConnection(client).delete(c);
+            OperatorUtils.kafkaConnection(oc).delete(c);
         }
     }
 
     private void collectOperatorLogs(ITestContext context) throws IOException {
         LogCollector.saveDeploymentLog(
             TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
-            client,
+            oc,
             "openshift-operators",
             "service-binding-operator");
 
@@ -260,7 +260,7 @@ public class KafkaOperatorTest extends TestBase {
         data.put("value", Base64.getEncoder().encodeToString(KeycloakOAuth.getRefreshToken(user).getBytes()));
 
         LOGGER.info("create access token secret with name: {}", ACCESS_TOKEN_SECRET_NAME);
-        client.secrets().create(OperatorUtils.buildSecret(ACCESS_TOKEN_SECRET_NAME, data));
+        oc.secrets().create(OperatorUtils.buildSecret(ACCESS_TOKEN_SECRET_NAME, data));
     }
 
     @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
@@ -275,10 +275,10 @@ public class KafkaOperatorTest extends TestBase {
         a.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
 
         LOGGER.info("create CloudServiceAccountRequest with name: {}", CLOUD_SERVICE_ACCOUNT_REQUEST_NAME);
-        a = OperatorUtils.cloudServiceAccountRequest(client).create(a);
+        a = OperatorUtils.cloudServiceAccountRequest(oc).create(a);
         LOGGER.info("created CloudServiceAccountRequest: {}", Json.encode(a));
 
-        IsReady<CloudServiceAccountRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServiceAccountRequest(client).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get())
+        IsReady<CloudServiceAccountRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServiceAccountRequest(oc).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get())
             .map(r -> {
 
                 LOGGER.info("CloudServiceAccountRequest status is: {}", Json.encode(r.getStatus()));
@@ -306,10 +306,10 @@ public class KafkaOperatorTest extends TestBase {
         k.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
 
         LOGGER.info("create CloudServicesRequest with name: {}", CLOUD_SERVICES_REQUEST_NAME);
-        k = OperatorUtils.cloudServicesRequest(client).create(k);
+        k = OperatorUtils.cloudServicesRequest(oc).create(k);
         LOGGER.info("created CloudServicesRequest: {}", Json.encode(k));
 
-        IsReady<CloudServicesRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServicesRequest(client).withName(CLOUD_SERVICES_REQUEST_NAME).get())
+        IsReady<CloudServicesRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServicesRequest(oc).withName(CLOUD_SERVICES_REQUEST_NAME).get())
             .map(r -> {
 
                 LOGGER.info("CloudServicesRequest status is: {}", Json.encode(r.getStatus()));
@@ -350,10 +350,10 @@ public class KafkaOperatorTest extends TestBase {
         c.getSpec().setCredentials(new Credentials(SERVICE_ACCOUNT_SECRET_NAME));
 
         LOGGER.info("create ManagedKafkaConnection with name: {}", KAFKA_CONNECTION_NAME);
-        c = OperatorUtils.kafkaConnection(client).create(c);
+        c = OperatorUtils.kafkaConnection(oc).create(c);
         LOGGER.info("created ManagedKafkaConnection: {}", Json.encode(c));
 
-        IsReady<KafkaConnection> ready = last -> Future.succeededFuture(OperatorUtils.kafkaConnection(client).withName(KAFKA_CONNECTION_NAME).get())
+        IsReady<KafkaConnection> ready = last -> Future.succeededFuture(OperatorUtils.kafkaConnection(oc).withName(KAFKA_CONNECTION_NAME).get())
             .map(r -> {
 
                 LOGGER.info("ManagedKafkaConnection status is: {}", Json.encode(r.getStatus()));
