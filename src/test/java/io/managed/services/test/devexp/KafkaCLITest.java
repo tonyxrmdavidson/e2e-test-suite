@@ -149,23 +149,6 @@ public class KafkaCLITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testLogin", timeOut = DEFAULT_TIMEOUT)
-    public void testLogout() throws Throwable {
-
-        LOGGER.info("verify that we are logged-in");
-        bwait(cli.listKafka()); // successfully run cli command while logged in
-
-        LOGGER.info("logout");
-        bwait(cli.logout());
-
-        LOGGER.info("verify that we are logged-in");
-        assertThrows(ProcessException.class, () -> bwait(cli.listKafka())); // unable to run the same command after logout
-
-        LOGGER.info("login back the CLI");
-        // after test we login back for sake of next tests.
-        bwait(CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
-    }
-
-    @Test(dependsOnMethods = "testLogin", timeOut = DEFAULT_TIMEOUT)
     public void testCreateServiceAccount() throws Throwable {
 
         LOGGER.info("create a service account");
@@ -312,5 +295,18 @@ public class KafkaCLITest extends TestBase {
         bwait(cli.deleteKafka(kafkaInstance.id));
 
         bwait(waitForKafkaDelete(vertx, cli, kafkaInstance.name));
+    }
+
+    @Test(priority = 3, timeOut = DEFAULT_TIMEOUT)
+    public void testLogout() throws Throwable {
+
+        LOGGER.info("verify that we are logged-in");
+        bwait(cli.listKafka()); // successfully run cli command while logged in
+
+        LOGGER.info("logout");
+        bwait(cli.logout());
+
+        LOGGER.info("verify that we are logged-in");
+        assertThrows(ProcessException.class, () -> bwait(cli.listKafka())); // unable to run the same command after logout
     }
 }

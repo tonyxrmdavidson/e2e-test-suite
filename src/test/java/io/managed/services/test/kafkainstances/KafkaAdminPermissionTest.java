@@ -285,8 +285,9 @@ public class KafkaAdminPermissionTest extends TestBase {
         LOGGER.info("describe consumer groups: {}", r);
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testFailToDeleteActiveConsumerGroup() throws Throwable {
+    // test is postponed from others due to existence of many test that require presence of to be deleted consumer group
+    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteConsumerGroup() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --all-groups --delete  <permitted>, script representation test");
         LOGGER.info("deleting group");
