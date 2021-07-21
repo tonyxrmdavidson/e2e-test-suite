@@ -33,6 +33,7 @@ import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
@@ -68,10 +69,6 @@ public class KafkaControlManagerAPITest extends TestBase {
         api = bwait(ServiceAPIUtils.serviceAPI(vertx));
     }
 
-    private Future<Void> deleteKafkaInstance(String instanceName) {
-        return deleteKafkaByNameIfExists(api, instanceName);
-    }
-
     private Future<Void> deleteServiceAccount() {
         return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
@@ -81,13 +78,13 @@ public class KafkaControlManagerAPITest extends TestBase {
 
         // delete kafka instance
         try {
-            bwait(deleteKafkaInstance(KAFKA_INSTANCE_NAME));
+            bwait(cleanKafkaInstance(api, KAFKA_INSTANCE_NAME));
         } catch (Throwable t) {
             LOGGER.error("clean main kafka instance error: ", t);
         }
 
         try {
-            bwait(deleteKafkaInstance(KAFKA2_INSTANCE_NAME));
+            bwait(deleteKafkaByNameIfExists(api, KAFKA2_INSTANCE_NAME));
         } catch (Throwable t) {
             LOGGER.error("clean second kafka instance error: ", t);
         }

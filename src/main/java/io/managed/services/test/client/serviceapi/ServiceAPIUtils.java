@@ -34,13 +34,13 @@ public class ServiceAPIUtils {
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         return auth.login(
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID,
-                username, password)
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID,
+            username, password)
 
-                .map(user -> new ServiceAPI(vertx, Environment.SERVICE_API_URI, user));
+            .map(user -> new ServiceAPI(vertx, Environment.SERVICE_API_URI, user));
     }
 
 
@@ -53,8 +53,8 @@ public class ServiceAPIUtils {
      */
     public static Future<Optional<KafkaResponse>> getKafkaByName(ServiceAPI api, String name) {
         return api.getListOfKafkaByName(name)
-                .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
-                .map(Optional::ofNullable);
+            .map(r -> r.items.size() == 1 ? r.items.get(0) : null)
+            .map(Optional::ofNullable);
     }
 
     /**
@@ -66,7 +66,7 @@ public class ServiceAPIUtils {
      */
     public static Future<Optional<ServiceAccount>> getServiceAccountByName(ServiceAPI api, String name) {
         return api.getListOfServiceAccounts()
-                .map(r -> r.items.stream().filter(a -> a.name.equals(name)).findFirst());
+            .map(r -> r.items.stream().filter(a -> a.name.equals(name)).findFirst());
     }
 
     /**
@@ -93,16 +93,16 @@ public class ServiceAPIUtils {
      */
     public static Future<KafkaResponse> applyKafkaInstance(Vertx vertx, ServiceAPI api, CreateKafkaPayload payload) {
         return getKafkaByName(api, payload.name)
-                .compose(o -> o.map(k -> {
-                    LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
-                    return succeededFuture(k);
+            .compose(o -> o.map(k -> {
+                LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
+                return succeededFuture(k);
 
-                }).orElseGet(() -> {
-                    LOGGER.info("create kafka instance: {}", payload.name);
-                    return api.createKafka(payload, true)
-                            .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id));
-                }))
-                .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
+            }).orElseGet(() -> {
+                LOGGER.info("create kafka instance: {}", payload.name);
+                return api.createKafka(payload, true)
+                    .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id));
+            }))
+            .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
     }
 
     public static CreateKafkaPayload createKafkaPayload(String kafkaInstanceName) {
@@ -115,22 +115,38 @@ public class ServiceAPIUtils {
     }
 
     /**
+     * Delete the Kafka Instance if it exists and if the SKIP_KAFKA_TEARDOWN env is set to false.
+     *
+     * @param api  ServiceAPI
+     * @param name Kafka Instance name
+     * @return Future<Void>
+     */
+    public static Future<Void> cleanKafkaInstance(ServiceAPI api, String name) {
+        if (Environment.SKIP_KAFKA_TEARDOWN) {
+            LOGGER.warn("skip kafka instance clean up");
+            return Future.succeededFuture();
+        }
+
+        return deleteKafkaByNameIfExists(api, name);
+    }
+
+    /**
      * Delete Kafka Instance by name if it exists
      *
      * @param api  ServiceAPI
-     * @param name Service Account name
+     * @param name Kafka Instance name
      * @return Future<Void>
      */
     public static Future<Void> deleteKafkaByNameIfExists(ServiceAPI api, String name) {
 
         return getKafkaByName(api, name)
-                .compose(o -> o.map(k -> {
-                    LOGGER.info("clean kafka instance: {}", k.id);
-                    return api.deleteKafka(k.id, true);
-                }).orElseGet(() -> {
-                    LOGGER.warn("kafka instance '{}' not found", name);
-                    return Future.succeededFuture();
-                }));
+            .compose(o -> o.map(k -> {
+                LOGGER.info("clean kafka instance: {}", k.id);
+                return api.deleteKafka(k.id, true);
+            }).orElseGet(() -> {
+                LOGGER.warn("kafka instance '{}' not found", name);
+                return Future.succeededFuture();
+            }));
     }
 
     /**
@@ -144,18 +160,18 @@ public class ServiceAPIUtils {
 
         return api.getListOfServiceAccounts()
 
-                // delete all service accounts with the same name
-                .map(r -> r.items.stream()
-                        .filter(a -> a.name.equals(name))
-                        .map(a -> {
-                            LOGGER.info("clean service account: {}", a.id);
-                            return (Future) api.deleteServiceAccount(a.id);
-                        })
-                        .collect(Collectors.toList())
-                )
-                .compose(l -> CompositeFuture.join(l))
+            // delete all service accounts with the same name
+            .map(r -> r.items.stream()
+                .filter(a -> a.name.equals(name))
+                .map(a -> {
+                    LOGGER.info("clean service account: {}", a.id);
+                    return (Future) api.deleteServiceAccount(a.id);
+                })
+                .collect(Collectors.toList())
+            )
+            .compose(l -> CompositeFuture.join(l))
 
-                .compose(__ -> Future.succeededFuture());
+            .compose(__ -> Future.succeededFuture());
     }
 
     /**
@@ -167,17 +183,17 @@ public class ServiceAPIUtils {
      */
     public static Future<Void> deleteServiceAccountsByOwnerIfExists(ServiceAPI api, String owner) {
         return api.getListOfServiceAccounts()
-                // delete all service accounts with the same name
-                .map(r -> r.items.stream()
-                        .filter(a -> a.owner.equals(owner))
-                        .map(a -> {
-                            LOGGER.info("clean service account: {}", a.id);
-                            return (Future) api.deleteServiceAccount(a.id);
-                        })
-                        .collect(Collectors.toList())
-                )
-                .compose(l -> CompositeFuture.join(l))
-                .compose(__ -> Future.succeededFuture());
+            // delete all service accounts with the same name
+            .map(r -> r.items.stream()
+                .filter(a -> a.owner.equals(owner))
+                .map(a -> {
+                    LOGGER.info("clean service account: {}", a.id);
+                    return (Future) api.deleteServiceAccount(a.id);
+                })
+                .collect(Collectors.toList())
+            )
+            .compose(l -> CompositeFuture.join(l))
+            .compose(__ -> Future.succeededFuture());
     }
 
     /**
@@ -190,7 +206,7 @@ public class ServiceAPIUtils {
      */
     public static Future<KafkaResponse> waitUntilKafkaIsReady(Vertx vertx, ServiceAPI api, String kafkaID) {
         IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID)
-                .compose(r -> isKafkaReady(r, last));
+            .compose(r -> isKafkaReady(r, last));
 
         return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
     }
@@ -211,16 +227,16 @@ public class ServiceAPIUtils {
     public static Future<Void> waitUntilKafkaIsDeleted(Vertx vertx, ServiceAPI api, String kafkaID) {
 
         IsReady<Void> isDeleted = last -> api.getKafka(kafkaID)
-                .recover(throwable -> {
-                    if (throwable instanceof ResponseException && ((ResponseException) throwable).response.statusCode() == 404) {
-                        return Future.succeededFuture(null);
-                    }
-                    return Future.failedFuture(throwable);
-                })
-                .map(r -> {
-                    LOGGER.info("Kafka response : {}", Json.encode(r));
-                    return Pair.with(r == null, null);
-                });
+            .recover(throwable -> {
+                if (throwable instanceof ResponseException && ((ResponseException) throwable).response.statusCode() == 404) {
+                    return Future.succeededFuture(null);
+                }
+                return Future.failedFuture(throwable);
+            })
+            .map(r -> {
+                LOGGER.info("Kafka response : {}", Json.encode(r));
+                return Pair.with(r == null, null);
+            });
 
         return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
     }
@@ -235,17 +251,17 @@ public class ServiceAPIUtils {
      */
     public static Future<ServiceAccount> applyServiceAccount(ServiceAPI api, String name) {
         return getServiceAccountByName(api, name)
-                .compose(o -> o
-                        .map(v -> {
-                            LOGGER.info("reset credentials for service account: {}", name);
-                            return api.resetCredentialsServiceAccount(v.id);
-                        })
-                        .orElseGet(() -> {
-                            LOGGER.warn("create service account: {}", name);
+            .compose(o -> o
+                .map(v -> {
+                    LOGGER.info("reset credentials for service account: {}", name);
+                    return api.resetCredentialsServiceAccount(v.id);
+                })
+                .orElseGet(() -> {
+                    LOGGER.warn("create service account: {}", name);
 
-                            var serviceAccountPayload = new CreateServiceAccountPayload();
-                            serviceAccountPayload.name = name;
-                            return api.createServiceAccount(serviceAccountPayload);
-                        }));
+                    var serviceAccountPayload = new CreateServiceAccountPayload();
+                    serviceAccountPayload.name = name;
+                    return api.createServiceAccount(serviceAccountPayload);
+                }));
     }
 }

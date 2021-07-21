@@ -20,6 +20,7 @@ import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
@@ -55,7 +56,6 @@ import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.kafkaAdminAPI;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
 import static java.time.Duration.ofMinutes;
@@ -293,10 +293,6 @@ public class QuarkusApplicationTest extends TestBase {
             });
     }
 
-    private Future<Void> cleanKafkaInstance() {
-        return deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
-    }
-
     private Future<Void> cleanCLI() {
         if (cli != null) {
             LOGGER.info("logout from cli");
@@ -367,7 +363,7 @@ public class QuarkusApplicationTest extends TestBase {
         }
 
         try {
-            bwait(cleanKafkaInstance());
+            bwait(ServiceAPIUtils.cleanKafkaInstance(api, KAFKA_INSTANCE_NAME));
         } catch (Throwable e) {
             LOGGER.error("cleanKafkaInstance error: ", e);
         }
