@@ -18,10 +18,10 @@ import io.managed.services.test.IsReady;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
-import io.managed.services.test.kafkainstances.LongLiveKafkaInstanceTest;
 import io.managed.services.test.operator.OperatorUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -45,6 +45,8 @@ import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
@@ -69,18 +71,16 @@ import static org.testng.Assert.assertNotNull;
 public class KafkaOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 
-    // use the kafka long living instance
-    // TODO: Make KafkaOperatorTest independent from LongLiveKafkaTest
-    private static final String KAFKA_INSTANCE_NAME = LongLiveKafkaInstanceTest.KAFKA_INSTANCE_NAME;
-
     private final Vertx vertx = Vertx.vertx();
 
     private User user;
     private ServiceAPI api;
     private KubernetesClient client;
+    private KafkaResponse kafka;
 
     private CloudServicesRequest cloudServicesRequest;
 
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ko-" + Environment.KAFKA_POSTFIX_NAME;
     private final static String ACCESS_TOKEN_SECRET_NAME = "mk-e2e-api-accesstoken";
     private final static String CLOUD_SERVICE_ACCOUNT_REQUEST_NAME = "mk-e2e-service-account-request";
     private final static String SERVICE_ACCOUNT_NAME = "mk-e2e-bo-sa-" + Environment.KAFKA_POSTFIX_NAME;
@@ -128,7 +128,17 @@ public class KafkaOperatorTest extends TestBase {
         client = new DefaultKubernetesClient(config);
     }
 
-    @BeforeClass(timeOut = DEFAULT_TIMEOUT)
+    private Future<Void> bootstrapKafkaInstance(Vertx vertx, ServiceAPI api) {
+
+        return applyKafkaInstance(vertx, api, KAFKA_INSTANCE_NAME)
+            .onSuccess(k -> {
+                kafka = k;
+                LOGGER.info("kafka instance created: {}", Json.encode(kafka));
+            })
+            .map(__ -> null);
+    }
+
+    @BeforeClass(timeOut = 10 * MINUTES)
     public void bootstrap() throws Throwable {
         assertENVs();
 
@@ -137,6 +147,8 @@ public class KafkaOperatorTest extends TestBase {
         bootstrapAPI(vertx);
 
         bootstrapK8sClient();
+
+        bwait(bootstrapKafkaInstance(vertx, api));
     }
 
     private void cleanAccessTokenSecret() {
@@ -184,6 +196,10 @@ public class KafkaOperatorTest extends TestBase {
         return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
     }
 
+    private Future<Void> cleanKafkaInstance() {
+        return deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
+    }
+
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
@@ -223,6 +239,12 @@ public class KafkaOperatorTest extends TestBase {
             bwait(cleanServiceAccount());
         } catch (Throwable t) {
             LOGGER.error("cleanServiceAccount error: ", t);
+        }
+
+        try {
+            bwait(cleanKafkaInstance());
+        } catch (Throwable t) {
+            LOGGER.error("cleanKafkaInstance error: ", t);
         }
 
         bwait(vertx.close());
