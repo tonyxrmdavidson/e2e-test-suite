@@ -15,7 +15,6 @@ import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.DelegationTokenDisabledException;
-import org.apache.kafka.common.errors.GroupNotEmptyException;
 import org.apache.kafka.common.errors.InvalidRequestException;
 import org.apache.kafka.common.resource.ResourceType;
 import org.apache.logging.log4j.LogManager;
@@ -45,9 +44,9 @@ public class KafkaAdminPermissionTest extends TestBase {
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-pe-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-pe-sa-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String TOPIC_NAME = "test-topic-1";
-    private static final String STRIMZI_CANARY_TOPIC = "__strimzi_canary";
-    private static final String STRIMZI_CANARY_GROUP = "strimzi-canary-group";
-    private static final String TEST_GROUP_ID = "new-group-id";
+
+    private static final String TEST_GROUP_ID = "temporary-group-id";
+    private static final String TOPIC_NAME_FOR_GROUPS = "temporary-topic-name";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -55,12 +54,21 @@ public class KafkaAdminPermissionTest extends TestBase {
     private KafkaAdmin admin;
     private KafkaConsumer<String, String> consumer;
 
-    // TODO: Move out from the canary topic and consumer group
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() throws Throwable {
-        // close KafkaAdmin
-        if (admin != null) admin.close();
+
+        if (admin != null) {
+            // delete temporary topic for test concerned about groups.
+            try {
+                bwait(admin.deleteTopic(TOPIC_NAME_FOR_GROUPS));
+            } catch (Throwable t) {
+                LOGGER.error("error deleting temporary topic: ", t);
+            }
+
+            // close KafkaAdmin
+            admin.close();
+        }
 
         assumeTeardown();
 
@@ -107,6 +115,9 @@ public class KafkaAdminPermissionTest extends TestBase {
         admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
         LOGGER.info("kafka admin api initialized for instance: {}", bootstrapHost);
 
+        // create temporary topic
+        bwait(admin.createTopic(TOPIC_NAME_FOR_GROUPS));
+
         // setup a consumer to create the group
         consumer = KafkaConsumerClient.createConsumer(
             vertx,
@@ -114,9 +125,9 @@ public class KafkaAdminPermissionTest extends TestBase {
             clientID,
             clientSecret,
             KafkaAuthMethod.PLAIN,
-            TEST_GROUP_ID,
+                TEST_GROUP_ID,
             "latest");
-        bwait(consumer.subscribe(STRIMZI_CANARY_TOPIC));
+        bwait(consumer.subscribe(TOPIC_NAME_FOR_GROUPS));
         consumer.handler(r -> {
             // ignore
         });
@@ -192,8 +203,8 @@ public class KafkaAdminPermissionTest extends TestBase {
     public void testAllowedToDescribeTopicConfiguration() throws Throwable {
 
         LOGGER.info("kafka-configs.sh --describe --entity-type topics <permitted>, script representation test");
-        LOGGER.info("getting entity description for topic with name: {}", STRIMZI_CANARY_TOPIC);
-        var r = bwait(admin.getConfigurationTopic(STRIMZI_CANARY_TOPIC));
+        LOGGER.info("getting entity description for topic with name: {}", TOPIC_NAME_FOR_GROUPS);
+        var r = bwait(admin.getConfigurationTopic(TOPIC_NAME_FOR_GROUPS));
         LOGGER.info("response size: {}", r.size());
     }
 
@@ -270,24 +281,24 @@ public class KafkaAdminPermissionTest extends TestBase {
 
         LOGGER.info("kafka-consumer-groups.sh --group --describe <permitted>, script representation test");
         LOGGER.info("describing specific consumer group");
-        var r = bwait(admin.describeConsumerGroups(STRIMZI_CANARY_GROUP));
+        var r = bwait(admin.describeConsumerGroups(TEST_GROUP_ID));
         LOGGER.info("describe consumer groups: {}", r);
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testFailToDeleteActiveConsumerGroup() {
+    public void testFailToDeleteActiveConsumerGroup() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --all-groups --delete  <permitted>, script representation test");
         LOGGER.info("deleting group");
-        // should fail because the canary consumer group is not empty
-        assertThrows(GroupNotEmptyException.class, () -> bwait(admin.deleteConsumerGroups(STRIMZI_CANARY_GROUP)));
+        // because consumer is closed group can be deleted without causing any exception.
+        bwait(admin.deleteConsumerGroups(TEST_GROUP_ID));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testAllowedToResetConsumerGroupOffset() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --all-groups --reset-offsets --execute --all-groups --all-topics  <permitted>, script representation test");
-        bwait(admin.resetOffsets(STRIMZI_CANARY_TOPIC, TEST_GROUP_ID));
+        bwait(admin.resetOffsets(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID));
         LOGGER.info("offset successfully reset");
     }
 
@@ -295,7 +306,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     public void testAllowedToDeleteConsumerGroupOffset() throws Throwable {
 
         LOGGER.info("kafka-consumer-groups.sh --delete-offsets  <permitted>, script representation test");
-        bwait(admin.deleteOffset(STRIMZI_CANARY_TOPIC, TEST_GROUP_ID));
+        bwait(admin.deleteOffset(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID));
         LOGGER.info("offset successfully deleted");
     }
 
@@ -303,7 +314,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     public void testAllowedToDeleteRecords() throws Throwable {
 
         LOGGER.info("kafka-delete-records.sh --offset-json-file <permitted>, script representation test");
-        bwait(admin.deleteRecords(STRIMZI_CANARY_TOPIC));
+        bwait(admin.deleteRecords(TOPIC_NAME_FOR_GROUPS));
         LOGGER.info("record successfully deleted");
     }
 
@@ -311,7 +322,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     public void testForbiddenToUncleanLeaderElection() {
 
         LOGGER.info("kafka-leader-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.UNCLEAN, STRIMZI_CANARY_TOPIC)));
+        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_FOR_GROUPS)));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
@@ -325,14 +336,14 @@ public class KafkaAdminPermissionTest extends TestBase {
     public void testForbiddenToAlterPreferredReplicaElection() {
 
         LOGGER.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.PREFERRED, STRIMZI_CANARY_TOPIC)));
+        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_FOR_GROUPS)));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToReassignPartitions() {
 
         LOGGER.info("kafka-reassign-partitions.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.reassignPartitions(STRIMZI_CANARY_TOPIC)));
+        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.reassignPartitions(TOPIC_NAME_FOR_GROUPS)));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
