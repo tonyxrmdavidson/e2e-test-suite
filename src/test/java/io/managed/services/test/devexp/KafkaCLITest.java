@@ -296,4 +296,17 @@ public class KafkaCLITest extends TestBase {
 
         bwait(waitForKafkaDelete(vertx, cli, kafkaInstance.name));
     }
+
+    @Test(priority = 3, timeOut = DEFAULT_TIMEOUT)
+    public void testLogout() throws Throwable {
+
+        LOGGER.info("verify that we are logged-in");
+        bwait(cli.listKafka()); // successfully run cli command while logged in
+
+        LOGGER.info("logout");
+        bwait(cli.logout());
+
+        LOGGER.info("verify that we are logged-in");
+        assertThrows(ProcessException.class, () -> bwait(cli.listKafka())); // unable to run the same command after logout
+    }
 }
