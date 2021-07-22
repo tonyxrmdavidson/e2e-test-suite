@@ -6,16 +6,28 @@
             <class name="io.managed.services.test.SSOAuthTest"/>
         </classes>
     </test>
-    <test name="ControlManagerTest">
+    <test name="KafkaControlManagerAPITest">
         <classes>
             <class name="io.managed.services.test.controlmanager.KafkaControlManagerAPITest"/>
+        </classes>
+    </test>
+    <test name="KafkaControlManagerAPIPermissionsTest">
+        <classes>
             <class name="io.managed.services.test.controlmanager.KafkaControlManagerAPIPermissionsTest"/>
         </classes>
     </test>
-    <test name="KafkaInstancesTest">
+    <test name="LongLiveKafkaInstanceTest">
         <classes>
             <class name="io.managed.services.test.kafkainstances.LongLiveKafkaInstanceTest"/>
+        </classes>
+    </test>
+    <test name="KafkaAdminAPITest">
+        <classes>
             <class name="io.managed.services.test.kafkainstances.KafkaAdminAPITest"/>
+        </classes>
+    </test>
+    <test name="KafkaAdminPermissionTest">
+        <classes>
             <class name="io.managed.services.test.kafkainstances.KafkaAdminPermissionTest"/>
         </classes>
     </test>

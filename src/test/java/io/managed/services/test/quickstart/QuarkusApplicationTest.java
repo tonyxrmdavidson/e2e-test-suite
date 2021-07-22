@@ -20,6 +20,7 @@ import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
@@ -55,7 +56,6 @@ import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.kafkaAdminAPI;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
 import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
 import static java.time.Duration.ofMinutes;
@@ -186,6 +186,12 @@ public class QuarkusApplicationTest extends TestBase {
         bwait(bootstrapUserAndAPI());
 
         bwait(bootstrapKafkaInstance());
+
+        try {
+            OperatorUtils.patchTheOperatorCloudServiceAPIEnv(oc);
+        } catch (Throwable t) {
+            LOGGER.error("failed to patch the CLOUD_SERVICES_API env:", t);
+        }
     }
 
     private void collectQuarkusAppLogs(ITestContext context) throws IOException {
@@ -291,11 +297,6 @@ public class QuarkusApplicationTest extends TestBase {
 
                 return null;
             });
-
-    }
-
-    private Future<Void> cleanKafkaInstance() {
-        return deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
     }
 
     private Future<Void> cleanCLI() {
@@ -368,7 +369,7 @@ public class QuarkusApplicationTest extends TestBase {
         }
 
         try {
-            bwait(cleanKafkaInstance());
+            bwait(ServiceAPIUtils.cleanKafkaInstance(api, KAFKA_INSTANCE_NAME));
         } catch (Throwable e) {
             LOGGER.error("cleanKafkaInstance error: ", e);
         }
@@ -413,7 +414,6 @@ public class QuarkusApplicationTest extends TestBase {
         route = oc.routes().withName(APP_ROUTE_NAME).get();
         LOGGER.info("app deployed to: {}", route.getSpec().getHost());
     }
-
 
     @Test(dependsOnMethods = "testDeployQuarkusApplication", timeOut = DEFAULT_TIMEOUT)
     public void testCreateServiceBinding() throws Throwable {

@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
@@ -74,7 +73,7 @@ public class KafkaAdminAPITest extends TestBase {
         serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
         LOGGER.info("service api initialized");
 
-        kafka = bwait(applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME));
+        kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME));
         LOGGER.info("kafka instance created: {}", Json.encode(kafka));
 
         var bootstrapServerHost = kafka.bootstrapServerHost;
@@ -88,7 +87,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         // delete kafka instance
         try {
-            bwait(ServiceAPIUtils.deleteKafkaByNameIfExists(serviceAPI, KAFKA_INSTANCE_NAME));
+            bwait(ServiceAPIUtils.cleanKafkaInstance(serviceAPI, KAFKA_INSTANCE_NAME));
         } catch (Throwable t) {
             LOGGER.error("failed to clean kafka instance: ", t);
         }

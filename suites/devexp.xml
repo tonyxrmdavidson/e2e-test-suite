@@ -1,12 +1,12 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
 
 <suite name="KafkaDevExp">
-    <test name="KafkaCLI">
+    <test name="KafkaCLITest">
         <classes>
             <class name="io.managed.services.test.devexp.KafkaCLITest"/>
         </classes>
     </test>
-    <test name="KafkaOperator">
+    <test name="KafkaOperatorTest">
         <classes>
             <class name="io.managed.services.test.devexp.KafkaOperatorTest"/>
         </classes>

@@ -64,6 +64,8 @@ public class Environment {
     private static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
     private static final String DEV_CLUSTER_TOKEN_ENV = "DEV_CLUSTER_TOKEN";
 
+    private static final String RHOAS_OPERATOR_NAMESPACE_ENV = "RHOAS_OPERATOR_NAMESPACE";
+
     private static final String BF2_GITHUB_TOKEN_ENV = "BF2_GITHUB_TOKEN";
 
     private static final String CLI_DOWNLOAD_ORG_ENV = "CLI_DOWNLOAD_ORG";
@@ -77,6 +79,7 @@ public class Environment {
 
     private static final String RETRY_CALL_THRESHOLD_ENV = "RETRY_CALL_THRESHOLD";
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
+    private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
 
     /*
      * Setup constants from env variables or set default
@@ -121,6 +124,8 @@ public class Environment {
     public static final String DEV_CLUSTER_NAMESPACE = getOrDefault(DEV_CLUSTER_NAMESPACE_ENV, "mk-e2e-tests");
     public static final String DEV_CLUSTER_TOKEN = getOrDefault(DEV_CLUSTER_TOKEN_ENV, null);
 
+    public static final String RHOAS_OPERATOR_NAMESPACE = getOrDefault(RHOAS_OPERATOR_NAMESPACE_ENV, "openshift-operators");
+
     public static final String BF2_GITHUB_TOKEN = getOrDefault(BF2_GITHUB_TOKEN_ENV, null);
 
     public static final String CLI_DOWNLOAD_ORG = getOrDefault(CLI_DOWNLOAD_ORG_ENV, "redhat-developer");
@@ -133,7 +138,12 @@ public class Environment {
     public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
     public static final int RETRY_CALL_THRESHOLD = getOrDefault(RETRY_CALL_THRESHOLD_ENV, Integer::parseInt, 2);
+
+    // Skip the whole teardown in some tests, although some of them will need top re-enable it to succeed
     public static final boolean SKIP_TEARDOWN = getOrDefault(SKIP_TEARDOWN_ENV, Boolean::parseBoolean, false);
+
+    // Skip only the Kafka instance delete teardown to speed the local development
+    public static final boolean SKIP_KAFKA_TEARDOWN = getOrDefault(SKIP_KAFKA_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
 
     private Environment() {
@@ -169,10 +179,10 @@ public class Environment {
      */
     private static <T> T getOrDefault(String var, Function<String, T> converter, T defaultValue) {
         String value = System.getenv(var) != null ?
-                System.getenv(var) :
-                (Objects.requireNonNull(JSON_DATA).get(var) != null ?
-                        JSON_DATA.get(var).asText() :
-                        null);
+            System.getenv(var) :
+            (Objects.requireNonNull(JSON_DATA).get(var) != null ?
+                JSON_DATA.get(var).asText() :
+                null);
         T returnValue = defaultValue;
         if (value != null && !value.isEmpty()) {
             returnValue = converter.apply(value);
@@ -188,7 +198,7 @@ public class Environment {
      */
     private static JsonNode loadConfigurationFile() {
         config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
-                Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
+            Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
         ObjectMapper mapper = new ObjectMapper();
         try {
             File jsonFile = new File(config).getAbsoluteFile();

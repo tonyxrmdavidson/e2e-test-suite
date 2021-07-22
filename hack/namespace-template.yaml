@@ -46,6 +46,9 @@ objects:
       - apiGroups: [ "extensions", "apps" ]
         resources: [ "deployments", "replicasets" ]
         verbs: [ "get", "list", "watch" ]
+      - apiGroups: [ "operators.coreos.com" ]
+        resources: [ "clusterserviceversions" ]
+        verbs: [ "*" ]
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:

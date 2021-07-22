@@ -25,7 +25,7 @@ import org.testng.annotations.Test;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
+import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -116,7 +116,7 @@ public class KafkaControlManagerAPIPermissionsTest extends TestBase {
         assumeTeardown();
 
         try {
-            bwait(deleteKafkaByNameIfExists(mainAPI, KAFKA_INSTANCE_NAME));
+            bwait(cleanKafkaInstance(mainAPI, KAFKA_INSTANCE_NAME));
         } catch (Throwable t) {
             LOGGER.error("clan kafka error: ", t);
         }
