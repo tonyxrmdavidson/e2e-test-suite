@@ -11,6 +11,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.serviceapi.ConsumerGroupResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
@@ -152,6 +153,10 @@ public class CLIUtils {
 
     public static Future<Optional<TopicResponse>> getTopicByName(Vertx vertx, CLI cli, String topicName) {
         return cli.listTopics().map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
+    }
+
+    public static Future<Optional<ConsumerGroupResponse>> getConsumerGroupByName(CLI cli, String topicName) {
+        return cli.listConsumerGroups().map(r -> r.items != null ? r.items.stream().filter(consumerGroup -> consumerGroup.groupId.equals(topicName)).findFirst() : Optional.empty());
     }
 
     public static Future<Optional<KafkaResponse>> getKafkaByName(Vertx vertx, CLI cli, String name) {

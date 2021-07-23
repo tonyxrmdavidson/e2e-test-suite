@@ -1,6 +1,8 @@
 package io.managed.services.test.cli;
 
 import io.managed.services.test.TestUtils;
+import io.managed.services.test.client.serviceapi.ConsumerGroupListResponse;
+import io.managed.services.test.client.serviceapi.ConsumerGroupResponse;
 import io.managed.services.test.client.serviceapi.KafkaListResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAccountList;
@@ -180,6 +182,18 @@ public class CLI {
     public Future<TopicResponse> updateTopic(String topicName, String retentionTime) {
         return retry(() -> exec("kafka", "topic", "update", topicName, "--retention-ms", retentionTime, "-o", "json")
             .map(p -> stdoutAsJson(p, TopicResponse.class)));
+    }
+
+    public Future<ConsumerGroupListResponse> listConsumerGroups() {
+        return retry(() -> exec("kafka", "consumer-group", "list", "-o", "json")
+                .map(p -> stdoutAsJson(p, ConsumerGroupListResponse.class)));
+    }
+
+    public Future<ConsumerGroupResponse> describeConsumerGroupByName(String name) {
+        return retry(() -> exec("kafka", "consumer-group", "describe", "--id", name, "-o", "json")
+                .map(p -> ProcessUtils.stderr(p).contains("consumer group with ID {name} not found") ?
+                        null :
+                        stdoutAsJson(p, ConsumerGroupResponse.class)));
     }
 
     public Future<Process> connectCluster(String token, String kubeconfig) {
