@@ -460,8 +460,12 @@ public class QuarkusApplicationTest extends TestBase {
                 LOGGER.warn("last service binding is: {}", Json.encode(b));
             }
 
-            LOGGER.info("service binding: {}", Json.encode(b));
-            var isReady = b.getStatus().conditions.stream()
+            var status = b.getStatus();
+            if (status == null) {
+                return succeededFuture(Pair.with(false, null));
+            }
+
+            var isReady = status.conditions.stream()
                 .filter(c -> c.type.equals("Ready"))
                 .findAny()
                 .map(c -> c.status.equals("True"))
