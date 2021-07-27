@@ -1,4 +1,4 @@
-package io.managed.services.test.controlmanager;
+package io.managed.services.test.kafka;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
@@ -47,8 +47,8 @@ import static org.testng.Assert.assertTrue;
  * - The unauth user should not be allowed to use the API
  */
 @Test(groups = TestTag.SERVICE_API_PERMISSIONS)
-public class KafkaControlManagerAPIPermissionsTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaControlManagerAPIPermissionsTest.class);
+public class KafkaManagerAPIPermissionsTest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(KafkaManagerAPIPermissionsTest.class);
 
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-up-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String SECONDARY_SERVICE_ACCOUNT_NAME = "mk-e2e-up-secondary-sa-" + Environment.KAFKA_POSTFIX_NAME;

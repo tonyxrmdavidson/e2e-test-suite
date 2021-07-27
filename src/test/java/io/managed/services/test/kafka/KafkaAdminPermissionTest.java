@@ -1,4 +1,4 @@
-package io.managed.services.test.kafkainstances;
+package io.managed.services.test.kafka;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
