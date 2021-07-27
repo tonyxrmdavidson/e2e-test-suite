@@ -104,4 +104,15 @@ public class RegistryManagerAPITest extends TestBase {
 
         this.registry = finalRegistry;
     }
+
+    // TODO: Test create registry with the same name
+
+    @Test(timeOut = DEFAULT_TIMEOUT, dependsOnMethods = "testCreateRegistry")
+    public void testDeleteRegistry() throws Throwable {
+
+        LOGGER.info("delete registry: {}", registry.getId());
+        registriesApi.deleteRegistry(registry.getId());
+
+        assertThrows(ApiNotFoundException.class, () -> registriesApi.getRegistry(registry.getId()));
+    }
 }
