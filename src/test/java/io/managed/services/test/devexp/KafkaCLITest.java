@@ -27,6 +27,7 @@ import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
+import static io.managed.services.test.cli.CLIUtils.waitForConsumerGroupDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
@@ -280,10 +281,9 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    //TODO check that test (description part) works correctly
-    // on friday unable to create Kafka Instance.
     @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
     public void testGetConsumerGroup() throws Throwable {
+
         LOGGER.info("creating topic for testing consumer groups: {}", CONSUMER_GROUP_TOPIC_NAME);
         topic = bwait(cli.createTopic(CONSUMER_GROUP_TOPIC_NAME));
 
@@ -317,17 +317,20 @@ public class KafkaCLITest extends TestBase {
         var consumerGroup = bwait(CLIUtils.getConsumerGroupByName(cli, CONSUMER_GROUP_NAME));
         assertTrue(consumerGroup.isPresent(), "Consumer group isn't present amongst listed groups");
 
-
-        var cg = bwait(cli.describeConsumerGroupByName(CONSUMER_GROUP_NAME));
-        assertNotNull(cg, "consumer group isn't present");
-
+        // additional check for description of the same consumer Group
+        var consumerGroupDescription = bwait(cli.describeConsumerGroupByName(CONSUMER_GROUP_NAME));
+        assertNotNull(consumerGroupDescription, "consumer group isn't present");
     }
 
-    //TODO add test for deletion of consumer group
+    @Test(dependsOnMethods = "testGetConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteConsumerGroup() throws Throwable {
 
+        LOGGER.info("delete consumer group with name (id): {}",  CONSUMER_GROUP_NAME);
+        bwait(cli.deleteConsumerGroup(CONSUMER_GROUP_NAME));
+        bwait(waitForConsumerGroupDelete(vertx, cli, CONSUMER_GROUP_NAME));
+    }
 
-
-    @Test(dependsOnMethods = "testCreateKafkaTopic", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteTopic() throws Throwable {
 
         LOGGER.info("delete topic: {}", TOPIC_NAME);
@@ -337,7 +340,7 @@ public class KafkaCLITest extends TestBase {
         bwait(waitForTopicDelete(vertx, cli, TOPIC_NAME)); // also verify that the topic doesn't exists anymore
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 2, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteServiceAccount() throws Throwable {
 
         bwait(cli.deleteServiceAccount(serviceAccount.id));
@@ -346,7 +349,7 @@ public class KafkaCLITest extends TestBase {
         // TODO: Verify that the service account doesn't exists
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteKafkaInstance() throws Throwable {
 
         LOGGER.info("delete kafka instance {} with id {}", kafkaInstance.name, kafkaInstance.id);

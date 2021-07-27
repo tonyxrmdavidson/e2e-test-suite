@@ -177,6 +177,13 @@ public class CLIUtils {
         return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
     }
 
+    public static Future<Void> waitForConsumerGroupDelete(Vertx vertx, CLI cli, String name) {
+        IsReady<Void> isDeleted = last -> getConsumerGroupByName(cli, name)
+                .map(k -> Pair.with(k.isEmpty(), null));
+
+        return waitFor(vertx, "Consumer group to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
+    }
+
     public static Future<Optional<ServiceAccount>> getServiceAccountByName(Vertx vertx, CLI cli, String name) {
         return cli.listServiceAccountAsJson()
                 .map(r -> r.items.stream().filter(sa -> sa.name.equals(name)).findFirst());

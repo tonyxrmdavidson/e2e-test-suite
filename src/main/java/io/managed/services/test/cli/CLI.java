@@ -189,6 +189,10 @@ public class CLI {
                 .map(p -> stdoutAsJson(p, ConsumerGroupListResponse.class)));
     }
 
+    public Future<Process> deleteConsumerGroup(String id) {
+        return retry(() -> exec("kafka", "consumer-group", "delete", "--id", id, "-y"));
+    }
+
     public Future<ConsumerGroupResponse> describeConsumerGroupByName(String name) {
         return retry(() -> exec("kafka", "consumer-group", "describe", "--id", name, "-o", "json")
                 .map(p -> ProcessUtils.stderr(p).contains("consumer group with ID {name} not found") ?
