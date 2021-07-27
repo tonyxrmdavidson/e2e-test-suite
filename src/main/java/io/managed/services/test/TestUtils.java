@@ -22,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -58,7 +59,7 @@ public class TestUtils {
         IsReady<T> isReady) {
 
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
-        Exception e = new Exception(String.format("timeout after %s waiting for %s", timeout.toString(), description));
+        Exception e = new TimeoutException(String.format("timeout after %s waiting for %s", timeout.toString(), description));
 
         Instant deadline = Instant.now().plus(timeout);
         return waitFor(vertx, description, interval, deadline, e, isReady);
@@ -89,6 +90,44 @@ public class TestUtils {
                 return sleep(vertx, interval)
                     .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
             });
+    }
+
+    public static void waitFor(
+        String description,
+        Duration interval,
+        Duration timeout,
+        BooleanFunction isReady)
+        throws Exception {
+
+        // generate the exception earlier to print a cleaner stacktrace in case of timeout
+        var e = new TimeoutException(String.format("timeout after %s waiting for %s", timeout.toString(), description));
+
+        Instant deadline = Instant.now().plus(timeout);
+        waitFor(description, interval, deadline, e, isReady);
+    }
+
+    static void waitFor(
+        String description,
+        Duration interval,
+        Instant deadline,
+        TimeoutException timeout,
+        BooleanFunction isReady)
+        throws Exception {
+
+        boolean last = Instant.now().isAfter(deadline);
+
+        LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
+        if (isReady.call(last)) {
+            return;
+        }
+
+        if (last) {
+            throw timeout;
+        }
+
+        Thread.sleep(interval.toMillis());
+
+        waitFor(description, interval, deadline, timeout, isReady);
     }
 
     /**

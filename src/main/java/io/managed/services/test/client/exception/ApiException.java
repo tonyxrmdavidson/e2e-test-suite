@@ -1,5 +1,6 @@
 package io.managed.services.test.client.exception;
 
+import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map;
 
@@ -10,6 +11,19 @@ public class ApiException extends Exception {
     public ApiException(com.openshift.cloud.api.srs.invoker.ApiException apiException) {
         super(message(apiException), apiException);
         this.apiException = apiException;
+    }
+
+    public static ApiException apiException(com.openshift.cloud.api.srs.invoker.ApiException apiException) {
+        switch (apiException.getCode()) {
+            case HttpURLConnection.HTTP_NOT_FOUND:
+                return new ApiNotFoundException(apiException);
+            case HttpURLConnection.HTTP_CONFLICT:
+            case HttpURLConnection.HTTP_FORBIDDEN:
+            case HttpURLConnection.HTTP_UNAUTHORIZED:
+            case 423:
+            default:
+                return new ApiException(apiException);
+        }
     }
 
     public com.openshift.cloud.api.srs.invoker.ApiException getApiException() {

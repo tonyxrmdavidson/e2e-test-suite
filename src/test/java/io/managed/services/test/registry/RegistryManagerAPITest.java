@@ -3,8 +3,12 @@ package io.managed.services.test.registry;
 import com.openshift.cloud.api.srs.invoker.Configuration;
 import com.openshift.cloud.api.srs.invoker.auth.HttpBearerAuth;
 import com.openshift.cloud.api.srs.models.RegistryCreateRest;
+import com.openshift.cloud.api.srs.models.RegistryRest;
+import com.openshift.cloud.api.srs.models.RegistryStatusValueRest;
+import io.managed.services.test.BooleanFunction;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
+import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.registry.RegistriesApi;
 import io.managed.services.test.framework.TestTag;
@@ -16,9 +20,15 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.registry.RegistriesApiUtils.cleanRegistry;
+import static java.time.Duration.ofSeconds;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertThrows;
 
 @Test(groups = TestTag.REGISTRY)
 public class RegistryManagerAPITest extends TestBase {
@@ -27,6 +37,7 @@ public class RegistryManagerAPITest extends TestBase {
     static final String SERVICE_REGISTRY_NAME = "mk-e2e-sr-" + Environment.KAFKA_POSTFIX_NAME;
 
     private RegistriesApi registriesApi;
+    private RegistryRest registry;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
@@ -61,13 +72,36 @@ public class RegistryManagerAPITest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testCreateServiceRegistry() throws Throwable {
+    public void testCreateRegistry() throws Throwable {
 
         var registryCreateRest = new RegistryCreateRest()
             .name(SERVICE_REGISTRY_NAME)
             .description("Hello World!");
 
-        var registryRest = registriesApi.createRegistry(registryCreateRest);
-        LOGGER.info("service registry: {}", Json.encode(registryRest));
+        var registry = registriesApi.createRegistry(registryCreateRest);
+        LOGGER.info("service registry: {}", Json.encode(registry));
+
+        var registryReference = new AtomicReference<RegistryRest>();
+        BooleanFunction isReady = last -> {
+            var r = registriesApi.getRegistry(registry.getId());
+
+            if (last) {
+                LOGGER.warn("last registry: {}", Json.encode(r));
+            }
+
+            if (RegistryStatusValueRest.READY.equals(r.getStatus())) {
+                registryReference.set(r);
+                return true;
+            }
+            return false;
+        };
+        waitFor("registry to be ready", ofSeconds(2), ofSeconds(10), isReady);
+
+        var finalRegistry = registryReference.get();
+        LOGGER.info("final service registry: {}", Json.encode(registryReference.get()));
+
+        assertNotNull(finalRegistry.getRegistryUrl());
+
+        this.registry = finalRegistry;
     }
 }

@@ -22,7 +22,7 @@ public class RegistriesApi {
         try {
             return f.call();
         } catch (com.openshift.cloud.api.srs.invoker.ApiException e) {
-            throw new ApiException(e);
+            throw ApiException.apiException(e);
         }
     }
 
@@ -30,12 +30,16 @@ public class RegistriesApi {
         try {
             f.call();
         } catch (com.openshift.cloud.api.srs.invoker.ApiException e) {
-            throw new ApiException(e);
+            throw ApiException.apiException(e);
         }
     }
 
     public RegistryRest createRegistry(RegistryCreateRest registryCreateRest) throws ApiException {
         return handle(() -> registriesApi.createRegistry(registryCreateRest));
+    }
+
+    public RegistryRest getRegistry(String id) throws ApiException {
+        return handle(() -> registriesApi.getRegistry(id));
     }
 
     public RegistryListRest getRegistries(Integer page, Integer size, String orderBy, String search) throws ApiException {

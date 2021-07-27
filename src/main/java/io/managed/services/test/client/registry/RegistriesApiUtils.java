@@ -6,7 +6,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class RegistriesApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(RegistriesApiUtils.class);
@@ -35,10 +34,8 @@ public class RegistriesApiUtils {
 
         // TODO: remove workaround after https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/43
 
-        // Attention: we support only 100 registries until the
-        var list = api.getRegistries(1, 100, null, null);
-        return list.getItems().stream()
-            .filter(r -> name.equals(r.getName()))
-            .collect(Collectors.toList());
+        // Attention: we support only 10 registries until the name doesn't became unique
+        return api.getRegistries(1, 10, null, String.format("name=%s", name))
+            .getItems();
     }
 }
