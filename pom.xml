@@ -157,6 +157,11 @@
             <artifactId>joda-time</artifactId>
             <version>2.10.10</version>
         </dependency>
+        <dependency>
+            <groupId>com.redhat.cloud</groupId>
+            <artifactId>registry-management-sdk</artifactId>
+            <version>0.5.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -212,7 +217,8 @@
                 </executions>
                 <configuration>
                     <suiteXmlFiles>
-                        <suiteXmlFile>suites/service.xml</suiteXmlFile>
+                        <suiteXmlFile>suites/kafka.xml</suiteXmlFile>
+                        <suiteXmlFile>suites/registry.xml</suiteXmlFile>
                         <suiteXmlFile>suites/devexp.xml</suiteXmlFile>
                     </suiteXmlFiles>
                     <properties>

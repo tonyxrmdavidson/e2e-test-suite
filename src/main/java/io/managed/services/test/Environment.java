@@ -116,6 +116,7 @@ public class Environment {
 
     public static final String KAFKA_ADMIN_API_SERVER_PREFIX = getOrDefault(KAFKA_ADMIN_API_SERVER_PREFIX_ENV, "https://admin-server-");
 
+    // TODO: Rename to OPENSHIFT_API_URI
     public static final String SERVICE_API_URI = getOrDefault(SERVICE_API_URI_ENV, "https://api.stage.openshift.com");
 
     public static final String KAFKA_POSTFIX_NAME = getOrDefault(KAFKA_POSTFIX_NAME_ENV, "change-me");

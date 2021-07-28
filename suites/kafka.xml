@@ -8,27 +8,27 @@
     </test>
     <test name="KafkaControlManagerAPITest">
         <classes>
-            <class name="io.managed.services.test.controlmanager.KafkaControlManagerAPITest"/>
+            <class name="io.managed.services.test.kafka.KafkaManagerAPITest"/>
         </classes>
     </test>
     <test name="KafkaControlManagerAPIPermissionsTest">
         <classes>
-            <class name="io.managed.services.test.controlmanager.KafkaControlManagerAPIPermissionsTest"/>
+            <class name="io.managed.services.test.kafka.KafkaManagerAPIPermissionsTest"/>
         </classes>
     </test>
     <test name="LongLiveKafkaInstanceTest">
         <classes>
-            <class name="io.managed.services.test.kafkainstances.LongLiveKafkaInstanceTest"/>
+            <class name="io.managed.services.test.kafka.LongLiveKafkaInstanceTest"/>
         </classes>
     </test>
     <test name="KafkaAdminAPITest">
         <classes>
-            <class name="io.managed.services.test.kafkainstances.KafkaAdminAPITest"/>
+            <class name="io.managed.services.test.kafka.KafkaAdminAPITest"/>
         </classes>
     </test>
     <test name="KafkaAdminPermissionTest">
         <classes>
-            <class name="io.managed.services.test.kafkainstances.KafkaAdminPermissionTest"/>
+            <class name="io.managed.services.test.kafka.KafkaAdminPermissionTest"/>
         </classes>
     </test>
 </suite>
