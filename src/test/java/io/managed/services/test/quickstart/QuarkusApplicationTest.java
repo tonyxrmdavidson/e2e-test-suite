@@ -408,6 +408,8 @@ public class QuarkusApplicationTest extends TestBase {
     @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)
     public void testDeployQuarkusApplication() {
 
+        // TODO: Deploy the application from https://raw.githubusercontent.com/redhat-developer/app-services-guides/main/code-examples/quarkus-kafka-quickstart/.kubernetes/kubernetes.yml
+
         LOGGER.info("deploy the rhoas-kafka-quickstart-example app");
         oc.resourceList(loadK8sResources(APP_YAML_PATH)).createOrReplace();
 
@@ -418,6 +420,8 @@ public class QuarkusApplicationTest extends TestBase {
     @Test(dependsOnMethods = "testDeployQuarkusApplication", timeOut = DEFAULT_TIMEOUT)
     public void testCreateServiceBinding() throws Throwable {
         cleanServiceBinding();
+
+        // TODO: Bind the Kafka instance to the application using `rhoas cluster bind`
 
         var application = new ServiceBindingApplication();
         application.group = "apps";
