@@ -46,7 +46,7 @@ public class CLI {
     private ProcessBuilder builder(List<String> command) {
         var cmd = new ArrayList<String>();
         cmd.add(this.cmd);
-        cmd.add("-d");
+        cmd.add("-v");
         cmd.addAll(command);
 
         return new ProcessBuilder(cmd)
