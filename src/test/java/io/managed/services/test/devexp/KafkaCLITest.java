@@ -297,7 +297,7 @@ public class KafkaCLITest extends TestBase {
         bwait(waitForKafkaDelete(vertx, cli, kafkaInstance.name));
     }
 
-    @Test(priority = 3, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testLogin", priority = 3, timeOut = DEFAULT_TIMEOUT)
     public void testLogout() throws Throwable {
 
         LOGGER.info("verify that we are logged-in");
