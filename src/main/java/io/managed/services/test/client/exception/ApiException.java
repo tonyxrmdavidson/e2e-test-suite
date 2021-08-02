@@ -17,9 +17,11 @@ public class ApiException extends Exception {
         switch (apiException.getCode()) {
             case HttpURLConnection.HTTP_NOT_FOUND:
                 return new ApiNotFoundException(apiException);
-            case HttpURLConnection.HTTP_CONFLICT:
-            case HttpURLConnection.HTTP_FORBIDDEN:
             case HttpURLConnection.HTTP_UNAUTHORIZED:
+                return new ApiUnauthorizedException(apiException);
+            case HttpURLConnection.HTTP_FORBIDDEN:
+                return new ApiForbiddenException(apiException);
+            case HttpURLConnection.HTTP_CONFLICT:
             case 423:
             default:
                 return new ApiException(apiException);
