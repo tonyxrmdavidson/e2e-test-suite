@@ -64,7 +64,6 @@ public class KafkaCLITest extends TestBase {
     private static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String TOPIC_NAME = "cli-e2e-test-topic";
     private static final int DEFAULT_PARTITIONS = 1;
-    private static final String CONSUMER_GROUP_TOPIC_NAME = "consumer-group-topic";
     private static final String CONSUMER_GROUP_NAME = "consumer-group-1";
 
     private final Vertx vertx = Vertx.vertx();
@@ -284,9 +283,6 @@ public class KafkaCLITest extends TestBase {
     @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
     public void testGetConsumerGroup() throws Throwable {
 
-        LOGGER.info("creating topic for testing consumer groups: {}", CONSUMER_GROUP_TOPIC_NAME);
-        topic = bwait(cli.createTopic(CONSUMER_GROUP_TOPIC_NAME));
-
         // create consumer group
         serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
         LOGGER.info("create or retrieve service account: {}", SERVICE_ACCOUNT_NAME);
@@ -300,25 +296,25 @@ public class KafkaCLITest extends TestBase {
                 CONSUMER_GROUP_NAME,
                 "latest");
 
-        LOGGER.info("subscribe to topic: {}", CONSUMER_GROUP_TOPIC_NAME);
-        consumer.subscribe(CONSUMER_GROUP_TOPIC_NAME);
+        LOGGER.info("subscribe to topic: {}", TOPIC_NAME);
+        consumer.subscribe(TOPIC_NAME);
         consumer.handler(r -> {
             // ignore
         });
         IsReady<Object> subscribed = last -> consumer.assignment().map(partitions -> {
-            var o = partitions.stream().filter(p -> p.getTopic().equals(CONSUMER_GROUP_TOPIC_NAME)).findAny();
+            var o = partitions.stream().filter(p -> p.getTopic().equals(TOPIC_NAME)).findAny();
             return Pair.with(o.isPresent(), null);
         });
         bwait(waitFor(vertx, "consumer group to subscribe", ofSeconds(2), ofMinutes(2), subscribed));
         bwait(consumer.close());
 
         // list all consumer groups
-        LOGGER.info("get list of consumer group and check if expected group (with name {})  is present", CONSUMER_GROUP_TOPIC_NAME);
+        LOGGER.info("get list of consumer group and check if expected group (with name {})  is present", TOPIC_NAME);
         var consumerGroup = bwait(CLIUtils.getConsumerGroupByName(cli, CONSUMER_GROUP_NAME));
         assertTrue(consumerGroup.isPresent(), "Consumer group isn't present amongst listed groups");
 
         // additional check for description of the same consumer Group
-        var consumerGroupDescription = bwait(cli.describeConsumerGroupByName(CONSUMER_GROUP_NAME));
+        var consumerGroupDescription = bwait(cli.describeConsumerGroup(CONSUMER_GROUP_NAME));
         assertNotNull(consumerGroupDescription, "consumer group isn't present");
     }
 

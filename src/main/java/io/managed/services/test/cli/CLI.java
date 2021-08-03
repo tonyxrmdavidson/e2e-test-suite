@@ -193,11 +193,9 @@ public class CLI {
         return retry(() -> exec("kafka", "consumer-group", "delete", "--id", id, "-y"));
     }
 
-    public Future<ConsumerGroupResponse> describeConsumerGroupByName(String name) {
+    public Future<ConsumerGroupResponse> describeConsumerGroup(String name) {
         return retry(() -> exec("kafka", "consumer-group", "describe", "--id", name, "-o", "json")
-                .map(p -> ProcessUtils.stderr(p).contains("consumer group with ID {name} not found") ?
-                        null :
-                        stdoutAsJson(p, ConsumerGroupResponse.class)));
+                .map(p -> stdoutAsJson(p, ConsumerGroupResponse.class)));
     }
 
     public Future<Process> connectCluster(String token, String kubeconfig) {
