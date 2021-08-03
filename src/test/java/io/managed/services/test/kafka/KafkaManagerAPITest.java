@@ -26,6 +26,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -264,7 +265,8 @@ public class KafkaManagerAPITest extends TestBase {
             clientSecret,
             KafkaAuthMethod.PLAIN,
             StringDeserializer.class,
-            StringDeserializer.class);
+            StringDeserializer.class,
+            new HashMap<>());
 
         // Delete the Kafka instance
         LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);

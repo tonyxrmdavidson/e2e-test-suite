@@ -11,8 +11,10 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.forEach;
@@ -54,6 +56,31 @@ public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
         Class<? extends Deserializer<K>> keyDeserializer,
         Class<? extends Deserializer<V>> valueDeserializer) {
 
+        this(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            method,
+            groupID,
+            offset,
+            keyDeserializer,
+            valueDeserializer,
+            new HashMap<>());
+    }
+
+    public KafkaConsumerClient(
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        KafkaAuthMethod method,
+        String groupID,
+        String offset,
+        Class<? extends Deserializer<K>> keyDeserializer,
+        Class<? extends Deserializer<V>> valueDeserializer,
+        Map<String, String> additionalConfig) {
+
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
@@ -65,7 +92,8 @@ public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
             groupID,
             offset,
             keyDeserializer,
-            valueDeserializer);
+            valueDeserializer,
+            additionalConfig);
     }
 
     @Override
@@ -153,7 +181,8 @@ public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
             groupID,
             offset,
             StringDeserializer.class,
-            StringDeserializer.class);
+            StringDeserializer.class,
+            new HashMap<>());
     }
 
 
@@ -166,7 +195,8 @@ public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
         String groupID,
         String offset,
         Class<? extends Deserializer<K>> keyDeserializer,
-        Class<? extends Deserializer<V>> valueDeserializer) {
+        Class<? extends Deserializer<V>> valueDeserializer,
+        Map<String, String> additionalConfig) {
 
         var config = authMethod.configs(bootstrapHost, clientID, clientSecret);
 
@@ -175,6 +205,9 @@ public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
         config.put(ConsumerConfig.GROUP_ID_CONFIG, groupID);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offset);
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+
+        // add the additional configs
+        config.putAll(additionalConfig);
 
         return KafkaConsumer.create(vertx, config);
     }

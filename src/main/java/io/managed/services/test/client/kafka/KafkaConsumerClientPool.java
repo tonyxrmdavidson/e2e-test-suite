@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.security.InvalidParameterException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,7 +49,8 @@ public class KafkaConsumerClientPool<K, V> implements KafkaAsyncConsumer<K, V> {
                 groupID,
                 "latest",
                 keyDeserializer,
-                valueDeserializer))
+                valueDeserializer,
+                new HashMap<>()))
             .collect(Collectors.toList());
     }
 
