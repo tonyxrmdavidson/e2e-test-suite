@@ -60,7 +60,7 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void teardown() {
+    public void teardown() throws Throwable {
         assumeTeardown();
 
         try {
@@ -68,6 +68,8 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
+
+        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
