@@ -9,6 +9,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -43,9 +44,12 @@ public class ServiceAPIUtils {
                 Environment.SSO_REDHAT_CLIENT_ID,
                 username, password)
 
-            .map(user -> new ServiceAPI(vertx, Environment.SERVICE_API_URI, user));
+            .map(u -> serviceAPI(vertx, u));
     }
 
+    public static ServiceAPI serviceAPI(Vertx vertx, User user) {
+        return new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
+    }
 
     /**
      * Get Kafka by name or return empty optional
@@ -150,6 +154,10 @@ public class ServiceAPIUtils {
                 LOGGER.warn("kafka instance '{}' not found", name);
                 return Future.succeededFuture();
             }));
+    }
+
+    public static Future<Void> cleanServiceAccount(ServiceAPI api, String name) {
+        return deleteServiceAccountByNameIfExists(api, name);
     }
 
     /**
@@ -280,7 +288,7 @@ public class ServiceAPIUtils {
                     return api.resetCredentialsServiceAccount(v.id);
                 })
                 .orElseGet(() -> {
-                    LOGGER.warn("create service account: {}", name);
+                    LOGGER.info("create service account: {}", name);
 
                     var serviceAccountPayload = new CreateServiceAccountPayload();
                     serviceAccountPayload.name = name;

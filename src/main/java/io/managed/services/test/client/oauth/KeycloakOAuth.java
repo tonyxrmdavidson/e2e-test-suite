@@ -1,5 +1,6 @@
 package io.managed.services.test.client.oauth;
 
+import io.managed.services.test.Environment;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.exception.ResponseException;
@@ -91,6 +92,32 @@ public class KeycloakOAuth {
                 LOGGER.info("authentication completed; authURI={}", authURI);
                 return null;
             });
+    }
+
+    public Future<User> loginToRHSSO() {
+        return loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+    }
+
+    public Future<User> loginToRHSSO(String username, String password) {
+        return login(
+            Environment.SSO_REDHAT_KEYCLOAK_URI,
+            Environment.SSO_REDHAT_REDIRECT_URI,
+            Environment.SSO_REDHAT_REALM,
+            Environment.SSO_REDHAT_CLIENT_ID,
+            username, password);
+    }
+
+    public Future<User> loginToMASSSO() {
+        return loginToMASSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+    }
+
+    public Future<User> loginToMASSSO(String username, String password) {
+        return login(
+            Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
+            Environment.MAS_SSO_REDHAT_REDIRECT_URI,
+            Environment.MAS_SSO_REDHAT_REALM,
+            Environment.MAS_SSO_REDHAT_CLIENT_ID,
+            username, password);
     }
 
     /**

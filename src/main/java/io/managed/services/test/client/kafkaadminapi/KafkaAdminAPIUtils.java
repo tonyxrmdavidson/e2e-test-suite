@@ -21,19 +21,14 @@ public class KafkaAdminAPIUtils {
         return kafkaAdminAPI(vertx, bootstrapHost, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
     }
+
     public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost, String username, String password) {
         var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
         var auth = new KeycloakOAuth(vertx);
 
-        LOGGER.info("authenticate user: {} against: {}", username, Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(
-                Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
-                Environment.MAS_SSO_REDHAT_REDIRECT_URI,
-                Environment.MAS_SSO_REDHAT_REALM,
-                Environment.MAS_SSO_REDHAT_CLIENT_ID,
-                username, password)
-
-                .map(user -> new KafkaAdminAPI(vertx, apiURI, user));
+        LOGGER.info("authenticate user: {} against MAS SSO", username);
+        return auth.loginToMASSSO(username, password)
+            .map(user -> new KafkaAdminAPI(vertx, apiURI, user));
     }
 
     /**
@@ -59,18 +54,18 @@ public class KafkaAdminAPIUtils {
 
         return admin.getAllTopics()
 
-                // create the missing topics
-                .compose(currentTopics -> forEach(topics.iterator(), t -> {
-                    if (currentTopics.items.stream().anyMatch(o -> o.name.equals(t))) {
-                        return Future.succeededFuture();
-                    }
+            // create the missing topics
+            .compose(currentTopics -> forEach(topics.iterator(), t -> {
+                if (currentTopics.items.stream().anyMatch(o -> o.name.equals(t))) {
+                    return Future.succeededFuture();
+                }
 
-                    missingTopics.add(t);
+                missingTopics.add(t);
 
-                    LOGGER.info("create missing topic: {}", t);
-                    return createDefaultTopic(admin, t).map(__ -> null);
+                LOGGER.info("create missing topic: {}", t);
+                return createDefaultTopic(admin, t).map(__ -> null);
 
-                }).map(v -> missingTopics));
+            }).map(v -> missingTopics));
     }
 
     static public CreateTopicPayload setUpDefaultTopicPayload(String name) {
