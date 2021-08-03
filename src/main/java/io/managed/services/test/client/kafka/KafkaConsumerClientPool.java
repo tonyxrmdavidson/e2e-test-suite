@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,13 +17,21 @@ import java.util.stream.IntStream;
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.client.kafka.KafkaConsumerClient.resetToEnd;
 
-public class KafkaConsumerClientPool implements KafkaAsyncConsumer {
+public class KafkaConsumerClientPool<K, V> implements KafkaAsyncConsumer<K, V> {
     private static final Logger LOGGER = LogManager.getLogger(KafkaConsumerClientPool.class);
 
-    private final List<KafkaConsumer<String, String>> consumers;
+    private final List<KafkaConsumer<K, V>> consumers;
 
     public KafkaConsumerClientPool(
-        Vertx vertx, String bootstrapHost, String clientID, String clientSecret, String groupID, KafkaAuthMethod authMethod, int numberOfConsumer) {
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        String groupID,
+        KafkaAuthMethod authMethod,
+        int numberOfConsumer,
+        Class<? extends Deserializer<K>> keyDeserializer,
+        Class<? extends Deserializer<V>> valueDeserializer) {
 
         if (numberOfConsumer < 1) {
             throw new InvalidParameterException("the numberOfConsumer can not be smaller then 1");
@@ -31,11 +40,19 @@ public class KafkaConsumerClientPool implements KafkaAsyncConsumer {
         consumers = IntStream.range(0, numberOfConsumer)
             .boxed()
             .map(__ -> KafkaConsumerClient.createConsumer(
-                vertx, bootstrapHost, clientID, clientSecret, authMethod, groupID, "latest"))
+                vertx,
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                authMethod,
+                groupID,
+                "latest",
+                keyDeserializer,
+                valueDeserializer))
             .collect(Collectors.toList());
     }
 
-    public List<KafkaConsumer<String, String>> getConsumers() {
+    public List<KafkaConsumer<K, V>> getConsumers() {
         return consumers;
     }
 
@@ -61,15 +78,15 @@ public class KafkaConsumerClientPool implements KafkaAsyncConsumer {
         });
     }
 
-    private Future<List<ConsumerRecord>> consumeMessages(int expectedMessages) {
+    private Future<List<ConsumerRecord<K, V>>> consumeMessages(int expectedMessages) {
         Promise<Void> promise = Promise.promise();
-        List<ConsumerRecord> records = new LinkedList<>();
+        List<ConsumerRecord<K, V>> records = new LinkedList<>();
 
         for (var consumer : consumers) {
             var consumerHash = consumer.hashCode();
             LOGGER.info("handle consumer: {}", consumerHash);
             consumer.handler(record -> {
-                records.add(new ConsumerRecord(consumerHash, record));
+                records.add(new ConsumerRecord<>(consumerHash, record));
                 if (records.size() == expectedMessages) {
                     LOGGER.info("successfully received {} messages", expectedMessages);
                     promise.complete();
@@ -80,7 +97,7 @@ public class KafkaConsumerClientPool implements KafkaAsyncConsumer {
         return promise.future().map(records);
     }
 
-    public Future<Future<List<ConsumerRecord>>> receiveAsync(String topicName, int expectedMessages) {
+    public Future<Future<List<ConsumerRecord<K, V>>>> receiveAsync(String topicName, int expectedMessages) {
 
         // because multiple consumers are still going to connect to a single topic we can just
         // use one consumer to reset all topic partitions

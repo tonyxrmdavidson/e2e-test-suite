@@ -6,30 +6,41 @@ import io.vertx.core.Vertx;
 import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import io.vertx.kafka.client.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class KafkaProducerClient {
+public class KafkaProducerClient<K, V> {
     private static final Logger LOGGER = LogManager.getLogger(KafkaProducerClient.class);
     private final Vertx vertx;
-    private final KafkaProducer<String, String> producer;
+    private final KafkaProducer<K, V> producer;
 
-    public KafkaProducerClient(Vertx vertx, String bootstrapHost, String clientID, String clientSecret, KafkaAuthMethod authMethod) {
+    public KafkaProducerClient(
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        KafkaAuthMethod authMethod,
+        Class<? extends Deserializer<K>> keyDeserializer,
+        Class<? extends Deserializer<V>> valueDeserializer) {
+
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: ***", bootstrapHost, clientID);
-        producer = createProducer(vertx, bootstrapHost, clientID, clientSecret, authMethod);
+        producer = createProducer(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            authMethod,
+            keyDeserializer,
+            valueDeserializer);
     }
 
-    public Future<List<RecordMetadata>> sendAsync(String topicName, String... messages) {
-        return sendAsync(topicName, Arrays.asList(messages));
-    }
-
-    public Future<List<RecordMetadata>> sendAsync(String topicName, List<String> messages) {
+    public Future<List<RecordMetadata>> sendAsync(String topicName, List<V> messages) {
 
         List<Future> sent = messages.stream()
             .map(message -> producer.send(KafkaProducerRecord.create(topicName, message)))
@@ -40,13 +51,20 @@ public class KafkaProducerClient {
             .map(c -> c.list());
     }
 
-    static public KafkaProducer<String, String> createProducer(
-        Vertx vertx, String bootstrapHost, String clientID, String clientSecret, KafkaAuthMethod method) {
+    public static <K, V> KafkaProducer<K, V> createProducer(
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        KafkaAuthMethod method,
+        Class<? extends Deserializer<K>> keyDeserializer,
+        Class<? extends Deserializer<V>> valueDeserializer) {
+
         var config = method.configs(bootstrapHost, clientID, clientSecret);
 
         //Standard consumer config
-        config.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        config.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        config.put("key.serializer", keyDeserializer.getName());
+        config.put("value.serializer", valueDeserializer.getName());
         config.put("acks", "all");
 
         return KafkaProducer.create(vertx, config);

@@ -18,6 +18,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -256,7 +257,14 @@ public class KafkaManagerAPITest extends TestBase {
 
         // Connect the Kafka producer
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        var producer = KafkaProducerClient.createProducer(vertx, bootstrapHost, clientID, clientSecret, KafkaAuthMethod.PLAIN);
+        var producer = KafkaProducerClient.createProducer(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            KafkaAuthMethod.PLAIN,
+            StringDeserializer.class,
+            StringDeserializer.class);
 
         // Delete the Kafka instance
         LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);

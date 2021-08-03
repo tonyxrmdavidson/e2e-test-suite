@@ -133,7 +133,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testFailToCallAPIIfTokenIsInvalid() throws Throwable {
+    public void testFailToCallAPIIfTokenIsInvalid() {
 
         LOGGER.info("Test invalid token");
         var bootstrapServerHost = kafka.bootstrapServerHost;

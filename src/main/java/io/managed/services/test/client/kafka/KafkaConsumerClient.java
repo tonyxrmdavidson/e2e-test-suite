@@ -5,25 +5,42 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.LinkedList;
+
 import static io.managed.services.test.TestUtils.forEach;
 
-public class KafkaConsumerClient implements KafkaAsyncConsumer {
+public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
     private static final Logger LOGGER = LogManager.getLogger(KafkaConsumerClient.class);
     private final Vertx vertx;
-    private final KafkaConsumer<String, String> consumer;
+    private final KafkaConsumer<K, V> consumer;
 
     public KafkaConsumerClient(
         Vertx vertx,
         String bootstrapHost,
         String clientID,
         String clientSecret,
-        KafkaAuthMethod method) {
-        this(vertx, bootstrapHost, clientID, clientSecret, method, "test-group", "latest");
+        KafkaAuthMethod method,
+        Class<? extends Deserializer<K>> keyDeserializer,
+        Class<? extends Deserializer<V>> valueDeserializer) {
+
+        this(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            method,
+            "test-group",
+            "latest",
+            keyDeserializer,
+            valueDeserializer);
     }
 
     public KafkaConsumerClient(
@@ -33,16 +50,26 @@ public class KafkaConsumerClient implements KafkaAsyncConsumer {
         String clientSecret,
         KafkaAuthMethod method,
         String groupID,
-        String offset) {
+        String offset,
+        Class<? extends Deserializer<K>> keyDeserializer,
+        Class<? extends Deserializer<V>> valueDeserializer) {
 
         this.vertx = vertx;
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        consumer = createConsumer(vertx, bootstrapHost, clientID, clientSecret, method, groupID, offset);
+        consumer = createConsumer(vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            method,
+            groupID,
+            offset,
+            keyDeserializer,
+            valueDeserializer);
     }
 
     @Override
-    public Future<Future<List<ConsumerRecord>>> receiveAsync(String topicName, int expectedMessages) {
+    public Future<Future<List<ConsumerRecord<K, V>>>> receiveAsync(String topicName, int expectedMessages) {
 
         // start by resetting the topic to the end
         return resetToEnd(consumer, topicName)
@@ -63,7 +90,7 @@ public class KafkaConsumerClient implements KafkaAsyncConsumer {
     /**
      * Subscribe at the end of the topic
      */
-    public static Future<Void> resetToEnd(KafkaConsumer<String, String> consumer, String topic) {
+    public static <K, V> Future<Void> resetToEnd(KafkaConsumer<K, V> consumer, String topic) {
 
         LOGGER.info("rest topic {} offset for all partitions to the end", topic);
         return consumer.partitionsFor(topic)
@@ -88,15 +115,15 @@ public class KafkaConsumerClient implements KafkaAsyncConsumer {
     }
 
 
-    private Future<List<ConsumerRecord>> consumeMessages(int expectedMessages) {
-        Promise<List<ConsumerRecord>> promise = Promise.promise();
-        List<ConsumerRecord> messages = new LinkedList<>();
+    private Future<List<ConsumerRecord<K, V>>> consumeMessages(int expectedMessages) {
+        Promise<List<ConsumerRecord<K, V>>> promise = Promise.promise();
+        List<ConsumerRecord<K, V>> messages = new LinkedList<>();
 
         // set the fetch batch to the expected messages
         consumer.fetch(expectedMessages);
 
         consumer.handler(record -> {
-            messages.add(new ConsumerRecord(consumer.hashCode(), record));
+            messages.add(new ConsumerRecord<>(consumer.hashCode(), record));
             if (messages.size() == expectedMessages) {
                 LOGGER.info("successfully received {} messages", expectedMessages);
                 consumer.commit()
@@ -117,13 +144,37 @@ public class KafkaConsumerClient implements KafkaAsyncConsumer {
         String groupID,
         String offset) {
 
+        return createConsumer(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            authMethod,
+            groupID,
+            offset,
+            StringDeserializer.class,
+            StringDeserializer.class);
+    }
+
+
+    public static <K, V> KafkaConsumer<K, V> createConsumer(
+        Vertx vertx,
+        String bootstrapHost,
+        String clientID,
+        String clientSecret,
+        KafkaAuthMethod authMethod,
+        String groupID,
+        String offset,
+        Class<? extends Deserializer<K>> keyDeserializer,
+        Class<? extends Deserializer<V>> valueDeserializer) {
+
         var config = authMethod.configs(bootstrapHost, clientID, clientSecret);
 
-        config.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        config.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        config.put("group.id", groupID);
-        config.put("auto.offset.reset", offset);
-        config.put("enable.auto.commit", "true");
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer.getName());
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer.getName());
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupID);
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offset);
+        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 
         return KafkaConsumer.create(vertx, config);
     }
