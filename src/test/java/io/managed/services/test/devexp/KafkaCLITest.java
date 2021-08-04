@@ -1,11 +1,14 @@
 package io.managed.services.test.devexp;
 
 import io.managed.services.test.Environment;
+import io.managed.services.test.IsReady;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.cli.ProcessException;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
@@ -18,15 +21,21 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.TestUtils.waitFor;
+import static io.managed.services.test.cli.CLIUtils.waitForConsumerGroupDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
 import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
 import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static java.time.Duration.ofMinutes;
+import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -55,6 +64,7 @@ public class KafkaCLITest extends TestBase {
     private static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String TOPIC_NAME = "cli-e2e-test-topic";
     private static final int DEFAULT_PARTITIONS = 1;
+    private static final String CONSUMER_GROUP_NAME = "consumer-group-1";
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -62,6 +72,7 @@ public class KafkaCLITest extends TestBase {
     private KafkaResponse kafkaInstance;
     private ServiceAccount serviceAccount;
     private TopicResponse topic;
+    private ServiceAPI serviceAPI;
 
     private Future<Void> cleanServiceAccount(ServiceAPI api) {
         LOGGER.info("delete service account with name: {}", SERVICE_ACCOUNT_NAME);
@@ -269,7 +280,53 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaTopic", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
+    public void testGetConsumerGroup() throws Throwable {
+
+        // create consumer group
+        serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
+        LOGGER.info("create or retrieve service account: {}", SERVICE_ACCOUNT_NAME);
+
+        LOGGER.info("crete kafka consumer with group id: {}", CONSUMER_GROUP_NAME);
+        var consumer = KafkaConsumerClient.createConsumer(vertx,
+                kafkaInstance.bootstrapServerHost,
+                serviceAccount.clientID,
+                serviceAccount.clientSecret,
+                KafkaAuthMethod.OAUTH,
+                CONSUMER_GROUP_NAME,
+                "latest");
+
+        LOGGER.info("subscribe to topic: {}", TOPIC_NAME);
+        consumer.subscribe(TOPIC_NAME);
+        consumer.handler(r -> {
+            // ignore
+        });
+        IsReady<Object> subscribed = last -> consumer.assignment().map(partitions -> {
+            var o = partitions.stream().filter(p -> p.getTopic().equals(TOPIC_NAME)).findAny();
+            return Pair.with(o.isPresent(), null);
+        });
+        bwait(waitFor(vertx, "consumer group to subscribe", ofSeconds(2), ofMinutes(2), subscribed));
+        bwait(consumer.close());
+
+        // list all consumer groups
+        LOGGER.info("get list of consumer group and check if expected group (with name {})  is present", TOPIC_NAME);
+        var consumerGroup = bwait(CLIUtils.getConsumerGroupByName(cli, CONSUMER_GROUP_NAME));
+        assertTrue(consumerGroup.isPresent(), "Consumer group isn't present amongst listed groups");
+
+        // additional check for description of the same consumer Group
+        var consumerGroupDescription = bwait(cli.describeConsumerGroup(CONSUMER_GROUP_NAME));
+        assertNotNull(consumerGroupDescription, "consumer group isn't present");
+    }
+
+    @Test(dependsOnMethods = "testGetConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    public void testDeleteConsumerGroup() throws Throwable {
+
+        LOGGER.info("delete consumer group with name (id): {}",  CONSUMER_GROUP_NAME);
+        bwait(cli.deleteConsumerGroup(CONSUMER_GROUP_NAME));
+        bwait(waitForConsumerGroupDelete(vertx, cli, CONSUMER_GROUP_NAME));
+    }
+
+    @Test(dependsOnMethods = "testCreateKafkaTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteTopic() throws Throwable {
 
         LOGGER.info("delete topic: {}", TOPIC_NAME);
@@ -279,7 +336,7 @@ public class KafkaCLITest extends TestBase {
         bwait(waitForTopicDelete(vertx, cli, TOPIC_NAME)); // also verify that the topic doesn't exists anymore
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 2, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteServiceAccount() throws Throwable {
 
         bwait(cli.deleteServiceAccount(serviceAccount.id));
@@ -288,7 +345,7 @@ public class KafkaCLITest extends TestBase {
         // TODO: Verify that the service account doesn't exists
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteKafkaInstance() throws Throwable {
 
         LOGGER.info("delete kafka instance {} with id {}", kafkaInstance.name, kafkaInstance.id);

@@ -11,6 +11,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.serviceapi.ConsumerGroupResponse;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
@@ -154,6 +155,10 @@ public class CLIUtils {
         return cli.listTopics().map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
     }
 
+    public static Future<Optional<ConsumerGroupResponse>> getConsumerGroupByName(CLI cli, String topicName) {
+        return cli.listConsumerGroups().map(r -> r.items != null ? r.items.stream().filter(consumerGroup -> consumerGroup.groupId.equals(topicName)).findFirst() : Optional.empty());
+    }
+
     public static Future<Optional<KafkaResponse>> getKafkaByName(Vertx vertx, CLI cli, String name) {
         return cli.listKafkaByNameAsJson(name)
                 .map(r -> r.items != null ? r.items.stream().findFirst() : Optional.empty());
@@ -170,6 +175,13 @@ public class CLIUtils {
                 .map(k -> Pair.with(k.isEmpty(), null));
 
         return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
+    }
+
+    public static Future<Void> waitForConsumerGroupDelete(Vertx vertx, CLI cli, String name) {
+        IsReady<Void> isDeleted = last -> getConsumerGroupByName(cli, name)
+                .map(k -> Pair.with(k.isEmpty(), null));
+
+        return waitFor(vertx, "Consumer group to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
     }
 
     public static Future<Optional<ServiceAccount>> getServiceAccountByName(Vertx vertx, CLI cli, String name) {
