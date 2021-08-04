@@ -6,6 +6,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -109,8 +110,8 @@ public class KafkaMessagingUtils {
             clientID,
             clientSecret,
             authMethod,
-            StringDeserializer.class,
-            StringDeserializer.class);
+            StringSerializer.class,
+            StringSerializer.class);
 
         return produceAndConsumeMessages(vertx, producer, consumer, topicName, timeout, messages)
             .compose(records -> assertRecords(messages, records));
@@ -168,8 +169,8 @@ public class KafkaMessagingUtils {
             clientID,
             clientSecret,
             authMethod,
-            StringDeserializer.class,
-            StringDeserializer.class);
+            StringSerializer.class,
+            StringSerializer.class);
 
         return produceAndConsumeMessages(vertx, producer, consumer, topicName, timeout, messages)
 

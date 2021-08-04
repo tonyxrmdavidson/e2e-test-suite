@@ -18,7 +18,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -264,8 +264,8 @@ public class KafkaManagerAPITest extends TestBase {
             clientID,
             clientSecret,
             KafkaAuthMethod.PLAIN,
-            StringDeserializer.class,
-            StringDeserializer.class,
+            StringSerializer.class,
+            StringSerializer.class,
             new HashMap<>());
 
         // Delete the Kafka instance

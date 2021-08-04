@@ -4,6 +4,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,12 +24,16 @@ public class KafkaAdminAPIUtils {
     }
 
     public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost, String username, String password) {
-        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
         var auth = new KeycloakOAuth(vertx);
 
         LOGGER.info("authenticate user: {} against MAS SSO", username);
         return auth.loginToMASSSO(username, password)
-            .map(user -> new KafkaAdminAPI(vertx, apiURI, user));
+            .map(user -> kafkaAdminAPI(vertx, bootstrapHost, user));
+    }
+
+    public static KafkaAdminAPI kafkaAdminAPI(Vertx vertx, String bootstrapHost, User user) {
+        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
+        return new KafkaAdminAPI(vertx, apiURI, user);
     }
 
     /**

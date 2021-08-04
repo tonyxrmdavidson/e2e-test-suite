@@ -7,7 +7,7 @@ import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import io.vertx.kafka.client.producer.RecordMetadata;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,16 +27,16 @@ public class KafkaProducerClient<K, V> {
         String clientID,
         String clientSecret,
         KafkaAuthMethod authMethod,
-        Class<? extends Deserializer<K>> keyDeserializer,
-        Class<? extends Deserializer<V>> valueDeserializer) {
+        Class<? extends Serializer<K>> keySerializer,
+        Class<? extends Serializer<V>> valueSerializer) {
 
         this(vertx,
             bootstrapHost,
             clientID,
             clientSecret,
             authMethod,
-            keyDeserializer,
-            valueDeserializer,
+            keySerializer,
+            valueSerializer,
             new HashMap<>());
     }
 
@@ -46,8 +46,8 @@ public class KafkaProducerClient<K, V> {
         String clientID,
         String clientSecret,
         KafkaAuthMethod authMethod,
-        Class<? extends Deserializer<K>> keyDeserializer,
-        Class<? extends Deserializer<V>> valueDeserializer,
+        Class<? extends Serializer<K>> keySerializer,
+        Class<? extends Serializer<V>> valueSerializer,
         Map<String, String> additionalConfig) {
 
         this.vertx = vertx;
@@ -59,8 +59,8 @@ public class KafkaProducerClient<K, V> {
             clientID,
             clientSecret,
             authMethod,
-            keyDeserializer,
-            valueDeserializer,
+            keySerializer,
+            valueSerializer,
             additionalConfig);
     }
 
@@ -81,15 +81,15 @@ public class KafkaProducerClient<K, V> {
         String clientID,
         String clientSecret,
         KafkaAuthMethod method,
-        Class<? extends Deserializer<K>> keyDeserializer,
-        Class<? extends Deserializer<V>> valueDeserializer,
+        Class<? extends Serializer<K>> keySerializer,
+        Class<? extends Serializer<V>> valueSerializer,
         Map<String, String> additionalConfig) {
 
         var config = method.configs(bootstrapHost, clientID, clientSecret);
 
         // Standard consumer config
-        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keyDeserializer.getName());
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueDeserializer.getName());
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializer.getName());
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializer.getName());
         config.put(ProducerConfig.ACKS_CONFIG, "all");
 
         // add the additional configs
