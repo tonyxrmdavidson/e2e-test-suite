@@ -43,7 +43,7 @@ public class KeycloakOAuthUtils {
         Function<HttpResponse<Buffer>, Boolean> condition) {
 
         var c = response.statusCode();
-        if ((c >= 300 && c < 400)
+        if (c >= 300 && c < 400
             && condition.apply(response)) {
 
             // handle redirects
@@ -98,7 +98,7 @@ public class KeycloakOAuthUtils {
 
     }
 
-    private static  <T> Future<T> retry(Vertx vertx, Supplier<Future<T>> call) {
+    private static <T> Future<T> retry(Vertx vertx, Supplier<Future<T>> call) {
 
         Function<Throwable, Boolean> condition = t -> {
             if (t instanceof NoStackTraceThrowable) {
