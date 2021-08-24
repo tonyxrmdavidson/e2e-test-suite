@@ -93,7 +93,7 @@ public class KeycloakOAuthUtils {
                 LOGGER.info("authenticate user; code={}", code);
                 return retry(vertx, () -> oauth2.authenticate(new JsonObject()
                     .put("code", code)
-                    .put("redirect_uri", redirectURI)));
+                    .put("redirectUri", redirectURI)));
             });
 
     }
