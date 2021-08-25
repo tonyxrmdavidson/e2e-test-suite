@@ -19,4 +19,3 @@ public class ConsumerRecord<K, V> {
         return record;
     }
 }
-

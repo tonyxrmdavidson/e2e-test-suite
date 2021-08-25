@@ -17,9 +17,9 @@ import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.util.Utf8;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.logging.log4j.LogManager;
@@ -45,6 +45,7 @@ import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applySe
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanServiceAccount;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.serviceAPI;
+import static org.testng.Assert.assertEquals;
 
 @Test(groups = TestTag.REGISTRY)
 public class RegistryKafkaIntegrationTest extends TestBase {
@@ -122,7 +123,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void test() throws Throwable {
+    public void testProduceConsumeAvroMessageWithServiceRegistry() throws Throwable {
 
         // producer
         LOGGER.info("initialize producer with registry");
@@ -179,7 +180,13 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         LOGGER.info("consumer the record");
         var records = bwait(futureRecords);
 
-        LOGGER.info("records: {}", Json.encode(records));
+        LOGGER.info("Records:");
+        for (var r : records) {
+            LOGGER.info("  K: {}; V: {}", r.record().key(), r.record().value().get("Message"));
+        }
+
+        var m = (Utf8) records.get(0).record().value().get("Message");
+        assertEquals(m.toString(), "Hello World");
 
         bwait(consumer.close());
         bwait(producer.close());
