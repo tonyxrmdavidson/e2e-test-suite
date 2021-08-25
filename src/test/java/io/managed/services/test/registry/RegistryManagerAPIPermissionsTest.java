@@ -1,6 +1,7 @@
 package io.managed.services.test.registry;
 
 import com.openshift.cloud.api.srs.models.RegistryRest;
+import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
@@ -91,24 +92,13 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
         assertThrows(ApiNotFoundException.class, () -> alienRegistriesApi.getRegistry(registry.getId()));
     }
 
-    // https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/118
-    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
-    public void testSecondaryUserCanNotCreateArtifactOnTheRegistry() throws Throwable {
-        var registryClient = bwait(registryClient(vertx, registry.getRegistryUrl(),
-            Environment.SSO_SECONDARY_USERNAME,
-            Environment.SSO_SECONDARY_PASSWORD));
-
-        registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8));
-    }
-
-    // https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/118
-    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
+    @Test(timeOut = DEFAULT_TIMEOUT)
     public void testAlienUserCanNotCreateArtifactOnTheRegistry() throws Throwable {
         var registryClient = bwait(registryClient(vertx, registry.getRegistryUrl(),
             Environment.SSO_ALIEN_USERNAME,
             Environment.SSO_ALIEN_PASSWORD));
 
-        registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8));
+        assertThrows(ForbiddenException.class, () -> registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8)));
     }
 
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
@@ -119,15 +109,6 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testAlienUserCanNotDeleteTheRegistry() {
         assertThrows(ApiForbiddenException.class, () -> alienRegistriesApi.deleteRegistry(registry.getId()));
-    }
-
-    // https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/117
-    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
-    public void testUnauthorizedUser() throws Throwable {
-        var api = bwait(registriesApi(vertx,
-            Environment.SSO_UNAUTHORIZED_USERNAME,
-            Environment.SSO_UNAUTHORIZED_PASSWORD));
-        api.getRegistries(null, null, null, null);
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
