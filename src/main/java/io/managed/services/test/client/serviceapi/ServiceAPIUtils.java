@@ -3,6 +3,7 @@ package io.managed.services.test.client.serviceapi;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
+import io.managed.services.test.client.exception.HTTPToManyRequestsException;
 import io.managed.services.test.client.exception.ResponseException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.CompositeFuture;
@@ -106,10 +107,31 @@ public class ServiceAPIUtils {
 
             }).orElseGet(() -> {
                 LOGGER.info("create kafka instance: {}", payload.name);
-                return api.createKafka(payload, true)
+                return createKafkaInstance(vertx, api, payload)
                     .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id));
             }))
             .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
+    }
+
+    /**
+     * Create a Kafka instance but retry for 10 minutes if the cluster capacity is exhausted.
+     *
+     * @param vertx   Vertx
+     * @param api     ServiceAPI
+     * @param payload CreateKafkaPayload
+     * @return Future<KafkaResponse>
+     */
+    public static Future<KafkaResponse> createKafkaInstance(Vertx vertx, ServiceAPI api, CreateKafkaPayload payload) {
+        IsReady<KafkaResponse> isReady = last -> api.createKafka(payload, true)
+            .map(k -> Pair.with(true, k))
+            .recover(t -> {
+                if (t instanceof HTTPToManyRequestsException) {
+                    return Future.succeededFuture(Pair.with(false, null));
+                }
+                return Future.failedFuture(t);
+            });
+
+        return waitFor(vertx, "kafka instance to create", ofSeconds(10), ofMinutes(10), isReady);
     }
 
     public static CreateKafkaPayload createKafkaPayload(String kafkaInstanceName) {
@@ -218,7 +240,6 @@ public class ServiceAPIUtils {
     public static Future<KafkaResponse> waitUntilKafkaIsReady(Vertx vertx, ServiceAPI api, String kafkaID) {
         IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID)
             .compose(r -> isKafkaReady(r, last));
-
 
         return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady)
             .compose(k -> waitUntilBootstrapHostIsReachable(vertx, k));
