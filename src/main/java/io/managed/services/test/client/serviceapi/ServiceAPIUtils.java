@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.waitFor;
+import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofMinutes;
@@ -110,6 +111,12 @@ public class ServiceAPIUtils {
                 return createKafkaInstance(vertx, api, payload)
                     .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id));
             }))
+            .compose(k -> {
+                if (!("accepted".equals(k.status) || "provisioning".equals(k.status) || "ready".equals(k.status))) {
+                    return failedFuture("kafka cluster instance either failed or wasn't successfully deleted from previous run");
+                }
+                return succeededFuture(k);
+            })
             .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
     }
 
