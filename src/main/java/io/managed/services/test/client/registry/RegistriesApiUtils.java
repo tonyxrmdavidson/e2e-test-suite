@@ -13,6 +13,7 @@ import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,17 +32,17 @@ public class RegistriesApiUtils {
     }
 
     public static Future<RegistriesApi> registriesApi(Vertx vertx, String username, String password) {
-        var auth = new KeycloakOAuth(vertx);
+        return registriesApi(new KeycloakOAuth(vertx), username, password);
+    }
 
-        LOGGER.info("authenticate user: {} against: {}", username, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID,
-                username, password)
+    public static Future<RegistriesApi> registriesApi(KeycloakOAuth auth, String username, String password) {
+        LOGGER.info("authenticate user: {} against RH SSO", username);
+        return auth.loginToRHSSO(username, password)
+            .map(u -> registriesApi(u));
+    }
 
-            .map(user -> registriesApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user)));
+    public static RegistriesApi registriesApi(User user) {
+        return registriesApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user));
     }
 
     public static RegistriesApi registriesApi(String uri, String token) {

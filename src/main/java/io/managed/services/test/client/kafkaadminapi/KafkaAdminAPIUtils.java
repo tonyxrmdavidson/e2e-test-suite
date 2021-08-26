@@ -4,6 +4,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,19 +22,18 @@ public class KafkaAdminAPIUtils {
         return kafkaAdminAPI(vertx, bootstrapHost, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
     }
+
     public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost, String username, String password) {
-        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
         var auth = new KeycloakOAuth(vertx);
 
-        LOGGER.info("authenticate user: {} against: {}", username, Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(
-                Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
-                Environment.MAS_SSO_REDHAT_REDIRECT_URI,
-                Environment.MAS_SSO_REDHAT_REALM,
-                Environment.MAS_SSO_REDHAT_CLIENT_ID,
-                username, password)
+        LOGGER.info("authenticate user: {} against MAS SSO", username);
+        return auth.loginToMASSSO(username, password)
+            .map(user -> kafkaAdminAPI(vertx, bootstrapHost, user));
+    }
 
-                .map(user -> new KafkaAdminAPI(vertx, apiURI, user));
+    public static KafkaAdminAPI kafkaAdminAPI(Vertx vertx, String bootstrapHost, User user) {
+        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapHost);
+        return new KafkaAdminAPI(vertx, apiURI, user);
     }
 
     /**
@@ -59,18 +59,18 @@ public class KafkaAdminAPIUtils {
 
         return admin.getAllTopics()
 
-                // create the missing topics
-                .compose(currentTopics -> forEach(topics.iterator(), t -> {
-                    if (currentTopics.items.stream().anyMatch(o -> o.name.equals(t))) {
-                        return Future.succeededFuture();
-                    }
+            // create the missing topics
+            .compose(currentTopics -> forEach(topics.iterator(), t -> {
+                if (currentTopics.items.stream().anyMatch(o -> o.name.equals(t))) {
+                    return Future.succeededFuture();
+                }
 
-                    missingTopics.add(t);
+                missingTopics.add(t);
 
-                    LOGGER.info("create missing topic: {}", t);
-                    return createDefaultTopic(admin, t).map(__ -> null);
+                LOGGER.info("create missing topic: {}", t);
+                return createDefaultTopic(admin, t).map(__ -> null);
 
-                }).map(v -> missingTopics));
+            }).map(v -> missingTopics));
     }
 
     static public CreateTopicPayload setUpDefaultTopicPayload(String name) {

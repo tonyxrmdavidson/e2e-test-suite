@@ -16,16 +16,9 @@ public class SSOAuthTest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testRedHatSSOLogin() throws Throwable {
-
         var auth = new KeycloakOAuth(Vertx.vertx());
 
-        bwait(auth.login(
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID,
-            Environment.SSO_USERNAME,
-            Environment.SSO_PASSWORD));
+        bwait(auth.loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
         LOGGER.info("user authenticated against: {}", Environment.SSO_REDHAT_KEYCLOAK_URI);
     }
 
@@ -33,13 +26,7 @@ public class SSOAuthTest extends TestBase {
     public void testMASSSOLogin() throws Throwable {
         var auth2 = new KeycloakOAuth(Vertx.vertx());
 
-        bwait(auth2.login(
-            Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
-            Environment.MAS_SSO_REDHAT_REDIRECT_URI,
-            Environment.MAS_SSO_REDHAT_REALM,
-            Environment.MAS_SSO_REDHAT_CLIENT_ID,
-            Environment.SSO_USERNAME,
-            Environment.SSO_PASSWORD));
+        bwait(auth2.loginToMASSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
         LOGGER.info("user authenticated against: {}", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
     }
 
@@ -47,22 +34,10 @@ public class SSOAuthTest extends TestBase {
     public void testJoinedLogin() throws Throwable {
         var auth = new KeycloakOAuth(Vertx.vertx());
 
-        bwait(auth.login(
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID,
-            Environment.SSO_USERNAME,
-            Environment.SSO_PASSWORD));
+        bwait(auth.loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
         LOGGER.info("user authenticated against: {}", Environment.SSO_REDHAT_KEYCLOAK_URI);
 
-        bwait(auth.login(
-            Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
-            Environment.MAS_SSO_REDHAT_REDIRECT_URI,
-            Environment.MAS_SSO_REDHAT_REALM,
-            Environment.MAS_SSO_REDHAT_CLIENT_ID,
-            Environment.SSO_USERNAME,
-            Environment.SSO_PASSWORD));
+        bwait(auth.loginToMASSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
         LOGGER.info("user authenticated against: {}", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
     }
 }

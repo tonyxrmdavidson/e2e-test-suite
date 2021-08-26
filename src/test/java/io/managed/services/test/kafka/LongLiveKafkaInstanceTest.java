@@ -17,6 +17,7 @@ import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.SkipException;
@@ -260,13 +261,15 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         var clientID = serviceAccount.clientID;
         var secret = serviceAccount.clientSecret;
 
-        var consumerClient = new KafkaConsumerClient(
+        var consumerClient = new KafkaConsumerClient<>(
             vertx,
             bootstrapHost,
             clientID, secret,
             KafkaAuthMethod.OAUTH,
             TEST_CANARY_GROUP,
-            "latest");
+            "latest",
+            StringDeserializer.class,
+            StringDeserializer.class);
         bwait(consumerClient.receiveAsync(TEST_CANARY_NAME, 1));
     }
 

@@ -2,11 +2,11 @@ package io.managed.services.test.client.kafka;
 
 import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 
-public class ConsumerRecord {
+public class ConsumerRecord<K, V> {
     private final int consumerHash;
-    private final KafkaConsumerRecord<String, String> record;
+    private final KafkaConsumerRecord<K, V> record;
 
-    public ConsumerRecord(int consumerHash, KafkaConsumerRecord<String, String> record) {
+    public ConsumerRecord(int consumerHash, KafkaConsumerRecord<K, V> record) {
         this.consumerHash = consumerHash;
         this.record = record;
     }
@@ -15,8 +15,7 @@ public class ConsumerRecord {
         return consumerHash;
     }
 
-    public KafkaConsumerRecord<String, String> record() {
+    public KafkaConsumerRecord<K, V> record() {
         return record;
     }
 }
-

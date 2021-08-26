@@ -5,6 +5,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -94,8 +96,22 @@ public class KafkaMessagingUtils {
         var messages = generateRandomMessages(messageCount, minMessageSize, maxMessageSize);
 
         // initialize the consumer and the producer
-        var consumer = new KafkaConsumerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
-        var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
+        var consumer = new KafkaConsumerClient<>(vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            authMethod,
+            StringDeserializer.class,
+            StringDeserializer.class);
+
+        var producer = new KafkaProducerClient<>(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            authMethod,
+            StringSerializer.class,
+            StringSerializer.class);
 
         return produceAndConsumeMessages(vertx, producer, consumer, topicName, timeout, messages)
             .compose(records -> assertRecords(messages, records));
@@ -136,8 +152,25 @@ public class KafkaMessagingUtils {
         var messages = generateRandomMessages(messageCount, minMessageSize, maxMessageSize);
 
         // initialize the consumer and the producer
-        var consumer = new KafkaConsumerClientPool(vertx, bootstrapHost, clientID, clientSecret, groupID, authMethod, numberOfConsumers);
-        var producer = new KafkaProducerClient(vertx, bootstrapHost, clientID, clientSecret, authMethod);
+        var consumer = new KafkaConsumerClientPool<>(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            groupID,
+            authMethod,
+            numberOfConsumers,
+            StringDeserializer.class,
+            StringDeserializer.class);
+
+        var producer = new KafkaProducerClient<>(
+            vertx,
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            authMethod,
+            StringSerializer.class,
+            StringSerializer.class);
 
         return produceAndConsumeMessages(vertx, producer, consumer, topicName, timeout, messages)
 
@@ -146,10 +179,10 @@ public class KafkaMessagingUtils {
                 .compose(__ -> assertUnusedConsumers(consumer, records)));
     }
 
-    private static Future<List<ConsumerRecord>> produceAndConsumeMessages(
+    private static Future<List<ConsumerRecord<String, String>>> produceAndConsumeMessages(
         Vertx vertx,
-        KafkaProducerClient producer,
-        KafkaAsyncConsumer consumer,
+        KafkaProducerClient<String, String> producer,
+        KafkaAsyncConsumer<String, String> consumer,
         String topicName,
         Duration timeout,
         List<String> messages) {
@@ -199,7 +232,9 @@ public class KafkaMessagingUtils {
             .collect(Collectors.toList());
     }
 
-    private static Future<Void> assertUnusedConsumers(KafkaConsumerClientPool pool, List<ConsumerRecord> records) {
+    private static Future<Void> assertUnusedConsumers(
+        KafkaConsumerClientPool<String, String> pool,
+        List<ConsumerRecord<String, String>> records) {
 
         var consumerHashes = pool.getConsumers().stream().map(c -> c.hashCode()).collect(Collectors.toList());
 
@@ -218,7 +253,7 @@ public class KafkaMessagingUtils {
         return Future.failedFuture(new AssertionError(message));
     }
 
-    private static Future<Void> assertRecords(List<String> expectedMessages, List<ConsumerRecord> receivedRecords) {
+    private static Future<Void> assertRecords(List<String> expectedMessages, List<ConsumerRecord<String, String>> receivedRecords) {
         return assertMessages(expectedMessages, receivedRecords.stream().map(r -> r.record().value()).collect(Collectors.toList()));
     }
 

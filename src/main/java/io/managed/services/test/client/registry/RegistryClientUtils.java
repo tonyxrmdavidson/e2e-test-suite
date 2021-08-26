@@ -22,13 +22,8 @@ public class RegistryClientUtils {
     public static Future<RegistryClient> registryClient(Vertx vertx, String registryUrl, String username, String password) {
         var auth = new KeycloakOAuth(vertx);
 
-        LOGGER.info("authenticate user: {} against: {}", username, Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(
-                Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
-                Environment.MAS_SSO_REDHAT_REDIRECT_URI,
-                Environment.MAS_SSO_REDHAT_REALM,
-                Environment.MAS_SSO_REDHAT_CLIENT_ID,
-                username, password)
+        LOGGER.info("authenticate user: {} against MAS SSO", username);
+        return auth.loginToMASSSO(username, password)
 
             .map(user -> RegistryClientFactory.create(
                 registryUrl,
