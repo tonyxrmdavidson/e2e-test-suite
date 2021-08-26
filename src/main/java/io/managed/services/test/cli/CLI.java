@@ -119,7 +119,7 @@ public class CLI {
     }
 
     public Future<KafkaResponse> createKafka(String name) {
-        return retry(() -> exec("kafka", "create", name)
+        return retry(() -> exec("kafka", "create", "--name", name)
             .map(p -> stdoutAsJson(p, KafkaResponse.class)));
     }
 
