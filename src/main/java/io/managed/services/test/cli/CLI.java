@@ -162,11 +162,11 @@ public class CLI {
     }
 
     public Future<TopicResponse> createTopic(String topicName) {
-        return retry(() -> exec("kafka", "topic", "create", topicName, "-o", "json").map(p -> stdoutAsJson(p, TopicResponse.class)));
+        return retry(() -> exec("kafka", "topic", "create", "--name", topicName, "-o", "json").map(p -> stdoutAsJson(p, TopicResponse.class)));
     }
 
     public Future<Process> deleteTopic(String topicName) {
-        return retry(() -> exec("kafka", "topic", "delete", topicName, "-y"));
+        return retry(() -> exec("kafka", "topic", "delete", "--name", topicName, "-y"));
     }
 
     public Future<TopicListResponse> listTopics() {
@@ -175,12 +175,12 @@ public class CLI {
     }
 
     public Future<TopicResponse> describeTopic(String topicName) {
-        return retry(() -> exec("kafka", "topic", "describe", topicName, "-o", "json")
+        return retry(() -> exec("kafka", "topic", "describe", "--name", topicName, "-o", "json")
             .map(p -> stdoutAsJson(p, TopicResponse.class)));
     }
 
     public Future<TopicResponse> updateTopic(String topicName, String retentionTime) {
-        return retry(() -> exec("kafka", "topic", "update", topicName, "--retention-ms", retentionTime, "-o", "json")
+        return retry(() -> exec("kafka", "topic", "update", "--name", topicName, "--retention-ms", retentionTime, "-o", "json")
             .map(p -> stdoutAsJson(p, TopicResponse.class)));
     }
 
