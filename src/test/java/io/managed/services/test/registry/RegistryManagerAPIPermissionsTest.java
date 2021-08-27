@@ -119,15 +119,6 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
         assertThrows(ApiForbiddenException.class, () -> alienRegistriesApi.deleteRegistry(registry.getId()));
     }
 
-    // https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/117
-    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
-    public void testUnauthorizedUser() throws Throwable {
-        var api = bwait(registriesApi(vertx,
-            Environment.SSO_UNAUTHORIZED_USERNAME,
-            Environment.SSO_UNAUTHORIZED_PASSWORD));
-        api.getRegistries(null, null, null, null);
-    }
-
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithFakeToken() {
         var api = registriesApi(Environment.SERVICE_API_URI, TestUtils.FAKE_TOKEN);

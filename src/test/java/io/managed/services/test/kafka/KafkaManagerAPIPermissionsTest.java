@@ -3,7 +3,6 @@ package io.managed.services.test.kafka;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.exception.HTTPForbiddenException;
 import io.managed.services.test.client.exception.HTTPNotFoundException;
 import io.managed.services.test.client.exception.HTTPUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
@@ -39,13 +38,11 @@ import static org.testng.Assert.assertTrue;
  *  <li>main user:      SSO_USERNAME, SSO_PASSWORD</li>
  *  <li>secondary user: SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD</li>
  *  <li>alien user:     SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD</li>
- *  <li>unauth user:    SSO_UNAUTHORIZED_USERNAME, SSO_UNAUTHORIZED_PASSWORD</li>
  * </ul>
  * <p>
  * Conditions:
  * - The main user and secondary user should be part of the same organization
  * - The alien user should be part of a different organization as the main user
- * - The unauth user should not be allowed to use the API
  */
 @Test(groups = TestTag.SERVICE_API_PERMISSIONS)
 public class KafkaManagerAPIPermissionsTest extends TestBase {
@@ -215,13 +212,6 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
     public void testAlienUserCanNotDeleteTheKafkaInstance() {
         // should fail
         assertThrows(HTTPNotFoundException.class, () -> bwait(alienAPI.deleteKafka(kafka.id, true)));
-    }
-
-    @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testUnauthorizedUser() throws Throwable {
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        var api = bwait(ServiceAPIUtils.serviceAPI(vertx, Environment.SSO_UNAUTHORIZED_USERNAME, Environment.SSO_UNAUTHORIZED_PASSWORD));
-        assertThrows(HTTPForbiddenException.class, () -> bwait(api.getListOfKafkas()));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
