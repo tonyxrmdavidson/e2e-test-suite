@@ -15,6 +15,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import static io.managed.services.test.TestUtils.message;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
@@ -102,22 +104,26 @@ public class ServiceAPIUtils {
      */
     public static Future<KafkaResponse> applyKafkaInstance(Vertx vertx, ServiceAPI api, CreateKafkaPayload payload) {
         return getKafkaByName(api, payload.name)
-            .compose(o -> o.map(k -> {
-                LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
-                return succeededFuture(k);
 
-            }).orElseGet(() -> {
-                LOGGER.info("create kafka instance: {}", payload.name);
-                return createKafkaInstance(vertx, api, payload)
-                    .compose(k -> waitUntilKafkaIsReady(vertx, api, k.id));
-            }))
-            .compose(k -> {
-                if (!("accepted".equals(k.status) || "provisioning".equals(k.status) || "ready".equals(k.status))) {
-                    return failedFuture("kafka cluster instance either failed or wasn't successfully deleted from previous run");
-                }
-                return succeededFuture(k);
-            })
-            .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
+                .compose(o -> o.map(k -> {
+                    LOGGER.warn("kafka instance already exi§sts: {}", Json.encode(k));
+                    return succeededFuture(k);
+                }).orElseGet(() -> {
+                    LOGGER.info("create kafka instance: {}", payload.name);
+                    return api.createKafka(payload, true);
+                }))
+                .compose(k -> {
+
+                    if ("accepted".equals(k.status) || "provisioning".equals(k.status)) {
+                        return waitUntilKafkaIsReady(vertx, api, k.id);
+                    }
+
+                    if ("ready".equals(k.status)) {
+                        return succeededFuture(k);
+                    }
+                    return failedFuture(message("kafka instance status should be 'ready' but it is '{}'", k.status));
+                })
+                .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
     }
 
     /**
