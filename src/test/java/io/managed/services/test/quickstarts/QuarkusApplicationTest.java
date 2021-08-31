@@ -1,4 +1,4 @@
-package io.managed.services.test.quickstart;
+package io.managed.services.test.quickstarts;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
