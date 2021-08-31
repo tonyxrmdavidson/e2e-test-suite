@@ -1,6 +1,8 @@
 Feature: Quickstarts
 
   Scenario: Getting started with Red Hat OpenShift Streams for Apache Kafka
+    Given I am authenticated to Red Hat SSO
+
     # 1. Creating a Kafka instance in OpenShift Streams for Apache Kafka
     When I create a Kafka instance with a unique name
     Then the Kafka instance is listed in the instances table
