@@ -106,7 +106,7 @@ public class ServiceAPIUtils {
         return getKafkaByName(api, payload.name)
 
                 .compose(o -> o.map(k -> {
-                    LOGGER.warn("kafka instance already exi§sts: {}", Json.encode(k));
+                    LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
                     return succeededFuture(k);
                 }).orElseGet(() -> {
                     LOGGER.info("create kafka instance: {}", payload.name);
