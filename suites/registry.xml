@@ -6,4 +6,14 @@
             <class name="io.managed.services.test.registry.RegistryManagerAPITest"/>
         </classes>
     </test>
+    <test name="RegistryManagerAPIPermissionsTest">
+        <classes>
+            <class name="io.managed.services.test.registry.RegistryManagerAPIPermissionsTest"/>
+        </classes>
+    </test>
+    <test name="RegistryManagerAPITest">
+        <classes>
+            <class name="io.managed.services.test.registry.RegistryManagerAPITest"/>
+        </classes>
+    </test>
 </suite>
