@@ -147,7 +147,7 @@ public class Environment {
     static {
         String debugFormat = "{}: {}";
         LOGGER.info("=======================================================================");
-        LOGGER.info("Used environment variables:");
+        LOGGER.info("Environment variables:");
         LOGGER.info(debugFormat, "CONFIG", config);
         VALUES.forEach((key, value) -> LOGGER.info(debugFormat, key, value));
         LOGGER.info("=======================================================================");
