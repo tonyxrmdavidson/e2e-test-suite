@@ -86,6 +86,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         // delete kafka instance
         try {
+            
             bwait(ServiceAPIUtils.cleanKafkaInstance(serviceAPI, KAFKA_INSTANCE_NAME));
         } catch (Throwable t) {
             LOGGER.error("failed to clean kafka instance: ", t);
