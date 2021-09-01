@@ -15,13 +15,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
-import static io.managed.services.test.TestUtils.message;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
@@ -266,7 +265,7 @@ public class ServiceAPIUtils {
                 var r = InetAddress.getByName(host);
                 LOGGER.info("host {} resolved: {}", host, r.getHostAddress());
             } catch (UnknownHostException e) {
-                LOGGER.warn("failed to resolve host {}: ", host, e);
+                LOGGER.debug("failed to resolve host {}: ", host, e);
                 return Future.succeededFuture(new Pair<>(false, null));
             }
             return Future.succeededFuture(new Pair<>(true, null));
@@ -277,7 +276,7 @@ public class ServiceAPIUtils {
     }
 
     public static Future<Pair<Boolean, KafkaResponse>> isKafkaReady(KafkaResponse kafka, boolean last) {
-        LOGGER.info("kafka instance status is: {}", kafka.status);
+        LOGGER.debug("kafka instance status is: {}", kafka.status);
 
         if (last) {
             LOGGER.warn("last kafka response is: {}", Json.encode(kafka));

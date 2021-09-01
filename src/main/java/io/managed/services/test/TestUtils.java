@@ -108,7 +108,7 @@ public class TestUtils {
 
         boolean last = Instant.now().isAfter(deadline);
 
-        LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
+        LOGGER.debug("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
         return isReady.apply(last)
             .compose(r -> {
                 if (r.getValue0()) {
