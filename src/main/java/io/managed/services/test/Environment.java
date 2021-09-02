@@ -132,7 +132,7 @@ public class Environment {
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
 
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
-    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
+//    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
     public static final int RETRY_CALL_THRESHOLD = getOrDefault(RETRY_CALL_THRESHOLD_ENV, Integer::parseInt, 2);
 
@@ -195,8 +195,9 @@ public class Environment {
      * @return json object with loaded variables
      */
     private static JsonNode loadConfigurationFile() {
-        config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
+        var config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
             Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
+        Environment.config = config;
         ObjectMapper mapper = new ObjectMapper();
         try {
             File jsonFile = new File(config).getAbsoluteFile();

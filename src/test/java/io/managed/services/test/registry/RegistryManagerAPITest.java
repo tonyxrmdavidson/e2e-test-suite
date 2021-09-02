@@ -4,7 +4,7 @@ import com.openshift.cloud.api.srs.models.RegistryCreateRest;
 import com.openshift.cloud.api.srs.models.RegistryRest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
-import io.managed.services.test.client.exception.ApiException;
+import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.registry.RegistriesApi;
 import io.managed.services.test.client.registry.RegistriesApiUtils;
 import io.managed.services.test.framework.TestTag;
@@ -93,7 +93,7 @@ public class RegistryManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateRegistry", timeOut = DEFAULT_TIMEOUT)
-    public void testListRegistries() throws ApiException {
+    public void testListRegistries() throws ApiGenericException {
 
         // List registries
         var registries = registriesApi.getRegistries(null, null, null, null);
@@ -106,7 +106,7 @@ public class RegistryManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = "testCreateRegistry", timeOut = DEFAULT_TIMEOUT)
-    public void testSearchRegistry() throws ApiException {
+    public void testSearchRegistry() throws ApiGenericException {
 
         // Search registry by name
         var registries = registriesApi.getRegistries(null, null, null,
@@ -138,7 +138,7 @@ public class RegistryManagerAPITest extends TestBase {
     }
 
     @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteProvisioningRegistry() throws Throwable {
+     public void testDeleteProvisioningRegistry() throws Throwable {
 
         var registryCreateRest = new RegistryCreateRest()
             .name(SERVICE_REGISTRY_NAME);

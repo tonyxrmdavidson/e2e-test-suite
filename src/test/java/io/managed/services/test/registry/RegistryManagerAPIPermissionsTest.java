@@ -5,8 +5,8 @@ import io.apicurio.registry.rest.client.exception.ForbiddenException;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.exception.ApiException;
 import io.managed.services.test.client.exception.ApiForbiddenException;
+import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.registry.RegistriesApi;
@@ -74,13 +74,13 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testSecondaryUserCanReadTheRegistry() throws ApiException {
+    public void testSecondaryUserCanReadTheRegistry() throws ApiGenericException {
         var r = secondaryRegistriesApi.getRegistry(registry.getId());
         assertEquals(r.getName(), registry.getName());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testUserCanReadTheRegistry() throws ApiException {
+    public void testUserCanReadTheRegistry() throws ApiGenericException {
         LOGGER.info("registries: {}", Json.encode(registriesApi.getRegistries(null, null, null, null)));
         LOGGER.info("registry: {}", Json.encode(registry));
         var r = registriesApi.getRegistry(registry.getId());

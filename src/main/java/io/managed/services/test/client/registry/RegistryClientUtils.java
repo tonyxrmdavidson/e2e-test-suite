@@ -16,7 +16,6 @@ public class RegistryClientUtils {
 
     public static Future<RegistryClient> registryClient(Vertx vertx, String registryUrl) {
         return registryClient(vertx, registryUrl, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-
     }
 
     public static Future<RegistryClient> registryClient(Vertx vertx, String registryUrl, String username, String password) {

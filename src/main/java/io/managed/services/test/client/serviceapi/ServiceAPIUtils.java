@@ -27,7 +27,6 @@ import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
-import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
@@ -256,7 +255,7 @@ public class ServiceAPIUtils {
         IsReady<KafkaResponse> isReady = last -> api.getKafka(kafkaID)
             .compose(r -> isKafkaReady(r, last));
 
-        return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady)
+        return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(10), isReady)
             .compose(k -> waitUntilHostsAreResolved(vertx, k));
     }
 
@@ -325,7 +324,7 @@ public class ServiceAPIUtils {
                 return Pair.with(r == null, null);
             });
 
-        return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
+        return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMinutes(10), isDeleted);
     }
 
     /**

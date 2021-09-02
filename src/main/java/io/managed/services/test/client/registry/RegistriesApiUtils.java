@@ -8,7 +8,7 @@ import com.openshift.cloud.api.srs.models.RegistryRest;
 import com.openshift.cloud.api.srs.models.RegistryStatusValueRest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowableFunction;
-import io.managed.services.test.client.exception.ApiException;
+import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
@@ -61,7 +61,7 @@ public class RegistriesApiUtils {
      * @return RegistryRest
      */
     public static RegistryRest applyRegistry(RegistriesApi api, String name)
-        throws ApiException, InterruptedException, TimeoutException {
+        throws ApiGenericException, InterruptedException, TimeoutException {
 
         var registryCreateRest = new RegistryCreateRest().name(name);
         return applyRegistry(api, registryCreateRest);
@@ -75,7 +75,7 @@ public class RegistriesApiUtils {
      * @return RegistryRest
      */
     public static RegistryRest applyRegistry(RegistriesApi api, RegistryCreateRest payload)
-        throws ApiException, InterruptedException, TimeoutException {
+        throws ApiGenericException, InterruptedException, TimeoutException {
 
         var registryList = getRegistryByName(api, payload.getName());
 
@@ -102,12 +102,12 @@ public class RegistriesApiUtils {
      * @return RegistryRest
      */
     public static RegistryRest waitUntilRegistryIsReady(RegistriesApi api, String registryID)
-        throws InterruptedException, ApiException, TimeoutException {
+        throws InterruptedException, ApiGenericException, TimeoutException {
 
         // save the last ready registry in the atomic reference
         var registryReference = new AtomicReference<RegistryRest>();
 
-        ThrowableFunction<Boolean, Boolean, ApiException> isReady
+        ThrowableFunction<Boolean, Boolean, ApiGenericException> isReady
             = last -> isRegistryReady(api.getRegistry(registryID), registryReference, last);
 
         waitFor("registry to be ready", ofSeconds(3), ofMinutes(1), isReady);
@@ -127,11 +127,11 @@ public class RegistriesApiUtils {
         return RegistryStatusValueRest.READY.equals(registry.getStatus());
     }
 
-    public static void cleanRegistry(RegistriesApi api, String name) throws ApiException {
+    public static void cleanRegistry(RegistriesApi api, String name) throws ApiGenericException {
         deleteRegistryByNameIfExists(api, name);
     }
 
-    public static void deleteRegistryByNameIfExists(RegistriesApi api, String name) throws ApiException {
+    public static void deleteRegistryByNameIfExists(RegistriesApi api, String name) throws ApiGenericException {
 
         // Attention: this delete all registries with the given name
         var registries = getRegistryByName(api, name);
@@ -149,9 +149,9 @@ public class RegistriesApiUtils {
 
     // TODO: Move some of the most common method in the RegistriesApi
     public static void waitUntilRegistryIsDeleted(RegistriesApi api, String registryId)
-        throws InterruptedException, ApiException, TimeoutException {
+        throws InterruptedException, ApiGenericException, TimeoutException {
 
-        ThrowableFunction<Boolean, Boolean, ApiException> isReady = last -> {
+        ThrowableFunction<Boolean, Boolean, ApiGenericException> isReady = last -> {
             try {
                 var registry = api.getRegistry(registryId);
                 LOGGER.debug(registry);
@@ -164,7 +164,7 @@ public class RegistriesApiUtils {
         waitFor("registry to be deleted", ofSeconds(1), ofSeconds(20), isReady);
     }
 
-    public static RegistryListRest getRegistryByName(RegistriesApi api, String name) throws ApiException {
+    public static RegistryListRest getRegistryByName(RegistriesApi api, String name) throws ApiGenericException {
 
         // Attention: we support only 10 registries until the name doesn't become unique
         return api.getRegistries(1, 10, null, String.format("name = %s", name));

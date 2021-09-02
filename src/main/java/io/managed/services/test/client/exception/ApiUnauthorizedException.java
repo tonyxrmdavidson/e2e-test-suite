@@ -1,7 +1,7 @@
 package io.managed.services.test.client.exception;
 
-public class ApiUnauthorizedException extends ApiException {
-    public ApiUnauthorizedException(com.openshift.cloud.api.srs.invoker.ApiException apiException) {
-        super(apiException);
+public class ApiUnauthorizedException extends ApiGenericException {
+    public ApiUnauthorizedException(ApiUnknownException e) {
+        super(e);
     }
 }

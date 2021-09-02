@@ -41,7 +41,6 @@ import java.util.Optional;
 
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
-import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
@@ -90,28 +89,28 @@ public class CLIUtils {
 
         LOGGER.info("start CLI login with username: {}", username);
         return cli.login(Environment.SERVICE_API_URI, authURL, masAuthURL)
-                .compose(process -> {
+            .compose(process -> {
 
-                    var oauth2 = new KeycloakOAuth(vertx);
+                var oauth2 = new KeycloakOAuth(vertx);
 
-                    LOGGER.info("start oauth login against CLI");
-                    var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.SSO_REDHAT_KEYCLOAK_URI))
-                            .compose(l -> oauth2.login(l, username, password))
-                            .onSuccess(__ -> LOGGER.info("first oauth login completed"));
+                LOGGER.info("start oauth login against CLI");
+                var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.SSO_REDHAT_KEYCLOAK_URI))
+                    .compose(l -> oauth2.login(l, username, password))
+                    .onSuccess(__ -> LOGGER.info("first oauth login completed"));
 
-                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
-                            .compose(l -> oauth2.login(l, username, password))
-                            .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"));
+                var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
+                    .compose(l -> oauth2.login(l, username, password))
+                    .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"));
 
-                    var cliFuture = process.future(ofMinutes(3))
-                            .map(r -> {
-                                LOGGER.info("CLI login completed");
-                                return null;
-                            });
+                var cliFuture = process.future(ofMinutes(3))
+                    .map(r -> {
+                        LOGGER.info("CLI login completed");
+                        return null;
+                    });
 
-                    return CompositeFuture.all(oauthFuture, edgeSSOFuture, cliFuture);
-                })
-                .map(n -> null);
+                return CompositeFuture.all(oauthFuture, edgeSSOFuture, cliFuture);
+            })
+            .map(n -> null);
     }
 
     private static Future<String> parseUrl(Vertx vertx, BufferedReader stdout, String urlRegex) {
@@ -142,13 +141,13 @@ public class CLIUtils {
 
     public static Future<?> deleteKafkaByNameIfExists(Vertx vertx, CLI cli, String name) {
         return getKafkaByName(vertx, cli, name)
-                .compose(o -> o.map(k -> {
-                    LOGGER.info("delete kafka instance: {}", k.id);
-                    return cli.deleteKafka(k.id);
-                }).orElseGet(() -> {
-                    LOGGER.warn("kafka instance '{}' not found", name);
-                    return Future.succeededFuture();
-                }));
+            .compose(o -> o.map(k -> {
+                LOGGER.info("delete kafka instance: {}", k.id);
+                return cli.deleteKafka(k.id);
+            }).orElseGet(() -> {
+                LOGGER.warn("kafka instance '{}' not found", name);
+                return Future.succeededFuture();
+            }));
     }
 
     public static Future<Optional<TopicResponse>> getTopicByName(Vertx vertx, CLI cli, String topicName) {
@@ -161,51 +160,51 @@ public class CLIUtils {
 
     public static Future<Optional<KafkaResponse>> getKafkaByName(Vertx vertx, CLI cli, String name) {
         return cli.listKafkaByNameAsJson(name)
-                .map(r -> r.items != null ? r.items.stream().findFirst() : Optional.empty());
+            .map(r -> r.items != null ? r.items.stream().findFirst() : Optional.empty());
     }
 
     public static Future<KafkaResponse> waitForKafkaReady(Vertx vertx, CLI cli, String id) {
         IsReady<KafkaResponse> isReady = last -> cli.describeKafka(id)
-                .compose(r -> ServiceAPIUtils.isKafkaReady(r, last));
-        return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
+            .compose(r -> ServiceAPIUtils.isKafkaReady(r, last));
+        return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMinutes(10), isReady);
     }
 
     public static Future<Void> waitForKafkaDelete(Vertx vertx, CLI cli, String name) {
         IsReady<Void> isDeleted = last -> getKafkaByName(vertx, cli, name)
-                .map(k -> Pair.with(k.isEmpty(), null));
+            .map(k -> Pair.with(k.isEmpty(), null));
 
-        return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
+        return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMinutes(10), isDeleted);
     }
 
     public static Future<Void> waitForConsumerGroupDelete(Vertx vertx, CLI cli, String name) {
         IsReady<Void> isDeleted = last -> getConsumerGroupByName(cli, name)
-                .map(k -> Pair.with(k.isEmpty(), null));
+            .map(k -> Pair.with(k.isEmpty(), null));
 
-        return waitFor(vertx, "Consumer group to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
+        return waitFor(vertx, "Consumer group to be deleted", ofSeconds(10), ofMinutes(10), isDeleted);
     }
 
     public static Future<Optional<ServiceAccount>> getServiceAccountByName(Vertx vertx, CLI cli, String name) {
         return cli.listServiceAccountAsJson()
-                .map(r -> r.items.stream().filter(sa -> sa.name.equals(name)).findFirst());
+            .map(r -> r.items.stream().filter(sa -> sa.name.equals(name)).findFirst());
     }
 
     public static Future<?> deleteServiceAccountByNameIfExists(Vertx vertx, CLI cli, String name) {
         return getServiceAccountByName(vertx, cli, name)
-                .compose(o -> o.map(k -> {
-                    LOGGER.info("delete serviceaccount {} instance: {}", k.name, k.id);
-                    return cli.deleteServiceAccount(k.id);
-                }).orElseGet(() -> {
-                    LOGGER.warn("serviceaccount '{}' not found", name);
-                    return Future.succeededFuture();
-                }));
+            .compose(o -> o.map(k -> {
+                LOGGER.info("delete serviceaccount {} instance: {}", k.name, k.id);
+                return cli.deleteServiceAccount(k.id);
+            }).orElseGet(() -> {
+                LOGGER.warn("serviceaccount '{}' not found", name);
+                return Future.succeededFuture();
+            }));
     }
 
     public static Future<ServiceAccount> createServiceAccount(Vertx vertx, CLI cli, String name) {
         return cli.createServiceAccount(name, Paths.get(cli.getWorkdir(), name + ".json"))
-                .compose(p -> getServiceAccountByName(vertx, cli, name))
-                .compose(o -> o
-                        .map(Future::succeededFuture)
-                        .orElseGet(() -> Future.failedFuture(message("failed to find created service account: {}", name))));
+            .compose(p -> getServiceAccountByName(vertx, cli, name))
+            .compose(o -> o
+                .map(Future::succeededFuture)
+                .orElseGet(() -> Future.failedFuture(message("failed to find created service account: {}", name))));
     }
 
     public static ServiceAccountSecret getServiceAccountSecret(CLI cli, String secretName) throws IOException {
@@ -214,8 +213,8 @@ public class CLIUtils {
 
     public static Future<Void> waitForTopicDelete(Vertx vertx, CLI cli, String topicName) {
         IsReady<Void> isDeleted = last -> getTopicByName(vertx, cli, topicName)
-                .map(k -> Pair.with(k.isEmpty(), null));
-        return waitFor(vertx, "kafka topic to be deleted", ofSeconds(10), ofSeconds(Environment.WAIT_READY_MS), isDeleted);
+            .map(k -> Pair.with(k.isEmpty(), null));
+        return waitFor(vertx, "kafka topic to be deleted", ofSeconds(10), ofMinutes(10), isDeleted);
     }
 
     public static Config kubeConfig(String server, String token, String namespace) {
