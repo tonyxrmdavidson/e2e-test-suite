@@ -11,9 +11,9 @@
             <class name="io.managed.services.test.registry.RegistryManagerAPIPermissionsTest"/>
         </classes>
     </test>
-    <test name="RegistryManagerAPITest">
+    <test name="RegistryKafkaIntegrationTest">
         <classes>
-            <class name="io.managed.services.test.registry.RegistryManagerAPITest"/>
+            <class name="io.managed.services.test.registry.RegistryKafkaIntegrationTest"/>
         </classes>
     </test>
 </suite>
