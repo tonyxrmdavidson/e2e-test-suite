@@ -6,9 +6,12 @@ import com.openshift.cloud.api.kas.invoker.ApiException;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestList;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
+import com.openshift.cloud.api.kas.models.MetricsInstantQueryList;
 import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
+
+import java.util.List;
 
 public class KafkaMgmtApi extends BaseApi<ApiException> {
 
@@ -43,5 +46,9 @@ public class KafkaMgmtApi extends BaseApi<ApiException> {
     public void deleteKafkaById(String id, Boolean async) throws ApiGenericException {
         // TODO: why does it return Error
         handle(() -> api.deleteKafkaById(id, async));
+    }
+
+    public MetricsInstantQueryList getMetricsByInstantQuery(String id, List<String> filters) throws ApiGenericException {
+        return handle(() -> api.getMetricsByInstantQuery(id, filters));
     }
 }

@@ -2,6 +2,8 @@ package io.managed.services.test.kafka;
 
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
+import com.openshift.cloud.api.kas.models.ServiceAccount;
+import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.ApiConflictException;
@@ -10,11 +12,10 @@ import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -33,8 +34,6 @@ import java.util.HashMap;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
@@ -51,10 +50,8 @@ public class KafkaManagerAPITest extends TestBase {
     static final String TOPIC_NAME = "test-topic";
     static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
-    private final Vertx vertx = Vertx.vertx();
-
     private KafkaMgmtApi kafkaMgmtApi;
-    private ServiceAPI serviceAPI;
+    private SecurityMgmtApi securityMgmtApi;
     private KafkaRequest kafka;
     private ServiceAccount serviceAccount;
 
@@ -63,15 +60,11 @@ public class KafkaManagerAPITest extends TestBase {
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        var auth = new KeycloakOAuth(vertx);
+        var auth = new KeycloakOAuth(Vertx.vertx());
         var user = bwait(auth.loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
-        serviceAPI = ServiceAPIUtils.serviceAPI(vertx, user);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
         kafkaMgmtApi = KafkaMgmtAPIUtils.kafkaMgmtApi(user);
-    }
-
-    private Future<Void> deleteServiceAccount() {
-        return deleteServiceAccountByNameIfExists(serviceAPI, SERVICE_ACCOUNT_NAME);
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -92,13 +85,10 @@ public class KafkaManagerAPITest extends TestBase {
 
         // delete service account
         try {
-            bwait(deleteServiceAccount());
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             log.error("clean service account error: ", t);
         }
-
-        // close vertx
-        bwait(vertx.close());
     }
 
     @Test(timeOut = 15 * MINUTES)
@@ -123,18 +113,15 @@ public class KafkaManagerAPITest extends TestBase {
     public void testCreateServiceAccount() {
 
         // Create Service Account
-        CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
-        serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
-
-        log.info("create service account: {}", serviceAccountPayload.name);
-        serviceAccount = bwait(serviceAPI.createServiceAccount(serviceAccountPayload));
+        log.info("create service account '{}'", SERVICE_ACCOUNT_NAME);
+        serviceAccount = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME));
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
     public void testCreateTopics() {
 
-        var admin = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, kafka.getBootstrapServerHost()));
+        var admin = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(Vertx.vertx(), kafka.getBootstrapServerHost()));
 
         log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
         bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, TOPIC_NAME));
@@ -148,7 +135,7 @@ public class KafkaManagerAPITest extends TestBase {
     public void testMessageInTotalMetric() {
 
         log.info("start testing message in total metric");
-        bwait(messageInTotalMetric(vertx, serviceAPI, kafka, serviceAccount, TOPIC_NAME));
+        KafkaMgmtMetricsUtils.testMessageInTotalMetric(kafkaMgmtApi, kafka, serviceAccount, TOPIC_NAME);
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
@@ -156,11 +143,11 @@ public class KafkaManagerAPITest extends TestBase {
     public void testMessagingKafkaInstanceUsingOAuth() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
 
         bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             clientSecret,
@@ -176,10 +163,10 @@ public class KafkaManagerAPITest extends TestBase {
     public void testFailedToMessageKafkaInstanceUsingOAuthAndFakeSecret() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
-        var clientID = serviceAccount.clientID;
+        var clientID = serviceAccount.getClientId();
 
         assertThrows(KafkaException.class, () -> bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             "invalid",
@@ -195,11 +182,11 @@ public class KafkaManagerAPITest extends TestBase {
     public void testMessagingKafkaInstanceUsingPlainAuth() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
 
         bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             clientSecret,
@@ -215,10 +202,10 @@ public class KafkaManagerAPITest extends TestBase {
     public void testFailedToMessageKafkaInstanceUsingPlainAuthAndFakeSecret() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
-        var clientID = serviceAccount.clientID;
+        var clientID = serviceAccount.getClientId();
 
         assertThrows(KafkaException.class, () -> bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             "invalid",
@@ -277,13 +264,13 @@ public class KafkaManagerAPITest extends TestBase {
     public void testDeleteKafkaInstance() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
 
         // Connect the Kafka producer
         log.info("initialize kafka producer");
         var producer = KafkaProducerClient.createProducer(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             clientSecret,
@@ -299,7 +286,7 @@ public class KafkaManagerAPITest extends TestBase {
 
         // Produce Kafka messages
         log.info("send message to topic '{}'", TOPIC_NAME);
-        waitFor(vertx, "sent message to fail", ofSeconds(1), ofSeconds(30), last ->
+        waitFor(Vertx.vertx(), "sent message to fail", ofSeconds(1), ofSeconds(30), last ->
             producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world"))
                 .compose(
                     __ -> Future.succeededFuture(Pair.with(false, null)),
