@@ -37,7 +37,7 @@ public class KafkaMgmtAPIUtils {
     public static Future<KafkaMgmtApi> kafkaMgmtApi(Vertx vertx, String username, String password) {
         var auth = new KeycloakOAuth(vertx);
 
-        LOGGER.info("authenticate user: {} against RH SSO", Environment.SSO_USERNAME);
+        LOGGER.info("authenticate user: {} against RH SSO", username);
         return auth.loginToRHSSO(username, password)
             .map(u -> kafkaMgmtApi(u));
     }
@@ -50,6 +50,7 @@ public class KafkaMgmtAPIUtils {
         var apiClient = new ApiClient();
         apiClient.setBasePath(uri);
         ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(token);
+        LOGGER.info("token: {}", token);
         return new KafkaMgmtApi(apiClient);
     }
 

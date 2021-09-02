@@ -328,7 +328,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         assertTopic();
 
         LOGGER.info("start testing message in total metric");
-        bwait(messageInTotalMetric(vertx, serviceAPI, kafka, serviceAccount, METRIC_TOPIC_NAME));
+        bwait(messageInTotalMetric(vertx, serviceAPI, kafka.toKafkaRequest(), serviceAccount, METRIC_TOPIC_NAME));
     }
 }
 

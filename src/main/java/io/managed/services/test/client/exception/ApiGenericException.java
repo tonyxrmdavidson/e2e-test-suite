@@ -18,6 +18,7 @@ public class ApiGenericException extends Exception {
             case 429:
                 return new ApiToManyRequestsException(e);
             case HttpURLConnection.HTTP_CONFLICT:
+                return new ApiConflictException(e);
             case 423:
             default:
                 return new ApiGenericException(e);

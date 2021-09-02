@@ -1,5 +1,6 @@
 package io.managed.services.test.client.serviceapi;
 
+import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.IsReady;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -39,12 +40,12 @@ public class MetricsUtils {
             .reduce((double) 0, (__, item) -> item.value, Double::sum);
     }
 
-    public static Future<Void> messageInTotalMetric(Vertx vertx, ServiceAPI api, KafkaResponse kafka, ServiceAccount serviceAccount, String topicName) {
+    public static Future<Void> messageInTotalMetric(Vertx vertx, ServiceAPI api, KafkaRequest kafka, ServiceAccount serviceAccount, String topicName) {
         LOGGER.info("start testing message in total metric");
         Promise<Void> promise = Promise.promise();
 
         // retrieve the current in messages before sending more
-        var initialInMessagesF = api.queryMetrics(kafka.id)
+        var initialInMessagesF = api.queryMetrics(kafka.getId())
             .map(r -> collectTopicMetric(r.items, topicName, IN_MESSAGES_METRIC))
             .onSuccess(i -> LOGGER.info("the topic '{}' started with '{}' in messages", topicName, i));
 
@@ -54,7 +55,7 @@ public class MetricsUtils {
                 LOGGER.info("send {} message to the topic: {}", MESSAGE_COUNT, topicName);
                 return testTopic(
                     vertx,
-                    kafka.bootstrapServerHost,
+                    kafka.getBootstrapServerHost(),
                     serviceAccount.clientID,
                     serviceAccount.clientSecret,
                     topicName,
@@ -64,7 +65,7 @@ public class MetricsUtils {
             });
 
         // wait for the metric to be updated or fail with timeout
-        IsReady<Double> isMetricUpdated = last -> api.queryMetrics(kafka.id)
+        IsReady<Double> isMetricUpdated = last -> api.queryMetrics(kafka.getId())
             .map(r -> {
                 var in = collectTopicMetric(r.items, topicName, IN_MESSAGES_METRIC);
                 if (last) {

@@ -138,6 +138,8 @@ public class TestUtils {
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
         var e = new TimeoutException(String.format("timeout after %s waiting for %s", timeout.toString(), description));
 
+        LOGGER.info("wait for {} for {}", description, timeout);
+
         Instant deadline = Instant.now().plus(timeout);
         waitFor(description, interval, deadline, e, isReady);
     }
@@ -152,7 +154,7 @@ public class TestUtils {
 
         boolean last = Instant.now().isAfter(deadline);
 
-        LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
+        LOGGER.debug("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
         if (isReady.call(last)) {
             return;
         }

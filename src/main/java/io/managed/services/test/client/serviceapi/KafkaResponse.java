@@ -1,8 +1,9 @@
 package io.managed.services.test.client.serviceapi;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.openshift.cloud.api.kas.models.KafkaRequest;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 
@@ -36,5 +37,23 @@ public class KafkaResponse {
         Instant creationTime = new Instant(this.createdAt);
         Duration upTime = new Duration(creationTime, new Instant());
         return upTime.getStandardHours();
+    }
+
+    public KafkaRequest toKafkaRequest() {
+        return new KafkaRequest()
+            .id(id)
+            .kind(kind)
+            .href(href)
+            .status(status)
+            .cloudProvider(cloudProvider)
+            .multiAz(multiAZ)
+            .region(region)
+            .owner(owner)
+            .name(name)
+            .bootstrapServerHost(bootstrapServerHost)
+            //.createdAt(createdAt)
+            //.updatedAt(updatedAt)
+            .failedReason(failedReason)
+            .version(version);
     }
 }
