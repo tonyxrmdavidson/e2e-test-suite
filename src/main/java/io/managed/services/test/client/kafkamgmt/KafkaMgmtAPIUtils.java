@@ -1,18 +1,15 @@
 package io.managed.services.test.client.kafkamgmt;
 
 
-import com.openshift.cloud.api.kas.invoker.ApiClient;
-import com.openshift.cloud.api.kas.invoker.auth.HttpBearerAuth;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowableFunction;
+import io.managed.services.test.client.KasApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiToManyRequestsException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,28 +27,12 @@ import static java.time.Duration.ofSeconds;
 public class KafkaMgmtAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtAPIUtils.class);
 
-    public static Future<KafkaMgmtApi> kafkaMgmtApi(Vertx vertx) {
-        return kafkaMgmtApi(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-    }
-
-    public static Future<KafkaMgmtApi> kafkaMgmtApi(Vertx vertx, String username, String password) {
-        var auth = new KeycloakOAuth(vertx);
-
-        LOGGER.info("authenticate user: {} against RH SSO", username);
-        return auth.loginToRHSSO(username, password)
-            .map(u -> kafkaMgmtApi(u));
-    }
-
     public static KafkaMgmtApi kafkaMgmtApi(User user) {
         return kafkaMgmtApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user));
     }
 
     public static KafkaMgmtApi kafkaMgmtApi(String uri, String token) {
-        var apiClient = new ApiClient();
-        apiClient.setBasePath(uri);
-        ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(token);
-        LOGGER.info("token: {}", token);
-        return new KafkaMgmtApi(apiClient);
+        return new KafkaMgmtApi(new KasApiClient().basePath(uri).bearerToken(token).getApiClient());
     }
 
     /**
