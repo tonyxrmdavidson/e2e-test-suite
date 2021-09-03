@@ -1,6 +1,7 @@
 package io.managed.services.test.client.serviceapi;
 
 
+import io.managed.services.test.DNSUtils;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.client.exception.HTTPToManyRequestsException;
@@ -104,25 +105,25 @@ public class ServiceAPIUtils {
     public static Future<KafkaResponse> applyKafkaInstance(Vertx vertx, ServiceAPI api, CreateKafkaPayload payload) {
         return getKafkaByName(api, payload.name)
 
-                .compose(o -> o.map(k -> {
-                    LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
+            .compose(o -> o.map(k -> {
+                LOGGER.warn("kafka instance already exists: {}", Json.encode(k));
+                return succeededFuture(k);
+            }).orElseGet(() -> {
+                LOGGER.info("create kafka instance: {}", payload.name);
+                return api.createKafka(payload, true);
+            }))
+            .compose(k -> {
+
+                if ("accepted".equals(k.status) || "provisioning".equals(k.status)) {
+                    return waitUntilKafkaIsReady(vertx, api, k.id);
+                }
+
+                if ("ready".equals(k.status)) {
                     return succeededFuture(k);
-                }).orElseGet(() -> {
-                    LOGGER.info("create kafka instance: {}", payload.name);
-                    return api.createKafka(payload, true);
-                }))
-                .compose(k -> {
-
-                    if ("accepted".equals(k.status) || "provisioning".equals(k.status)) {
-                        return waitUntilKafkaIsReady(vertx, api, k.id);
-                    }
-
-                    if ("ready".equals(k.status)) {
-                        return succeededFuture(k);
-                    }
-                    return failedFuture(message("kafka instance status should be 'ready' but it is '{}'", k.status));
-                })
-                .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
+                }
+                return failedFuture(message("kafka instance status should be 'ready' but it is '{}'", k.status));
+            })
+            .onSuccess(k -> LOGGER.info("apply kafka instance: {}", Json.encode(k)));
     }
 
     /**
@@ -261,6 +262,12 @@ public class ServiceAPIUtils {
         var host = kafka.bootstrapServerHost.replaceFirst(":443$", "");
 
         IsReady<Void> isDNSReady = last -> {
+
+            // print also the DNS lookup result if the host is still unavailable
+            if (last) {
+                LOGGER.warn("DNS Lookup:\n{}", DNSUtils.dnsInfo(host));
+            }
+
             try {
                 var r = InetAddress.getByName(host);
                 LOGGER.info("host {} resolved: {}", host, r.getHostAddress());
