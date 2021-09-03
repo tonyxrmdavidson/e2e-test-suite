@@ -158,7 +158,7 @@ public class CLI {
     }
 
     public Future<Process> createServiceAccount(String name, Path path) {
-        return retry(() -> exec("service-account", "create", "--name", name, "--file-format", "json", "--file-location", path.toString(), "--overwrite"));
+        return retry(() -> exec("service-account", "create", "--name", name, "--file-format", "json", "--output-file", path.toString(), "--overwrite"));
     }
 
     public Future<TopicResponse> createTopic(String topicName) {
