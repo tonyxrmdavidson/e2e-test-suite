@@ -79,6 +79,8 @@ public class Environment {
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
     private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
 
+    private static final String WHOISXMLAPI_KEY_ENV = "WHOISXMLAPI_KEY";
+
     /*
      * Setup constants from env variables or set default
      */
@@ -140,6 +142,7 @@ public class Environment {
     // Skip only the Kafka instance delete teardown to speed the local development
     public static final boolean SKIP_KAFKA_TEARDOWN = getOrDefault(SKIP_KAFKA_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
+    public static final String WHOISXMLAPI_KEY = getOrDefault(WHOISXMLAPI_KEY_ENV, "");
 
     private Environment() {
     }
