@@ -38,7 +38,7 @@ public class ProcessUtils {
     /**
      * Read everything that is available in the stream right now without waiting for a EOF
      */
-    private static String readNow(InputStream stream) {
+    public static String readNow(InputStream stream) {
         try {
             return new String(stream.readNBytes(stream.available()));
         } catch (IOException e) {
@@ -62,18 +62,18 @@ public class ProcessUtils {
         return toError(String.format("timeout cmd '%s'", info.commandLine().orElse(null)), process);
     }
 
-    static String toError(Process process, ProcessHandle.Info info) {
+    public static String toError(Process process, ProcessHandle.Info info) {
         return toError(String.format("cmd '%s' failed with exit code: %d", info.commandLine().orElse(null), process.exitValue()), process);
     }
 
     static String toError(String message, Process process) {
         return String.format("%s\n", message)
-                + "-- STDOUT --\n"
-                + readNow(process.getInputStream())
-                + "\n"
-                + "-- STDERR --\n"
-                + readNow(process.getErrorStream())
-                + "\n"
-                + "-- END --\n";
+            + "-- STDOUT --\n"
+            + readNow(process.getInputStream())
+            + "\n"
+            + "-- STDERR --\n"
+            + readNow(process.getErrorStream())
+            + "\n"
+            + "-- END --\n";
     }
 }

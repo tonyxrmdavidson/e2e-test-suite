@@ -282,9 +282,12 @@ public class ServiceAPIUtils {
                 } catch (UnknownHostException e) {
                     LOGGER.debug("failed to resolve host {}: ", hosts.get(i), e);
 
+                    LOGGER.debug("dig {}:\n{}", hosts.get(i), DNSUtils.dig(hosts.get(i)));
+                    LOGGER.debug("dig {} 1.1.1.1:\n{}", hosts.get(i), DNSUtils.dig(hosts.get(i), "1.1.1.1"));
+
                     // print also the DNS lookup result if the host is still unavailable
                     if (last) {
-                        LOGGER.warn("DNS Lookup:\n{}", DNSUtils.dnsInfo(hosts.get(i)));
+                        LOGGER.warn("DNSLookup {}:\n{}", hosts.get(i), DNSUtils.dnsInfo(hosts.get(i)));
                     }
                 }
             }
