@@ -9,6 +9,7 @@ import com.openshift.cloud.api.srs.models.RegistryStatusValueRest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowableFunction;
 import io.managed.services.test.client.exception.ApiException;
+import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -126,7 +127,6 @@ public class RegistriesApiUtils {
         return RegistryStatusValueRest.READY.equals(registry.getStatus());
     }
 
-
     public static void cleanRegistry(RegistriesApi api, String name) throws ApiException {
         deleteRegistryByNameIfExists(api, name);
     }
@@ -145,6 +145,23 @@ public class RegistriesApiUtils {
             LOGGER.info("delete registry: {}", r.getId());
             api.deleteRegistry(r.getId());
         }
+    }
+
+    // TODO: Move some of the most common method in the RegistriesApi
+    public static void waitUntilRegistryIsDeleted(RegistriesApi api, String registryId)
+        throws InterruptedException, ApiException, TimeoutException {
+
+        ThrowableFunction<Boolean, Boolean, ApiException> isReady = last -> {
+            try {
+                var registry = api.getRegistry(registryId);
+                LOGGER.debug(registry);
+                return false;
+            } catch (ApiNotFoundException e) {
+                return true;
+            }
+        };
+
+        waitFor("registry to be deleted", ofSeconds(1), ofSeconds(20), isReady);
     }
 
     public static RegistryListRest getRegistryByName(RegistriesApi api, String name) throws ApiException {
