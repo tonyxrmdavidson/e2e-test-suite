@@ -150,6 +150,6 @@ public class RegistryManagerAPITest extends TestBase {
         registriesApi.deleteRegistry(registryToDelete.getId());
 
         LOGGER.info("verify the registry '{}' has been deleted", registryToDelete.getId());
-        RegistriesApiUtils.waitUntilRegistryIsDeleted(registriesApi, registry.getId());
+        RegistriesApiUtils.waitUntilRegistryIsDeleted(registriesApi, registryToDelete.getId());
     }
 }
