@@ -5,8 +5,8 @@ import com.openshift.cloud.api.srs.models.RegistryRest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.ApiException;
-import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.registry.RegistriesApi;
+import io.managed.services.test.client.registry.RegistriesApiUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -130,14 +130,15 @@ public class RegistryManagerAPITest extends TestBase {
     @Test(timeOut = DEFAULT_TIMEOUT, priority = 1, dependsOnMethods = "testCreateRegistry")
     public void testDeleteRegistry() throws Throwable {
 
-        LOGGER.info("delete registry: {}", registry.getId());
+        LOGGER.info("delete registry '{}'", registry.getId());
         registriesApi.deleteRegistry(registry.getId());
 
-        assertThrows(ApiNotFoundException.class, () -> registriesApi.getRegistry(registry.getId()));
+        LOGGER.info("verify the registry '{}' has been deleted", registry.getId());
+        RegistriesApiUtils.waitUntilRegistryIsDeleted(registriesApi, registry.getId());
     }
 
     @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteProvisioningRegistry() throws ApiException {
+    public void testDeleteProvisioningRegistry() throws Throwable {
 
         var registryCreateRest = new RegistryCreateRest()
             .name(SERVICE_REGISTRY_NAME);
@@ -148,7 +149,7 @@ public class RegistryManagerAPITest extends TestBase {
         LOGGER.info("delete the registry: {}", registryToDelete.getId());
         registriesApi.deleteRegistry(registryToDelete.getId());
 
-        LOGGER.info("verify the registry has been deleted: {}", registryToDelete.getId());
-        assertThrows(ApiNotFoundException.class, () -> registriesApi.getRegistry(registryToDelete.getId()));
+        LOGGER.info("verify the registry '{}' has been deleted", registryToDelete.getId());
+        RegistriesApiUtils.waitUntilRegistryIsDeleted(registriesApi, registry.getId());
     }
 }

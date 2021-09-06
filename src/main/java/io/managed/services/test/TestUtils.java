@@ -125,6 +125,9 @@ public class TestUtils {
             });
     }
 
+    // TODO: Convert waitFor into and independent class
+    // TODO: The default interval should be timeout / 30s
+    // TODO: The timeout should always be a multiple 30s
     public static <T extends Throwable> void waitFor(
         String description,
         Duration interval,
