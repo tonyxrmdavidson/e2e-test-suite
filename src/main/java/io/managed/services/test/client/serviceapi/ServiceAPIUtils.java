@@ -18,6 +18,8 @@ import org.javatuples.Pair;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -255,30 +257,41 @@ public class ServiceAPIUtils {
             .compose(r -> isKafkaReady(r, last));
 
         return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady)
-            .compose(k -> waitUntilBootstrapHostIsReachable(vertx, k));
+            .compose(k -> waitUntilHostsAreResolved(vertx, k));
     }
 
-    public static Future<KafkaResponse> waitUntilBootstrapHostIsReachable(Vertx vertx, KafkaResponse kafka) {
-        var host = kafka.bootstrapServerHost.replaceFirst(":443$", "");
+    public static Future<KafkaResponse> waitUntilHostsAreResolved(Vertx vertx, KafkaResponse kafka) {
+        var bootstrap = kafka.bootstrapServerHost.replaceFirst(":443$", "");
+        var broker0 = "broker-0-" + bootstrap;
+        var broker1 = "broker-1-" + bootstrap;
+        var broker2 = "broker-2-" + bootstrap;
+        var admin = "admin-server-" + bootstrap;
+
+        var hosts = new ArrayList<>(List.of(bootstrap, admin, broker0, broker1, broker2));
 
         IsReady<Void> isDNSReady = last -> {
 
-            // print also the DNS lookup result if the host is still unavailable
-            if (last) {
-                LOGGER.warn("DNS Lookup:\n{}", DNSUtils.dnsInfo(host));
-            }
+            for (var i = 0; i < hosts.size(); i++) {
+                try {
+                    var r = InetAddress.getByName(hosts.get(i));
+                    LOGGER.info("host {} resolved: {}", hosts.get(i), r.getHostAddress());
 
-            try {
-                var r = InetAddress.getByName(host);
-                LOGGER.info("host {} resolved: {}", host, r.getHostAddress());
-            } catch (UnknownHostException e) {
-                LOGGER.debug("failed to resolve host {}: ", host, e);
-                return Future.succeededFuture(new Pair<>(false, null));
+                    // remove resolved hosts from the list
+                    hosts.remove(i);
+                    i--; // shift i back to not skip a host
+                } catch (UnknownHostException e) {
+                    LOGGER.debug("failed to resolve host {}: ", hosts.get(i), e);
+
+                    // print also the DNS lookup result if the host is still unavailable
+                    if (last) {
+                        LOGGER.warn("DNS Lookup:\n{}", DNSUtils.dnsInfo(hosts.get(i)));
+                    }
+                }
             }
-            return Future.succeededFuture(new Pair<>(true, null));
+            return Future.succeededFuture(new Pair<>(hosts.isEmpty(), null));
         };
 
-        return waitFor(vertx, "bootstrap host to be reachable", ofSeconds(5), ofMinutes(5), isDNSReady)
+        return waitFor(vertx, "kafka hosts to be resolved", ofSeconds(5), ofMinutes(5), isDNSReady)
             .map(__ -> kafka);
     }
 

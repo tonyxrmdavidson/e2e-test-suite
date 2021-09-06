@@ -146,7 +146,7 @@ public class KafkaAdminAPITest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testCreateTopic() throws Throwable {
-        // getting test-topic should fail because the topic shouldn't exists
+        // getting test-topic should fail because the topic shouldn't exist
         assertThrows(HTTPNotFoundException.class,
             () -> bwait(kafkaAdminAPI.getTopic(TEST_TOPIC_NAME)));
         LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
