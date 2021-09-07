@@ -3,6 +3,7 @@ package io.managed.services.test.client.kafkamgmt;
 
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
+import io.managed.services.test.DNSUtils;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowableFunction;
 import io.managed.services.test.client.KasApiClient;
@@ -14,7 +15,11 @@ import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,7 +60,7 @@ public class KafkaMgmtAPIUtils {
      * @return KafkaRequest
      */
     public static KafkaRequest applyKafkaInstance(KafkaMgmtApi api, String name)
-        throws ApiGenericException, InterruptedException, KafkaToManyRequestsException, KafkaNotReadyException {
+        throws ApiGenericException, InterruptedException, KafkaToManyRequestsException, KafkaNotReadyException, KafkaUnknownHostsException {
 
         var payload = new KafkaRequestPayload()
             .name(name)
@@ -74,7 +79,7 @@ public class KafkaMgmtAPIUtils {
      * @return KafkaRequest
      */
     public static KafkaRequest applyKafkaInstance(KafkaMgmtApi api, KafkaRequestPayload payload)
-        throws ApiGenericException, InterruptedException, KafkaNotReadyException, KafkaToManyRequestsException {
+        throws ApiGenericException, InterruptedException, KafkaNotReadyException, KafkaToManyRequestsException, KafkaUnknownHostsException {
 
         var existing = getKafkaByName(api, payload.getName());
 
@@ -171,7 +176,7 @@ public class KafkaMgmtAPIUtils {
      * @return KafkaRequest
      */
     public static KafkaRequest waitUntilKafkaIsReady(KafkaMgmtApi api, String kafkaID)
-        throws KafkaNotReadyException, ApiGenericException, InterruptedException {
+        throws KafkaNotReadyException, ApiGenericException, InterruptedException, KafkaUnknownHostsException {
 
         var kafkaAtom = new AtomicReference<KafkaRequest>();
         ThrowableFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
@@ -192,7 +197,52 @@ public class KafkaMgmtAPIUtils {
         var kafka = kafkaAtom.get();
         LOGGER.info("kafka instance '{}' is ready", kafka.getName());
         LOGGER.debug(kafka);
+
+        waitUntilKafkaHostsAreResolved(kafka);
+
         return kafka;
+    }
+
+
+    public static void waitUntilKafkaHostsAreResolved(KafkaRequest kafka)
+        throws InterruptedException, KafkaUnknownHostsException {
+
+        var bootstrapHost = Objects.requireNonNull(kafka.getBootstrapServerHost());
+        var bootstrap = bootstrapHost.replaceFirst(":443$", "");
+        var broker0 = "broker-0-" + bootstrap;
+        var broker1 = "broker-1-" + bootstrap;
+        var broker2 = "broker-2-" + bootstrap;
+        var admin = "admin-server-" + bootstrap;
+        var hosts = new ArrayList<>(List.of(bootstrap, admin, broker0, broker1, broker2));
+
+        ThrowableFunction<Boolean, Boolean, Error> ready = last -> {
+
+            for (var i = 0; i < hosts.size(); i++) {
+                try {
+                    var r = InetAddress.getByName(hosts.get(i));
+                    LOGGER.info("host '{}' resolved wit address '{}'", hosts.get(i), r.getHostAddress());
+
+                    // remove resolved hosts from the list
+                    hosts.remove(i);
+                    i--; // shift i back to not skip a host
+                } catch (UnknownHostException e) {
+                    LOGGER.debug("failed to resolve host '{}': {}", hosts.get(i), e.getMessage());
+
+                    // TODO: Move to trace with isTrace enable
+                    LOGGER.debug("dig {}:\n{}", hosts.get(i), DNSUtils.dig(hosts.get(i)));
+                    LOGGER.debug("dig {} 1.1.1.1:\n{}", hosts.get(i), DNSUtils.dig(hosts.get(i), "1.1.1.1"));
+                }
+            }
+            return hosts.isEmpty();
+        };
+
+        try {
+            waitFor("kafka hosts to be resolved", ofSeconds(5), ofMinutes(5), ready);
+        } catch (TimeoutException e) {
+            throw new KafkaUnknownHostsException(hosts, e);
+        }
+
+        LOGGER.debug("kafka hosts '{}' are ready", hosts);
     }
 
     /**
