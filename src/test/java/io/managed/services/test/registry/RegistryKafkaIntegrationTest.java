@@ -40,7 +40,6 @@ import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.a
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.kafkaAdminAPI;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
-import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.registryMgmtApi;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
@@ -69,7 +68,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
     @BeforeClass(timeOut = 20 * MINUTES)
     public void bootstrap() throws Throwable {
 
-        var oauth = new KeycloakOAuth(vertx);
+        var oauth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
         var rhuser = bwait(oauth.loginToRHSSO());
         var masuser = bwait(oauth.loginToMASSSO());
 

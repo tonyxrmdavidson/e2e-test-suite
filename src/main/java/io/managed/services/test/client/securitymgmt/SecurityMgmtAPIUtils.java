@@ -26,11 +26,10 @@ public class SecurityMgmtAPIUtils {
     }
 
     public static Future<SecurityMgmtApi> securityMgmtApi(Vertx vertx, String username, String password) {
-        var auth = new KeycloakOAuth(vertx);
+        var auth = new KeycloakOAuth(vertx, username, password);
 
-        LOGGER.info("authenticate user: {} against RH SSO", username);
-        return auth.loginToRHSSO(username, password)
-            .map(u -> securityMgmtApi(u));
+        LOGGER.info("authenticate user: {} against RH SSO", auth.getUsername());
+        return auth.loginToRHSSO().map(u -> securityMgmtApi(u));
     }
 
     public static SecurityMgmtApi securityMgmtApi(User user) {

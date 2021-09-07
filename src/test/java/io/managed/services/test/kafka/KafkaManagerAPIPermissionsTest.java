@@ -12,7 +12,6 @@ import io.managed.services.test.client.exception.HTTPUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
@@ -64,26 +63,22 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
     public void bootstrap() {
 
         mainAPI = ApplicationServicesApi.applicationServicesApi(
-            new KeycloakOAuth(Vertx.vertx()),
             Environment.SERVICE_API_URI,
             Environment.SSO_USERNAME,
             Environment.SSO_PASSWORD);
 
         secondaryAPI = ApplicationServicesApi.applicationServicesApi(
-            new KeycloakOAuth(Vertx.vertx()),
             Environment.SERVICE_API_URI,
             Environment.SSO_SECONDARY_USERNAME,
             Environment.SSO_SECONDARY_PASSWORD);
 
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_ALIEN_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         alienAPI = ApplicationServicesApi.applicationServicesApi(
-            new KeycloakOAuth(Vertx.vertx()),
             Environment.SERVICE_API_URI,
             Environment.SSO_ALIEN_USERNAME,
             Environment.SSO_ALIEN_PASSWORD);
 
         LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
-        kafka = KafkaMgmtAPIUtils.applyKafkaInstance(mainAPI.km(), KAFKA_INSTANCE_NAME);
+        kafka = KafkaMgmtAPIUtils.applyKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -92,19 +87,19 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
         assumeTeardown();
 
         try {
-            KafkaMgmtAPIUtils.deleteKafkaByNameIfExists(mainAPI.km(), KAFKA_INSTANCE_NAME);
+            KafkaMgmtAPIUtils.deleteKafkaByNameIfExists(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("clan kafka error: ", t);
         }
 
         try {
-            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(secondaryAPI.sm(), SECONDARY_SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean secondary service account error: ", t);
         }
 
         try {
-            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(alienAPI.sm(), ALIEN_SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(alienAPI.securityMgmt(), ALIEN_SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean alien service account error: ", t);
         }
@@ -118,7 +113,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
 
         // Get kafka instance list by another user with same org
         LOGGER.info("fetch list of kafka instance from the secondary user in the same org");
-        var kafkas = secondaryAPI.km().getKafkas(null, null, null, null);
+        var kafkas = secondaryAPI.kafkaMgmt().getKafkas(null, null, null, null);
 
         LOGGER.debug(kafkas);
 
@@ -135,7 +130,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
 
         // Get list of kafka Instance in org 1 and test it should be there
         LOGGER.info("fetch list of kafka instance from the alin user in a different org");
-        var kafkas = alienAPI.km().getKafkas(null, null, null, null);
+        var kafkas = alienAPI.kafkaMgmt().getKafkas(null, null, null, null);
 
         LOGGER.debug(kafkas);
 
@@ -160,7 +155,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
             .name(SECONDARY_SERVICE_ACCOUNT_NAME);
 
         LOGGER.info("create service account by another user with same org: {}", serviceAccountPayload.getName());
-        var serviceAccount = secondaryAPI.sm().createServiceAccount(serviceAccountPayload);
+        var serviceAccount = secondaryAPI.securityMgmt().createServiceAccount(serviceAccountPayload);
 
         var bootstrapHost = kafka.getBootstrapServerHost();
         var clientID = serviceAccount.getClientId();
@@ -207,7 +202,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
             .name(SECONDARY_SERVICE_ACCOUNT_NAME);
 
         LOGGER.info("create service account in alien org: {}", serviceAccountPayload.getName());
-        var serviceAccountOrg2 = alienAPI.sm().createServiceAccount(serviceAccountPayload);
+        var serviceAccountOrg2 = alienAPI.securityMgmt().createServiceAccount(serviceAccountPayload);
 
 
         var bootstrapHost = kafka.getBootstrapServerHost();
@@ -229,24 +224,24 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testSecondaryUserCanNotDeleteTheKafkaInstance() {
         // should fail
-        assertThrows(ApiNotFoundException.class, () -> secondaryAPI.km().deleteKafkaById(kafka.getId(), true));
+        assertThrows(ApiNotFoundException.class, () -> secondaryAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
     }
 
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testAlienUserCanNotDeleteTheKafkaInstance() {
         // should fail
-        assertThrows(ApiNotFoundException.class, () -> alienAPI.km().deleteKafkaById(kafka.getId(), true));
+        assertThrows(ApiNotFoundException.class, () -> alienAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithFakeToken() {
         var api = new ApplicationServicesApi(Environment.SERVICE_API_URI, TestUtils.FAKE_TOKEN);
-        assertThrows(ApiUnauthorizedException.class, () -> api.km().getKafkas(null, null, null, null));
+        assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithoutToken() {
         var api = new ApplicationServicesApi(Environment.SERVICE_API_URI, "");
-        assertThrows(ApiUnauthorizedException.class, () -> api.km().getKafkas(null, null, null, null));
+        assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
 }

@@ -16,28 +16,26 @@ public class SSOAuthTest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testRedHatSSOLogin() throws Throwable {
-        var auth = new KeycloakOAuth(Vertx.vertx());
-
-        bwait(auth.loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        var auth = new KeycloakOAuth(Vertx.vertx(), Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        bwait(auth.loginToRHSSO());
         LOGGER.info("user authenticated against: {}", Environment.SSO_REDHAT_KEYCLOAK_URI);
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testMASSSOLogin() throws Throwable {
-        var auth2 = new KeycloakOAuth(Vertx.vertx());
-
-        bwait(auth2.loginToMASSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        var auth2 = new KeycloakOAuth(Vertx.vertx(), Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        bwait(auth2.loginToMASSSO());
         LOGGER.info("user authenticated against: {}", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testJoinedLogin() throws Throwable {
-        var auth = new KeycloakOAuth(Vertx.vertx());
+        var auth = new KeycloakOAuth(Vertx.vertx(), Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
-        bwait(auth.loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        bwait(auth.loginToRHSSO());
         LOGGER.info("user authenticated against: {}", Environment.SSO_REDHAT_KEYCLOAK_URI);
 
-        bwait(auth.loginToMASSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        bwait(auth.loginToMASSSO());
         LOGGER.info("user authenticated against: {}", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI);
     }
 }

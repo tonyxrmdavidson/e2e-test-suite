@@ -91,15 +91,15 @@ public class CLIUtils {
         return cli.login(Environment.SERVICE_API_URI, authURL, masAuthURL)
             .compose(process -> {
 
-                var oauth2 = new KeycloakOAuth(vertx);
+                var oauth2 = new KeycloakOAuth(vertx, username, password);
 
                 LOGGER.info("start oauth login against CLI");
                 var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.SSO_REDHAT_KEYCLOAK_URI))
-                    .compose(l -> oauth2.login(l, username, password))
+                    .compose(l -> oauth2.login(l))
                     .onSuccess(__ -> LOGGER.info("first oauth login completed"));
 
                 var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
-                    .compose(l -> oauth2.login(l, username, password))
+                    .compose(l -> oauth2.login(l))
                     .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"));
 
                 var cliFuture = process.future(ofMinutes(3))

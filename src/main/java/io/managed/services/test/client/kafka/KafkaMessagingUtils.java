@@ -282,4 +282,5 @@ public class KafkaMessagingUtils {
     public static long random(long from, long to) {
         return (long) (Math.random() * ((to - from) + 1)) + from;
     }
+
 }

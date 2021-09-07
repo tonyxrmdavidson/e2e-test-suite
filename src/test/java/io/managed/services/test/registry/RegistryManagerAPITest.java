@@ -22,10 +22,9 @@ import java.nio.charset.StandardCharsets;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
-import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
-import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.registryMgmtApi;
-import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.waitUntilRegistryIsReady;
 import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.waitUntilRegistryIsReady;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
@@ -44,7 +43,7 @@ public class RegistryManagerAPITest extends TestBase {
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(Vertx.vertx()));
+        registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -84,7 +83,8 @@ public class RegistryManagerAPITest extends TestBase {
 
     @Test(dependsOnMethods = "testCreateRegistry", timeOut = DEFAULT_TIMEOUT)
     public void testCreateArtifact() throws Throwable {
-        var registryClient = bwait(registryClient(Vertx.vertx(), registry.getRegistryUrl()));
+        var registryClient = bwait(registryClient(Vertx.vertx(), registry.getRegistryUrl(),
+            Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
         LOGGER.info("create artifact on registry");
         var artifactMetaData = registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8));
@@ -138,7 +138,7 @@ public class RegistryManagerAPITest extends TestBase {
     }
 
     @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
-     public void testDeleteProvisioningRegistry() throws Throwable {
+    public void testDeleteProvisioningRegistry() throws Throwable {
 
         var registryCreateRest = new RegistryCreateRest()
             .name(SERVICE_REGISTRY_NAME);

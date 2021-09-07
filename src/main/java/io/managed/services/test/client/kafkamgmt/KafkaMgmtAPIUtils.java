@@ -33,10 +33,11 @@ public class KafkaMgmtAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtAPIUtils.class);
 
     public static KafkaMgmtApi kafkaMgmtApi(User user) {
-        return kafkaMgmtApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user));
+        return kafkaMgmtApi(Environment.SERVICE_API_URI, user);
     }
 
-    public static KafkaMgmtApi kafkaMgmtApi(String uri, String token) {
+    public static KafkaMgmtApi kafkaMgmtApi(String uri, User user) {
+        var token = KeycloakOAuth.getToken(user);
         return new KafkaMgmtApi(new KasApiClient().basePath(uri).bearerToken(token).getApiClient());
     }
 

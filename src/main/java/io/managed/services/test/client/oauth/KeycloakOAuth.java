@@ -34,6 +34,9 @@ public class KeycloakOAuth {
     static final String AUTH_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/auth";
     static final String TOKEN_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/token";
 
+    private final String username;
+    private final String password;
+
     private final Vertx vertx;
     private final WebClientSession session;
 
@@ -45,8 +48,14 @@ public class KeycloakOAuth {
         return user.get("refresh_token");
     }
 
-    public KeycloakOAuth(Vertx vertx) {
+    public KeycloakOAuth(String username, String password) {
+        this(Vertx.vertx(), username, password);
+    }
+
+    public KeycloakOAuth(Vertx vertx, String username, String password) {
         this.vertx = vertx;
+        this.username = username;
+        this.password = password;
 
         var client = WebClient.create(vertx, new WebClientOptions()
             .setFollowRedirects(false));
@@ -81,11 +90,11 @@ public class KeycloakOAuth {
      * <p>
      * Generally used for CLI authentication.
      */
-    public Future<Void> login(String authURI, String username, String password) {
+    public Future<Void> login(String authURI) {
 
         var redirectURI = "http://localhost";
 
-        return login(authURI, redirectURI, username, password)
+        return login(authURI, redirectURI)
             .compose(r -> followRedirects(session, r))
             .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
             .map(__ -> {
@@ -95,47 +104,31 @@ public class KeycloakOAuth {
     }
 
     public Future<User> loginToRHSSO() {
-        return loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-    }
-
-    public Future<User> loginToRHSSO(String username, String password) {
         return login(
             Environment.SSO_REDHAT_KEYCLOAK_URI,
             Environment.SSO_REDHAT_REDIRECT_URI,
             Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID,
-            username, password);
+            Environment.SSO_REDHAT_CLIENT_ID);
     }
 
     public Future<User> loginToMASSSO() {
-        return loginToMASSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-    }
-
-    public Future<User> loginToMASSSO(String username, String password) {
         return login(
             Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
             Environment.MAS_SSO_REDHAT_REDIRECT_URI,
             Environment.MAS_SSO_REDHAT_REALM,
-            Environment.MAS_SSO_REDHAT_CLIENT_ID,
-            username, password);
+            Environment.MAS_SSO_REDHAT_CLIENT_ID);
     }
 
     /**
      * Login for the first time against the oauth realm using username and password and hook to the redirectURI
      * to retrieve the access code and complete the authentication to retrieve the access_token and refresh_token
      */
-    public Future<User> login(
-        String keycloakURI,
-        String redirectURI,
-        String realm,
-        String clientID,
-        String username,
-        String password) {
+    public Future<User> login(String keycloakURI, String redirectURI, String realm, String clientID) {
 
         var oauth2 = createOAuth2(keycloakURI, realm, clientID);
         var authURI = getAuthURI(oauth2, redirectURI);
 
-        return login(authURI, redirectURI, username, password)
+        return login(authURI, redirectURI)
             .compose(r -> authenticateUser(vertx, oauth2, redirectURI, r))
             .map(u -> {
                 LOGGER.info("authentication completed");
@@ -143,11 +136,7 @@ public class KeycloakOAuth {
             });
     }
 
-    private Future<HttpResponse<Buffer>> login(
-        String authURI,
-        String redirectURI,
-        String username,
-        String password) {
+    private Future<HttpResponse<Buffer>> login(String authURI, String redirectURI) {
 
         // follow redirects until the new location doesn't match the redirect URI
         Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> !r.getHeader("Location").contains(redirectURI);
@@ -182,5 +171,9 @@ public class KeycloakOAuth {
         };
 
         return TestUtils.retry(vertx, call, condition);
+    }
+
+    public String getUsername() {
+        return username;
     }
 }

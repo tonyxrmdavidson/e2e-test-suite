@@ -15,6 +15,7 @@ import java.util.Set;
 import static io.managed.services.test.TestUtils.forEach;
 
 
+@Deprecated
 public class KafkaAdminAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPIUtils.class);
 
@@ -24,10 +25,10 @@ public class KafkaAdminAPIUtils {
     }
 
     public static Future<KafkaAdminAPI> kafkaAdminAPI(Vertx vertx, String bootstrapHost, String username, String password) {
-        var auth = new KeycloakOAuth(vertx);
+        var auth = new KeycloakOAuth(vertx, username, password);
 
-        LOGGER.info("authenticate user: {} against MAS SSO", username);
-        return auth.loginToMASSSO(username, password)
+        LOGGER.info("authenticate user: {} against MAS SSO", auth.getUsername());
+        return auth.loginToMASSSO()
             .map(user -> kafkaAdminAPI(vertx, bootstrapHost, user));
     }
 

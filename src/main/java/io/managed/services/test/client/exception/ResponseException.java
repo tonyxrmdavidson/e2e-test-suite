@@ -5,6 +5,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.net.HttpURLConnection;
 import java.util.Map;
 
+@Deprecated
 public class ResponseException extends Exception {
     public final HttpResponse<?> response;
 

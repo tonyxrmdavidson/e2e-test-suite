@@ -1,13 +1,12 @@
 package io.managed.services.test.client.registrymgmt;
 
-import com.openshift.cloud.api.srs.invoker.ApiClient;
-import com.openshift.cloud.api.srs.invoker.auth.HttpBearerAuth;
 import com.openshift.cloud.api.srs.models.RegistryCreateRest;
 import com.openshift.cloud.api.srs.models.RegistryListRest;
 import com.openshift.cloud.api.srs.models.RegistryRest;
 import com.openshift.cloud.api.srs.models.RegistryStatusValueRest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowableFunction;
+import io.managed.services.test.client.SrsApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
@@ -28,29 +27,22 @@ import static java.time.Duration.ofSeconds;
 public class RegistryMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(RegistryMgmtApiUtils.class);
 
-    public static Future<RegistryMgmtApi> registryMgmtApi(Vertx vertx) {
-        return registryMgmtApi(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+    public static Future<RegistryMgmtApi> registryMgmtApi(String username, String password) {
+        return registryMgmtApi(new KeycloakOAuth(Vertx.vertx(), username, password));
     }
 
-    public static Future<RegistryMgmtApi> registryMgmtApi(Vertx vertx, String username, String password) {
-        return registryMgmtApi(new KeycloakOAuth(vertx), username, password);
-    }
-
-    public static Future<RegistryMgmtApi> registryMgmtApi(KeycloakOAuth auth, String username, String password) {
-        LOGGER.info("authenticate user: {} against RH SSO", username);
-        return auth.loginToRHSSO(username, password)
-            .map(u -> registryMgmtApi(u));
+    public static Future<RegistryMgmtApi> registryMgmtApi(KeycloakOAuth auth) {
+        LOGGER.info("authenticate user: {} against RH SSO", auth.getUsername());
+        return auth.loginToRHSSO().map(u -> registryMgmtApi(u));
     }
 
     public static RegistryMgmtApi registryMgmtApi(User user) {
-        return registryMgmtApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user));
+        return registryMgmtApi(Environment.SERVICE_API_URI, user);
     }
 
-    public static RegistryMgmtApi registryMgmtApi(String uri, String token) {
-        var apiClient = new ApiClient();
-        apiClient.setBasePath(uri);
-        ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(token);
-        return new RegistryMgmtApi(apiClient);
+    public static RegistryMgmtApi registryMgmtApi(String uri, User user) {
+        var token = KeycloakOAuth.getToken(user);
+        return new RegistryMgmtApi(new SrsApiClient().basePath(uri).bearerToken(token).getApiClient());
     }
 
     /**

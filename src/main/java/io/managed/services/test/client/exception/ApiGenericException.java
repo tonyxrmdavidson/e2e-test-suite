@@ -20,6 +20,7 @@ public class ApiGenericException extends Exception {
             case HttpURLConnection.HTTP_CONFLICT:
                 return new ApiConflictException(e);
             case 423:
+                return new ApiLockedException(e);
             default:
                 return new ApiGenericException(e);
         }

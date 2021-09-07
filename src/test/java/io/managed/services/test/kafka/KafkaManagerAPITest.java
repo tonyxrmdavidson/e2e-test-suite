@@ -6,6 +6,7 @@ import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
+import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
@@ -60,11 +61,11 @@ public class KafkaManagerAPITest extends TestBase {
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        var auth = new KeycloakOAuth(Vertx.vertx());
-        var user = bwait(auth.loginToRHSSO(Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var apps = ApplicationServicesApi.applicationServicesApi(auth, Environment.SERVICE_API_URI);
 
-        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
-        kafkaMgmtApi = KafkaMgmtAPIUtils.kafkaMgmtApi(user);
+        securityMgmtApi = apps.securityMgmt();
+        kafkaMgmtApi = apps.kafkaMgmt();
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)

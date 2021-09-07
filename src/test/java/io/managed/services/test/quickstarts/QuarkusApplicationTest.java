@@ -141,16 +141,14 @@ public class QuarkusApplicationTest extends TestBase {
 
     private Future<Void> bootstrapUserAndAPI() {
 
-        KeycloakOAuth auth = new KeycloakOAuth(vertx);
+        KeycloakOAuth auth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
         LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
         return auth.login(
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID,
-            Environment.SSO_USERNAME,
-            Environment.SSO_PASSWORD)
+                Environment.SSO_REDHAT_KEYCLOAK_URI,
+                Environment.SSO_REDHAT_REDIRECT_URI,
+                Environment.SSO_REDHAT_REALM,
+                Environment.SSO_REDHAT_CLIENT_ID)
 
             .map(u -> {
                 user = u;

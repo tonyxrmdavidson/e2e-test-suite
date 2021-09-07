@@ -12,6 +12,7 @@ import java.net.HttpURLConnection;
 /**
  * OpenAPI: https://github.com/bf2fc6cc711aee1a0c2a/kafka-admin-api/blob/main/rest/src/main/resources/openapi-specs/rest.yaml
  */
+@Deprecated
 public class KafkaAdminAPI extends BaseVertxClient {
 
     final TokenCredentials token;

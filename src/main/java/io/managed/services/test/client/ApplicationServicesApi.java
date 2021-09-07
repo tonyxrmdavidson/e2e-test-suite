@@ -32,24 +32,28 @@ public class ApplicationServicesApi {
         this.registryMgmtApi = new RegistryMgmtApi(srsApiClient.getApiClient());
     }
 
-    @SneakyThrows
-    public static ApplicationServicesApi applicationServicesApi(
-        KeycloakOAuth auth, String basePath, String username, String password) {
 
-        log.info("authenticate user '{}' against RH SSO", username);
-        var user = bwait(auth.loginToRHSSO(username, password));
+    public static ApplicationServicesApi applicationServicesApi(String basePath, String username, String password) {
+        return applicationServicesApi(new KeycloakOAuth(username, password), basePath);
+    }
+
+    @SneakyThrows
+    public static ApplicationServicesApi applicationServicesApi(KeycloakOAuth auth, String basePath) {
+
+        log.info("authenticate user '{}' against RH SSO", auth.getUsername());
+        var user = bwait(auth.loginToRHSSO());
         return new ApplicationServicesApi(basePath, user);
     }
 
-    public KafkaMgmtApi km() {
+    public KafkaMgmtApi kafkaMgmt() {
         return kafkaMgmtApi;
     }
 
-    public SecurityMgmtApi sm() {
+    public SecurityMgmtApi securityMgmt() {
         return securityMgmtApi;
     }
 
-    public RegistryMgmtApi rm() {
+    public RegistryMgmtApi registryMgmt() {
         return registryMgmtApi;
     }
 }

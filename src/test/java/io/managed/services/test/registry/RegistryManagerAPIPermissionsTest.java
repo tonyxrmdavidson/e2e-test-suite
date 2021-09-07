@@ -14,6 +14,7 @@ import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import io.vertx.ext.auth.User;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,10 +26,10 @@ import java.nio.charset.StandardCharsets;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.registryMgmtApi;
-import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
 
@@ -49,14 +50,16 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(vertx));
+        registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
+            Environment.SSO_USERNAME,
+            Environment.SSO_PASSWORD));
         registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
 
-        secondaryRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(vertx,
+        secondaryRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
             Environment.SSO_SECONDARY_USERNAME,
             Environment.SSO_SECONDARY_PASSWORD));
 
-        alienRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(vertx,
+        alienRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
             Environment.SSO_ALIEN_USERNAME,
             Environment.SSO_ALIEN_PASSWORD));
     }
@@ -114,13 +117,15 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithFakeToken() {
-        var api = registryMgmtApi(Environment.SERVICE_API_URI, TestUtils.FAKE_TOKEN);
+        var user = User.fromToken(TestUtils.FAKE_TOKEN);
+        var api = registryMgmtApi(Environment.SERVICE_API_URI, user);
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithoutToken() {
-        var api = registryMgmtApi(Environment.SERVICE_API_URI, "");
+        var user = User.fromToken("");
+        var api = registryMgmtApi(Environment.SERVICE_API_URI, user);
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 }
