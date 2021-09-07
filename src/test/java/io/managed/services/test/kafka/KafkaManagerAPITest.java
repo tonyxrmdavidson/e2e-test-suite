@@ -10,7 +10,8 @@ import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
+import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
@@ -122,13 +123,14 @@ public class KafkaManagerAPITest extends TestBase {
     @SneakyThrows
     public void testCreateTopics() {
 
-        var admin = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(Vertx.vertx(), kafka.getBootstrapServerHost()));
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+            Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
         log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
-        bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, TOPIC_NAME));
+        kafkaInstanceApi.createTopic(new DefaultTopicInput(TOPIC_NAME).build());
 
         log.info("create topic '{}' on the instance '{}'", METRIC_TOPIC_NAME, kafka.getName());
-        bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, METRIC_TOPIC_NAME));
+        kafkaInstanceApi.createTopic(new DefaultTopicInput(METRIC_TOPIC_NAME).build());
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)

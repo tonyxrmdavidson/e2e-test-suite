@@ -1,6 +1,5 @@
 package io.managed.services.test.kafka;
 
-import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
@@ -10,6 +9,7 @@ import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.exception.ApiLockedException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
+import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
@@ -134,7 +134,7 @@ public class KafkaAdminAPITest extends TestBase {
         LOGGER.info("topic '{}' not found", TEST_TOPIC_NAME);
 
         LOGGER.info("create topic '{}'", TEST_TOPIC_NAME);
-        var topic = kafkaInstanceApi.createTopic(new NewTopicInput().name(TEST_TOPIC_NAME));
+        var topic = kafkaInstanceApi.createTopic(new DefaultTopicInput(TEST_TOPIC_NAME).build());
         LOGGER.debug(topic);
     }
 
@@ -142,7 +142,7 @@ public class KafkaAdminAPITest extends TestBase {
     public void testFailToCreateTopicIfItAlreadyExist() {
         // create existing topic should fail
         assertThrows(ApiConflictException.class,
-            () -> kafkaInstanceApi.createTopic(new NewTopicInput().name(TEST_TOPIC_NAME)));
+            () -> kafkaInstanceApi.createTopic(new DefaultTopicInput(TEST_TOPIC_NAME).build()));
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)

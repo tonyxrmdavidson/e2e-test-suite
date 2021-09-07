@@ -110,6 +110,7 @@ public class Environment {
     public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
     public static final String MAS_SSO_REDHAT_REDIRECT_URI = getOrDefault(MAS_SSO_REDHAT_REDIRECT_URI_ENV, "https://cloud.redhat.com/beta/application-services");
 
+    @Deprecated
     public static final String KAFKA_ADMIN_API_SERVER_PREFIX = getOrDefault(KAFKA_ADMIN_API_SERVER_PREFIX_ENV, "https://admin-server-");
 
     // TODO: Rename to OPENSHIFT_API_URI

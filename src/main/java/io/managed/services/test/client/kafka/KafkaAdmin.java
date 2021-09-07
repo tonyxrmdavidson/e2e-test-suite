@@ -2,7 +2,6 @@ package io.managed.services.test.client.kafka;
 
 import io.vertx.core.Future;
 import org.apache.kafka.clients.admin.Admin;
-
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -14,7 +13,6 @@ import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.ElectionType;
-
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AccessControlEntry;
 import org.apache.kafka.common.acl.AccessControlEntryFilter;
@@ -46,6 +44,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.client.kafka.KafkaUtils.toVertxFuture;
+
+// TODO: Switch from vert.x Future to KafkaFuture
 public class KafkaAdmin {
 
     public final Admin admin;
@@ -56,8 +56,8 @@ public class KafkaAdmin {
 
     public KafkaAdmin(String bootstrapHost, String clientID, String clientSecret) {
         Map<String, Object> conf = KafkaAuthMethod.oAuthConfigs(bootstrapHost, clientID, clientSecret)
-                .entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         admin = Admin.create(conf);
     }
 
@@ -85,7 +85,7 @@ public class KafkaAdmin {
     public Future<Void> addAclResource(ResourceType resourceType) {
         ResourcePattern pattern = new ResourcePattern(resourceType, "foo", PatternType.LITERAL);
         AccessControlEntry entry = new AccessControlEntry("*", "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW);
-        AclBinding aclBinding  = new AclBinding(pattern, entry);
+        AclBinding aclBinding = new AclBinding(pattern, entry);
         List<AclBinding> listOfAclBindings = new ArrayList<>();
         listOfAclBindings.add(aclBinding);
         return toVertxFuture(admin.createAcls(listOfAclBindings).all());
@@ -127,7 +127,7 @@ public class KafkaAdmin {
         ConfigResource configResource = new ConfigResource(resourceType, resourceName);
         ConfigEntry configEntry = new ConfigEntry("client-id", "someValue2");
         AlterConfigOp op = new AlterConfigOp(configEntry, configurationType);
-        Map map = new HashMap<ConfigResource, List<AlterConfigOp>>() {
+        var map = new HashMap<ConfigResource, Collection<AlterConfigOp>>() {
             {
                 put(configResource, Collections.singletonList(op));
             }
@@ -163,19 +163,19 @@ public class KafkaAdmin {
     public Future<Void> resetOffsets(String topicName, String groupID) {
         TopicPartition topicPartition = new TopicPartition(topicName, 0);
         OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(0, "foo");
-        Map map = Map.of(topicPartition, offsetAndMetadata);
+        var map = Map.of(topicPartition, offsetAndMetadata);
         return toVertxFuture(admin.alterConsumerGroupOffsets(groupID, map).all());
     }
 
     public Future<Void> deleteOffset(String topicName, String groupID) {
         TopicPartition topicPartition = new TopicPartition(topicName, 0);
-        return  toVertxFuture(admin.deleteConsumerGroupOffsets(groupID, Set.of(topicPartition)).all());
+        return toVertxFuture(admin.deleteConsumerGroupOffsets(groupID, Set.of(topicPartition)).all());
     }
 
     public Future<Void> deleteRecords(String topicName) {
         TopicPartition topicPartition = new TopicPartition(topicName, 0);
         RecordsToDelete recordsToDelete = RecordsToDelete.beforeOffset(0);
-        Map map = new HashMap<TopicPartition, RecordsToDelete>() {
+        var map = new HashMap<TopicPartition, RecordsToDelete>() {
             {
                 put(topicPartition, recordsToDelete);
             }
@@ -196,7 +196,7 @@ public class KafkaAdmin {
     public Future<Void> reassignPartitions(String topicName) {
         TopicPartition topicPartition = new TopicPartition(topicName, 0);
         NewPartitionReassignment newPartitionReassignment = new NewPartitionReassignment(List.of(0));
-        Map map = new HashMap<TopicPartition, Optional<NewPartitionReassignment>>() {
+        var map = new HashMap<TopicPartition, Optional<NewPartitionReassignment>>() {
             {
                 put(topicPartition, Optional.of(newPartitionReassignment));
             }
@@ -211,6 +211,7 @@ public class KafkaAdmin {
     public Future<List<DelegationToken>> describeDelegationToken() {
         return toVertxFuture(admin.describeDelegationToken().delegationTokens());
     }
+
     public void close() {
         admin.close(Duration.ofSeconds(3));
     }

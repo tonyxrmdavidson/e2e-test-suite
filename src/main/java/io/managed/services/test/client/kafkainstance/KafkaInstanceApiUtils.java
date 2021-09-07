@@ -2,7 +2,6 @@ package io.managed.services.test.client.kafkainstance;
 
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
-import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.ThrowableFunction;
 import io.managed.services.test.client.KasAuthApiClient;
@@ -33,7 +32,7 @@ public class KafkaInstanceApiUtils {
     }
 
     public static String kafkaInstanceApiUri(String bootstrapServerHost) {
-        return String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapServerHost);
+        return String.format("https://admin-server-%s/rest", bootstrapServerHost);
     }
 
     public static Future<KafkaInstanceApi> kafkaInstanceApi(KafkaRequest kafka, String username, String password) {
@@ -90,7 +89,7 @@ public class KafkaInstanceApiUtils {
             try {
                 var group = api.getConsumerGroupById(consumerGroupId, null, null, null, null);
                 groupAtom.set(group);
-                return true;
+                return group.getConsumers().size() > 0;
             } catch (ApiNotFoundException e) {
                 return false;
             }
