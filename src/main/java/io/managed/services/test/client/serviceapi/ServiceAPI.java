@@ -9,7 +9,7 @@ import io.vertx.ext.auth.authentication.TokenCredentials;
 
 import java.net.HttpURLConnection;
 
-
+@Deprecated
 public class ServiceAPI extends BaseVertxClient {
 
     final TokenCredentials token;

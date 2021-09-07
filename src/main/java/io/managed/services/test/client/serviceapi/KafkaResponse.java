@@ -7,7 +7,7 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 
-
+@Deprecated
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KafkaResponse {
     public String id;

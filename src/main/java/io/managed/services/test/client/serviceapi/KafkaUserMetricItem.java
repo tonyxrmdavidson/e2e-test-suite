@@ -3,6 +3,7 @@ package io.managed.services.test.client.serviceapi;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@Deprecated
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KafkaUserMetricItem {
 

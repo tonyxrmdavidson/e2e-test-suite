@@ -31,6 +31,7 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
 
+@Deprecated
 public class ServiceAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(ServiceAPIUtils.class);
 

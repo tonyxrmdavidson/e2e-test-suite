@@ -16,6 +16,7 @@ import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static java.time.Duration.ofSeconds;
 
+@Deprecated
 public class MetricsUtils {
     private static final Logger LOGGER = LogManager.getLogger(MetricsUtils.class);
 

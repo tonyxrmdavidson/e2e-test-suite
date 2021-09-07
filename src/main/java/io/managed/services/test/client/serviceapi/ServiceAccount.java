@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@Deprecated
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ServiceAccount {
     public String description;
