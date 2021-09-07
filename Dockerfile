@@ -7,8 +7,11 @@ RUN mvn verify -Psmoke
 RUN chmod go+w -R target
 
 USER root
+
 COPY rhit-root-ca.crt /etc/pki/ca-trust/source/anchors/
 RUN update-ca-trust
+
+RUN microdnf install bind-utils
 
 USER jboss
 ENV _JAVA_OPTIONS="-Duser.home=${HOME}"
