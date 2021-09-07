@@ -9,7 +9,8 @@ import io.managed.services.test.client.exception.ApiForbiddenException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
-import io.managed.services.test.client.registry.RegistriesApi;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -24,9 +25,9 @@ import java.nio.charset.StandardCharsets;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.applyRegistry;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.cleanRegistry;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.registriesApi;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.registryMgmtApi;
 import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
@@ -40,22 +41,22 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
 
     private final Vertx vertx = Vertx.vertx();
 
-    private RegistriesApi registriesApi;
-    private RegistriesApi secondaryRegistriesApi;
-    private RegistriesApi alienRegistriesApi;
+    private RegistryMgmtApi registryMgmtApi;
+    private RegistryMgmtApi secondaryRegistryMgmtApi;
+    private RegistryMgmtApi alienRegistryMgmtApi;
 
     private RegistryRest registry;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        registriesApi = bwait(registriesApi(vertx));
-        registry = applyRegistry(registriesApi, SERVICE_REGISTRY_NAME);
+        registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(vertx));
+        registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
 
-        secondaryRegistriesApi = bwait(registriesApi(vertx,
+        secondaryRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(vertx,
             Environment.SSO_SECONDARY_USERNAME,
             Environment.SSO_SECONDARY_PASSWORD));
 
-        alienRegistriesApi = bwait(registriesApi(vertx,
+        alienRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(vertx,
             Environment.SSO_ALIEN_USERNAME,
             Environment.SSO_ALIEN_PASSWORD));
     }
@@ -65,7 +66,7 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
         assumeTeardown();
 
         try {
-            cleanRegistry(registriesApi, SERVICE_REGISTRY_NAME);
+            cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
@@ -75,21 +76,21 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testSecondaryUserCanReadTheRegistry() throws ApiGenericException {
-        var r = secondaryRegistriesApi.getRegistry(registry.getId());
+        var r = secondaryRegistryMgmtApi.getRegistry(registry.getId());
         assertEquals(r.getName(), registry.getName());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUserCanReadTheRegistry() throws ApiGenericException {
-        LOGGER.info("registries: {}", Json.encode(registriesApi.getRegistries(null, null, null, null)));
+        LOGGER.info("registries: {}", Json.encode(registryMgmtApi.getRegistries(null, null, null, null)));
         LOGGER.info("registry: {}", Json.encode(registry));
-        var r = registriesApi.getRegistry(registry.getId());
+        var r = registryMgmtApi.getRegistry(registry.getId());
         assertEquals(r.getName(), registry.getName());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testAlienUserCanNotReadTheRegistry() {
-        assertThrows(ApiNotFoundException.class, () -> alienRegistriesApi.getRegistry(registry.getId()));
+        assertThrows(ApiNotFoundException.class, () -> alienRegistryMgmtApi.getRegistry(registry.getId()));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
@@ -103,23 +104,23 @@ public class RegistryManagerAPIPermissionsTest extends TestBase {
 
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testSecondaryUserCanNotDeleteTheRegistry() {
-        assertThrows(ApiForbiddenException.class, () -> secondaryRegistriesApi.deleteRegistry(registry.getId()));
+        assertThrows(ApiForbiddenException.class, () -> secondaryRegistryMgmtApi.deleteRegistry(registry.getId()));
     }
 
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testAlienUserCanNotDeleteTheRegistry() {
-        assertThrows(ApiForbiddenException.class, () -> alienRegistriesApi.deleteRegistry(registry.getId()));
+        assertThrows(ApiForbiddenException.class, () -> alienRegistryMgmtApi.deleteRegistry(registry.getId()));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithFakeToken() {
-        var api = registriesApi(Environment.SERVICE_API_URI, TestUtils.FAKE_TOKEN);
+        var api = registryMgmtApi(Environment.SERVICE_API_URI, TestUtils.FAKE_TOKEN);
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithoutToken() {
-        var api = registriesApi(Environment.SERVICE_API_URI, "");
+        var api = registryMgmtApi(Environment.SERVICE_API_URI, "");
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 }

@@ -1,5 +1,6 @@
-package io.managed.services.test.client.registry;
+package io.managed.services.test.client.registrymgmt;
 
+import com.openshift.cloud.api.srs.RegistriesApi;
 import com.openshift.cloud.api.srs.invoker.ApiClient;
 import com.openshift.cloud.api.srs.invoker.ApiException;
 import com.openshift.cloud.api.srs.models.RegistryCreateRest;
@@ -9,15 +10,15 @@ import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
 
-public class RegistriesApi extends BaseApi<ApiException> {
+public class RegistryMgmtApi extends BaseApi<ApiException> {
 
-    private final com.openshift.cloud.api.srs.RegistriesApi registriesApi;
+    private final RegistriesApi registriesApi;
 
-    public RegistriesApi(ApiClient apiClient) {
-        this(new com.openshift.cloud.api.srs.RegistriesApi(apiClient));
+    public RegistryMgmtApi(ApiClient apiClient) {
+        this(new RegistriesApi(apiClient));
     }
 
-    public RegistriesApi(com.openshift.cloud.api.srs.RegistriesApi registriesApi) {
+    public RegistryMgmtApi(RegistriesApi registriesApi) {
         super(ApiException.class);
         this.registriesApi = registriesApi;
     }

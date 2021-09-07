@@ -2,7 +2,7 @@ package io.managed.services.test.client;
 
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.registry.RegistriesApi;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.vertx.ext.auth.User;
 import lombok.SneakyThrows;
@@ -15,7 +15,7 @@ public class ApplicationServicesApi {
 
     private final KafkaMgmtApi kafkaMgmtApi;
     private final SecurityMgmtApi securityMgmtApi;
-    private final RegistriesApi registriesApi;
+    private final RegistryMgmtApi registryMgmtApi;
 
     public ApplicationServicesApi(String basePath, User user) {
         this(basePath, KeycloakOAuth.getToken(user));
@@ -29,7 +29,7 @@ public class ApplicationServicesApi {
     public ApplicationServicesApi(KasApiClient kasApiClient, SrsApiClient srsApiClient) {
         this.kafkaMgmtApi = new KafkaMgmtApi(kasApiClient.getApiClient());
         this.securityMgmtApi = new SecurityMgmtApi(kasApiClient.getApiClient());
-        this.registriesApi = new RegistriesApi(srsApiClient.getApiClient());
+        this.registryMgmtApi = new RegistryMgmtApi(srsApiClient.getApiClient());
     }
 
     @SneakyThrows
@@ -49,7 +49,7 @@ public class ApplicationServicesApi {
         return securityMgmtApi;
     }
 
-    public RegistriesApi rm() {
-        return registriesApi;
+    public RegistryMgmtApi rm() {
+        return registryMgmtApi;
     }
 }

@@ -1,4 +1,4 @@
-package io.managed.services.test.client.registry;
+package io.managed.services.test.client.registrymgmt;
 
 import com.openshift.cloud.api.srs.invoker.ApiClient;
 import com.openshift.cloud.api.srs.invoker.auth.HttpBearerAuth;
@@ -25,42 +25,42 @@ import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
-public class RegistriesApiUtils {
-    private static final Logger LOGGER = LogManager.getLogger(RegistriesApiUtils.class);
+public class RegistryMgmtApiUtils {
+    private static final Logger LOGGER = LogManager.getLogger(RegistryMgmtApiUtils.class);
 
-    public static Future<RegistriesApi> registriesApi(Vertx vertx) {
-        return registriesApi(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+    public static Future<RegistryMgmtApi> registryMgmtApi(Vertx vertx) {
+        return registryMgmtApi(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
     }
 
-    public static Future<RegistriesApi> registriesApi(Vertx vertx, String username, String password) {
-        return registriesApi(new KeycloakOAuth(vertx), username, password);
+    public static Future<RegistryMgmtApi> registryMgmtApi(Vertx vertx, String username, String password) {
+        return registryMgmtApi(new KeycloakOAuth(vertx), username, password);
     }
 
-    public static Future<RegistriesApi> registriesApi(KeycloakOAuth auth, String username, String password) {
+    public static Future<RegistryMgmtApi> registryMgmtApi(KeycloakOAuth auth, String username, String password) {
         LOGGER.info("authenticate user: {} against RH SSO", username);
         return auth.loginToRHSSO(username, password)
-            .map(u -> registriesApi(u));
+            .map(u -> registryMgmtApi(u));
     }
 
-    public static RegistriesApi registriesApi(User user) {
-        return registriesApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user));
+    public static RegistryMgmtApi registryMgmtApi(User user) {
+        return registryMgmtApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user));
     }
 
-    public static RegistriesApi registriesApi(String uri, String token) {
+    public static RegistryMgmtApi registryMgmtApi(String uri, String token) {
         var apiClient = new ApiClient();
         apiClient.setBasePath(uri);
         ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(token);
-        return new RegistriesApi(apiClient);
+        return new RegistryMgmtApi(apiClient);
     }
 
     /**
      * Create a Registry using the default options if it doesn't exist or return the existing Registry
      *
-     * @param api  RegistriesApi
+     * @param api  RegistryMgmtApi
      * @param name Name for the Registry
      * @return RegistryRest
      */
-    public static RegistryRest applyRegistry(RegistriesApi api, String name)
+    public static RegistryRest applyRegistry(RegistryMgmtApi api, String name)
         throws ApiGenericException, InterruptedException, TimeoutException {
 
         var registryCreateRest = new RegistryCreateRest().name(name);
@@ -70,11 +70,11 @@ public class RegistriesApiUtils {
     /**
      * Create a Registry if it doesn't exist or return the existing Registry
      *
-     * @param api     RegistriesApi
+     * @param api     RegistryMgmtApi
      * @param payload RegistryCreateRest
      * @return RegistryRest
      */
-    public static RegistryRest applyRegistry(RegistriesApi api, RegistryCreateRest payload)
+    public static RegistryRest applyRegistry(RegistryMgmtApi api, RegistryCreateRest payload)
         throws ApiGenericException, InterruptedException, TimeoutException {
 
         var registryList = getRegistryByName(api, payload.getName());
@@ -97,11 +97,11 @@ public class RegistriesApiUtils {
     /**
      * Function that returns RegistryRest only if status is in ready
      *
-     * @param api        RegistriesApi
+     * @param api        RegistryMgmtApi
      * @param registryID String
      * @return RegistryRest
      */
-    public static RegistryRest waitUntilRegistryIsReady(RegistriesApi api, String registryID)
+    public static RegistryRest waitUntilRegistryIsReady(RegistryMgmtApi api, String registryID)
         throws InterruptedException, ApiGenericException, TimeoutException {
 
         // save the last ready registry in the atomic reference
@@ -127,13 +127,13 @@ public class RegistriesApiUtils {
         return RegistryStatusValueRest.READY.equals(registry.getStatus());
     }
 
-    public static void cleanRegistry(RegistriesApi api, String name) throws ApiGenericException {
+    public static void cleanRegistry(RegistryMgmtApi api, String name) throws ApiGenericException {
         deleteRegistryByNameIfExists(api, name);
     }
 
-    public static void deleteRegistryByNameIfExists(RegistriesApi api, String name) throws ApiGenericException {
+    public static void deleteRegistryByNameIfExists(RegistryMgmtApi api, String name) throws ApiGenericException {
 
-        // Attention: this delete all registries with the given name
+        // Attention: this deletes all registries with the given name
         var registries = getRegistryByName(api, name);
 
         if (registries.getItems().isEmpty()) {
@@ -147,8 +147,8 @@ public class RegistriesApiUtils {
         }
     }
 
-    // TODO: Move some of the most common method in the RegistriesApi
-    public static void waitUntilRegistryIsDeleted(RegistriesApi api, String registryId)
+    // TODO: Move some of the most common method in the RegistryMgmtApi
+    public static void waitUntilRegistryIsDeleted(RegistryMgmtApi api, String registryId)
         throws InterruptedException, ApiGenericException, TimeoutException {
 
         ThrowableFunction<Boolean, Boolean, ApiGenericException> isReady = last -> {
@@ -164,7 +164,7 @@ public class RegistriesApiUtils {
         waitFor("registry to be deleted", ofSeconds(1), ofSeconds(20), isReady);
     }
 
-    public static RegistryListRest getRegistryByName(RegistriesApi api, String name) throws ApiGenericException {
+    public static RegistryListRest getRegistryByName(RegistryMgmtApi api, String name) throws ApiGenericException {
 
         // Attention: we support only 10 registries until the name doesn't become unique
         return api.getRegistries(1, 10, null, String.format("name = %s", name));

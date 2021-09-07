@@ -5,8 +5,8 @@ import com.openshift.cloud.api.srs.models.RegistryRest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.ApiGenericException;
-import io.managed.services.test.client.registry.RegistriesApi;
-import io.managed.services.test.client.registry.RegistriesApiUtils;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -22,9 +22,9 @@ import java.nio.charset.StandardCharsets;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.cleanRegistry;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.registriesApi;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.waitUntilRegistryIsReady;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.registryMgmtApi;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.waitUntilRegistryIsReady;
 import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
@@ -39,12 +39,12 @@ public class RegistryManagerAPITest extends TestBase {
     private static final String SERVICE_REGISTRY_2_NAME = "mk-e2e-sr2-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String ARTIFACT_SCHEMA = "{\"type\":\"record\",\"name\":\"Greeting\",\"fields\":[{\"name\":\"Message\",\"type\":\"string\"},{\"name\":\"Time\",\"type\":\"long\"}]}";
 
-    private RegistriesApi registriesApi;
+    private RegistryMgmtApi registryMgmtApi;
     private RegistryRest registry;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        registriesApi = bwait(registriesApi(Vertx.vertx()));
+        registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(Vertx.vertx()));
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -52,13 +52,13 @@ public class RegistryManagerAPITest extends TestBase {
         assumeTeardown();
 
         try {
-            cleanRegistry(registriesApi, SERVICE_REGISTRY_NAME);
+            cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
 
         try {
-            cleanRegistry(registriesApi, SERVICE_REGISTRY_2_NAME);
+            cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_2_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
@@ -71,10 +71,10 @@ public class RegistryManagerAPITest extends TestBase {
             .name(SERVICE_REGISTRY_NAME)
             .description("Hello World!");
 
-        var registry = registriesApi.createRegistry(registryCreateRest);
+        var registry = registryMgmtApi.createRegistry(registryCreateRest);
         LOGGER.info("service registry: {}", Json.encode(registry));
 
-        registry = waitUntilRegistryIsReady(registriesApi, registry.getId());
+        registry = waitUntilRegistryIsReady(registryMgmtApi, registry.getId());
         LOGGER.info("ready service registry: {}", Json.encode(registry));
 
         assertNotNull(registry.getRegistryUrl());
@@ -96,7 +96,7 @@ public class RegistryManagerAPITest extends TestBase {
     public void testListRegistries() throws ApiGenericException {
 
         // List registries
-        var registries = registriesApi.getRegistries(null, null, null, null);
+        var registries = registryMgmtApi.getRegistries(null, null, null, null);
 
         assertTrue(registries.getItems().size() > 0, "registries list is empty");
 
@@ -109,7 +109,7 @@ public class RegistryManagerAPITest extends TestBase {
     public void testSearchRegistry() throws ApiGenericException {
 
         // Search registry by name
-        var registries = registriesApi.getRegistries(null, null, null,
+        var registries = registryMgmtApi.getRegistries(null, null, null,
             String.format("name = %s", SERVICE_REGISTRY_NAME));
 
         assertTrue(registries.getItems().size() > 0, "registries list is empty");
@@ -124,17 +124,17 @@ public class RegistryManagerAPITest extends TestBase {
         var registryCreateRest = new RegistryCreateRest()
             .name(SERVICE_REGISTRY_NAME);
 
-        assertThrows(() -> registriesApi.createRegistry(registryCreateRest));
+        assertThrows(() -> registryMgmtApi.createRegistry(registryCreateRest));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT, priority = 1, dependsOnMethods = "testCreateRegistry")
     public void testDeleteRegistry() throws Throwable {
 
         LOGGER.info("delete registry '{}'", registry.getId());
-        registriesApi.deleteRegistry(registry.getId());
+        registryMgmtApi.deleteRegistry(registry.getId());
 
         LOGGER.info("verify the registry '{}' has been deleted", registry.getId());
-        RegistriesApiUtils.waitUntilRegistryIsDeleted(registriesApi, registry.getId());
+        RegistryMgmtApiUtils.waitUntilRegistryIsDeleted(registryMgmtApi, registry.getId());
     }
 
     @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
@@ -144,12 +144,12 @@ public class RegistryManagerAPITest extends TestBase {
             .name(SERVICE_REGISTRY_NAME);
 
         LOGGER.info("create kafka instance: {}", SERVICE_REGISTRY_2_NAME);
-        var registryToDelete = registriesApi.createRegistry(registryCreateRest);
+        var registryToDelete = registryMgmtApi.createRegistry(registryCreateRest);
 
         LOGGER.info("delete the registry: {}", registryToDelete.getId());
-        registriesApi.deleteRegistry(registryToDelete.getId());
+        registryMgmtApi.deleteRegistry(registryToDelete.getId());
 
         LOGGER.info("verify the registry '{}' has been deleted", registryToDelete.getId());
-        RegistriesApiUtils.waitUntilRegistryIsDeleted(registriesApi, registryToDelete.getId());
+        RegistryMgmtApiUtils.waitUntilRegistryIsDeleted(registryMgmtApi, registryToDelete.getId());
     }
 }

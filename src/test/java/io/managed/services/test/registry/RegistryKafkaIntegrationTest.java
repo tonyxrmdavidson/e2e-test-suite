@@ -11,7 +11,8 @@ import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.registry.RegistriesApi;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.managed.services.test.client.serviceapi.KafkaResponse;
 import io.managed.services.test.client.serviceapi.ServiceAPI;
 import io.managed.services.test.client.serviceapi.ServiceAccount;
@@ -37,9 +38,9 @@ import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
 import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.kafkaAdminAPI;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.applyRegistry;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.cleanRegistry;
-import static io.managed.services.test.client.registry.RegistriesApiUtils.registriesApi;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
+import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.registryMgmtApi;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
 import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
@@ -59,7 +60,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
     private final Vertx vertx = Vertx.vertx();
 
-    private RegistriesApi registriesApi;
+    private RegistryMgmtApi registryMgmtApi;
     private RegistryRest registry;
     private ServiceAPI kafkasApi;
     private KafkaResponse kafka;
@@ -74,7 +75,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         // registry api
         LOGGER.info("initialize registry service api");
-        registriesApi = registriesApi(rhuser);
+        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(rhuser);
 
         // kafka api
         LOGGER.info("initialize kafka service api");
@@ -82,7 +83,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         // registry
         LOGGER.info("create service registry: {}", SERVICE_REGISTRY_NAME);
-        registry = applyRegistry(registriesApi, SERVICE_REGISTRY_NAME);
+        registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
 
         // kafka
         LOGGER.info("create kafka instance: {}", KAFKA_INSTANCE_NAME);
@@ -114,7 +115,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         }
 
         try {
-            cleanRegistry(registriesApi, SERVICE_REGISTRY_NAME);
+            cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
