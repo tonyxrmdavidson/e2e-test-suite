@@ -252,7 +252,7 @@ public class KafkaManagerAPITest extends TestBase {
     public void testFailToCreateKafkaInstanceIfItAlreadyExist() {
 
         // Create Kafka Instance with existing name
-        KafkaRequestPayload payload = new KafkaRequestPayload()
+        var payload = new KafkaRequestPayload()
             .name(KAFKA_INSTANCE_NAME)
             .multiAz(true)
             .cloudProvider("aws")
@@ -306,7 +306,7 @@ public class KafkaManagerAPITest extends TestBase {
         // TODO: Move in a regression test class
 
         // Create Kafka Instance
-        KafkaRequestPayload payload = new KafkaRequestPayload()
+        var payload = new KafkaRequestPayload()
             .name(KAFKA2_INSTANCE_NAME)
             .multiAz(true)
             .cloudProvider("aws")
