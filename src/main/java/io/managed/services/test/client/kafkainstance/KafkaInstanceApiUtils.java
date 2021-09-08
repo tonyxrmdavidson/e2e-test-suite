@@ -87,7 +87,7 @@ public class KafkaInstanceApiUtils {
 
         ThrowableFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
             try {
-                var group = api.getConsumerGroupById(consumerGroupId, null, null, null, null);
+                var group = api.getConsumerGroupById(consumerGroupId);
                 groupAtom.set(group);
                 return group.getConsumers().size() > 0;
             } catch (ApiNotFoundException e) {

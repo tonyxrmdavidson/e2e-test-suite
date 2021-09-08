@@ -36,8 +36,12 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
         return new ApiUnknownException(e.getMessage(), e.getCode(), e.getResponseHeaders(), e.getResponseBody(), e);
     }
 
-    public TopicsList getTopics(Integer offset, Integer limit, Integer size, String filter, Integer page, String order, String orderKey) throws ApiGenericException {
-        return handle(() -> topicsApi.getTopics(offset, limit, size, filter, page, order, orderKey));
+    public TopicsList getTopics() throws ApiGenericException {
+        return getTopics(null, null, null, null, null);
+    }
+
+    public TopicsList getTopics(Integer size, Integer page, String filter, String order, String orderKey) throws ApiGenericException {
+        return handle(() -> topicsApi.getTopics(null, null, size, filter, page, order, orderKey));
     }
 
     public Topic getTopic(String topicName) throws ApiGenericException {
@@ -52,8 +56,16 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
         vhandle(() -> topicsApi.deleteTopic(topicName));
     }
 
-    public ConsumerGroupList getConsumerGroups(Integer offset, Integer limit, Integer size, Integer page, String topic, String groupIdFilter, String order, String orderKey) throws ApiGenericException {
-        return handle(() -> groupsApi.getConsumerGroups(offset, limit, size, page, topic, groupIdFilter, order, orderKey));
+    public ConsumerGroupList getConsumerGroups() throws ApiGenericException {
+        return getConsumerGroups(null, null, null, null, null, null);
+    }
+
+    public ConsumerGroupList getConsumerGroups(Integer size, Integer page, String topic, String groupIdFilter, String order, String orderKey) throws ApiGenericException {
+        return handle(() -> groupsApi.getConsumerGroups(null, null, size, page, topic, groupIdFilter, order, orderKey));
+    }
+
+    public ConsumerGroup getConsumerGroupById(String consumerGroupId) throws ApiGenericException {
+        return getConsumerGroupById(consumerGroupId, null, null, null, null);
     }
 
     public ConsumerGroup getConsumerGroupById(String consumerGroupId, String order, String orderKey, Integer partitionFilter, String topic) throws ApiGenericException {

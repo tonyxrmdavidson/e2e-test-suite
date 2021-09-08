@@ -18,24 +18,23 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Map;
-
 public class OperatorUtils {
     private static final Logger LOGGER = LogManager.getLogger(OperatorUtils.class);
 
     public static MixedOperation<CloudServiceAccountRequest, CloudServiceAccountRequestList, Resource<CloudServiceAccountRequest>> cloudServiceAccountRequest(KubernetesClient client) {
-        return client.customResources(CloudServiceAccountRequest.class, CloudServiceAccountRequestList.class);
+        return client.resources(CloudServiceAccountRequest.class, CloudServiceAccountRequestList.class);
     }
 
     public static MixedOperation<CloudServicesRequest, CloudServicesRequestList, Resource<CloudServicesRequest>> cloudServicesRequest(KubernetesClient client) {
-        return client.customResources(CloudServicesRequest.class, CloudServicesRequestList.class);
+        return client.resources(CloudServicesRequest.class, CloudServicesRequestList.class);
     }
 
     public static MixedOperation<KafkaConnection, KafkaConnectionList, Resource<KafkaConnection>> kafkaConnection(KubernetesClient client) {
-        return client.customResources(KafkaConnection.class, KafkaConnectionList.class);
+        return client.resources(KafkaConnection.class, KafkaConnectionList.class);
     }
 
     public static MixedOperation<ServiceBinding, ServiceBindingList, Resource<ServiceBinding>> serviceBinding(KubernetesClient client) {
-        return client.customResources(ServiceBinding.class, ServiceBindingList.class);
+        return client.resources(ServiceBinding.class, ServiceBindingList.class);
     }
 
     public static Secret buildSecret(String name, Map<String, String> data) {

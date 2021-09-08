@@ -33,7 +33,11 @@ public class SecurityMgmtAPIUtils {
     }
 
     public static SecurityMgmtApi securityMgmtApi(User user) {
-        return securityMgmtApi(Environment.SERVICE_API_URI, KeycloakOAuth.getToken(user));
+        return securityMgmtApi(Environment.SERVICE_API_URI, user);
+    }
+
+    public static SecurityMgmtApi securityMgmtApi(String uri, User user) {
+        return securityMgmtApi(uri, KeycloakOAuth.getToken(user));
     }
 
     public static SecurityMgmtApi securityMgmtApi(String uri, String token) {

@@ -1,5 +1,7 @@
 package io.managed.services.test;
 
+import io.managed.services.test.wait.ReadyFunction;
+import io.managed.services.test.wait.TReadyFunction;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -123,6 +126,22 @@ public class TestUtils {
                 return sleep(vertx, interval)
                     .compose(v -> waitFor(vertx, description, interval, deadline, timeout, isReady));
             });
+    }
+
+    public static <A> A waitFor(String description, Duration interval, Duration timeout, ReadyFunction<A> isReady)
+        throws TimeoutException, InterruptedException {
+
+        TReadyFunction<A, RuntimeException> ready = (l, a) -> isReady.apply(l, a);
+        return waitFor(description, interval, timeout, ready);
+    }
+
+    public static <A, T extends Throwable> A waitFor(String description, Duration interval, Duration timeout, TReadyFunction<A, T> isReady)
+        throws T, TimeoutException, InterruptedException {
+
+        var atom = new AtomicReference<A>();
+        ThrowableFunction<Boolean, Boolean, T> ready = l -> isReady.apply(l, atom);
+        waitFor(description, interval, timeout, ready);
+        return atom.get();
     }
 
     // TODO: Convert waitFor into and independent class

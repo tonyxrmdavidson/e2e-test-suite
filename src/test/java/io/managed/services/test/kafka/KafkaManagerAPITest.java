@@ -137,7 +137,7 @@ public class KafkaManagerAPITest extends TestBase {
     @SneakyThrows
     public void testMessageInTotalMetric() {
 
-        log.info("start testing message in total metric");
+        log.info("test message in total metric");
         KafkaMgmtMetricsUtils.testMessageInTotalMetric(kafkaMgmtApi, kafka, serviceAccount, TOPIC_NAME);
     }
 

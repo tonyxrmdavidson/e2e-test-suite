@@ -104,7 +104,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
             new KeycloakOAuth(Environment.SSO_ALIEN_USERNAME, Environment.SSO_ALIEN_PASSWORD), kafka));
-        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics(null, null, null, null, null, null, null));
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
@@ -113,7 +113,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
             new KeycloakOAuth(Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD), kafka));
-        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics(null, null, null, null, null, null, null));
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
@@ -122,7 +122,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(
             KafkaInstanceApiUtils.kafkaInstanceApiUri(kafka), User.fromToken(TestUtils.FAKE_TOKEN));
-        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics(null, null, null, null, null, null, null));
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
@@ -163,7 +163,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
     public void tetGetAllTopics() {
-        var topics = kafkaInstanceApi.getTopics(null, null, null, null, null, null, null);
+        var topics = kafkaInstanceApi.getTopics();
         LOGGER.debug(topics);
 
         var filteredTopics = Objects.requireNonNull(topics.getItems())
@@ -204,7 +204,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
     public void testGetAllConsumerGroups() {
-        var groups = kafkaInstanceApi.getConsumerGroups(null, null, null, null, null, null, null, null);
+        var groups = kafkaInstanceApi.getConsumerGroups();
         LOGGER.debug(groups);
 
         var filteredGroup = Objects.requireNonNull(groups.getItems())
@@ -219,7 +219,7 @@ public class KafkaAdminAPITest extends TestBase {
     public void testFailToGetConsumerGroupIfItDoesNotExist() {
         // get consumer group non-existing consumer group should fail
         assertThrows(ApiNotFoundException.class,
-            () -> kafkaInstanceApi.getConsumerGroupById(TEST_NOT_EXISTING_GROUP_NAME, null, null, null, null));
+            () -> kafkaInstanceApi.getConsumerGroupById(TEST_NOT_EXISTING_GROUP_NAME));
     }
 
     @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
@@ -246,7 +246,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         // consumer group should have been deleted
         assertThrows(ApiNotFoundException.class,
-            () -> kafkaInstanceApi.getConsumerGroupById(TEST_GROUP_NAME, null, null, null, null));
+            () -> kafkaInstanceApi.getConsumerGroupById(TEST_GROUP_NAME));
         LOGGER.info("consumer group '{}' not found", TEST_GROUP_NAME);
     }
 

@@ -17,7 +17,7 @@ public abstract class BaseApi<E extends Exception> {
 
     protected <T> T handle(ThrowableSupplier<T, E> f) throws ApiGenericException {
         try {
-            return f.call();
+            return f.get();
         } catch (Exception e) {
             if (eClass.isInstance(e)) {
                 throw ApiGenericException.apiException(toApiException(eClass.cast(e)));

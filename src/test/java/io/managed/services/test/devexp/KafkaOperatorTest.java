@@ -9,27 +9,26 @@ import com.openshift.cloud.v1alpha.models.Credentials;
 import com.openshift.cloud.v1alpha.models.KafkaConnection;
 import com.openshift.cloud.v1alpha.models.KafkaConnectionSpec;
 import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.managed.services.test.Environment;
-import io.managed.services.test.IsReady;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
+import io.managed.services.test.wait.ReadyFunction;
 import io.vertx.core.json.Json;
 import io.vertx.ext.auth.User;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 import org.testng.ITestContext;
 import org.testng.TestException;
 import org.testng.annotations.AfterClass;
@@ -39,15 +38,11 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.Map;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertNotNull;
@@ -71,12 +66,10 @@ import static org.testng.Assert.assertNotNull;
 public class KafkaOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 
-    private final Vertx vertx = Vertx.vertx();
-
     private User user;
-    private ServiceAPI api;
+    private KafkaMgmtApi kafkaMgmtApi;
+    private SecurityMgmtApi securityMgmtApi;
     private OpenShiftClient oc;
-    private KafkaResponse kafka;
 
     private CloudServicesRequest cloudServicesRequest;
 
@@ -95,58 +88,31 @@ public class KafkaOperatorTest extends TestBase {
         assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
     }
 
-    private Future<Void> bootstrapUser(Vertx vertx) {
+    @BeforeClass(timeOut = 10 * MINUTES)
+    @SneakyThrows
+    public void bootstrap() {
+        assertENVs();
 
-        var auth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(
-                Environment.SSO_REDHAT_KEYCLOAK_URI,
-                Environment.SSO_REDHAT_REDIRECT_URI,
-                Environment.SSO_REDHAT_REALM,
-                Environment.SSO_REDHAT_CLIENT_ID)
+        LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
+        user = bwait(auth.loginToRHSSO());
 
-            .onSuccess(u -> user = u)
-            .map(__ -> null);
-    }
+        LOGGER.info("initialize kafka and security apis");
+        kafkaMgmtApi = KafkaMgmtAPIUtils.kafkaMgmtApi(Environment.SERVICE_API_URI, user);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.SERVICE_API_URI, user);
 
-    private void bootstrapAPI(Vertx vertx) {
-        api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
-    }
 
-    private void bootstrapK8sClient() {
-
-        Config config = new ConfigBuilder()
+        LOGGER.info("initialize openshift client");
+        var config = new ConfigBuilder()
             .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
             .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
             .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
             .build();
-
-        LOGGER.info("initialize kubernetes client");
         oc = new DefaultOpenShiftClient(config);
-    }
 
-    private Future<Void> bootstrapKafkaInstance(Vertx vertx, ServiceAPI api) {
-
-        return applyKafkaInstance(vertx, api, KAFKA_INSTANCE_NAME)
-            .onSuccess(k -> {
-                kafka = k;
-                LOGGER.info("kafka instance created: {}", Json.encode(kafka));
-            })
-            .map(__ -> null);
-    }
-
-    @BeforeClass(timeOut = 10 * MINUTES)
-    public void bootstrap() throws Throwable {
-        assertENVs();
-
-        bwait(bootstrapUser(vertx));
-
-        bootstrapAPI(vertx);
-
-        bootstrapK8sClient();
-
-        bwait(bootstrapKafkaInstance(vertx, api));
+        LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
+        KafkaMgmtAPIUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
         try {
             OperatorUtils.patchTheOperatorCloudServiceAPIEnv(oc);
@@ -196,10 +162,6 @@ public class KafkaOperatorTest extends TestBase {
 
     }
 
-    private Future<Void> cleanServiceAccount() {
-        return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
-    }
-
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
@@ -236,25 +198,23 @@ public class KafkaOperatorTest extends TestBase {
 
         // force clean the service account if it hasn't done it yet
         try {
-            bwait(cleanServiceAccount());
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("cleanServiceAccount error: ", t);
         }
 
         try {
-            bwait(cleanKafkaInstance(api, KAFKA_INSTANCE_NAME));
+            KafkaMgmtAPIUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("cleanKafkaInstance error: ", t);
         }
-
-        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testCreateAccessTokenSecret() {
 
         // Create Secret
-        Map<String, String> data = new HashMap<>();
+        var data = new HashMap<String, String>();
         data.put("value", Base64.getEncoder().encodeToString(KeycloakOAuth.getRefreshToken(user).getBytes()));
 
         LOGGER.info("create access token secret with name: {}", ACCESS_TOKEN_SECRET_NAME);
@@ -276,23 +236,14 @@ public class KafkaOperatorTest extends TestBase {
         a = OperatorUtils.cloudServiceAccountRequest(oc).create(a);
         LOGGER.info("created CloudServiceAccountRequest: {}", Json.encode(a));
 
-        IsReady<CloudServiceAccountRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServiceAccountRequest(oc).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get())
-            .map(r -> {
+        ReadyFunction<Void> ready = (__, ___) -> {
+            var r = OperatorUtils.cloudServiceAccountRequest(oc).withName(CLOUD_SERVICE_ACCOUNT_REQUEST_NAME).get();
+            LOGGER.debug(r);
 
-                LOGGER.info("CloudServiceAccountRequest status is: {}", Json.encode(r.getStatus()));
-
-                if (last) {
-                    LOGGER.warn("last CloudServiceAccountRequest is: {}", Json.encode(r));
-                }
-
-                if (r.getStatus() != null && r.getStatus().getMessage().equals("Created")) {
-                    return Pair.with(true, r);
-                }
-                return Pair.with(false, null);
-            });
-
-        var cloudServiceAccountRequest = bwait(waitFor(vertx, "CloudServiceAccountRequest to complete", ofSeconds(10), ofMinutes(4), ready));
-        LOGGER.info("CloudServiceAccountRequest is ready: {}", Json.encode(cloudServiceAccountRequest));
+            return r.getStatus() != null && r.getStatus().getMessage().equals("Created");
+        };
+        waitFor("CloudServiceAccountRequest to be created", ofSeconds(10), ofMinutes(4), ready);
+        LOGGER.info("CloudServiceAccountRequest is created");
     }
 
     @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
@@ -307,25 +258,21 @@ public class KafkaOperatorTest extends TestBase {
         k = OperatorUtils.cloudServicesRequest(oc).create(k);
         LOGGER.info("created CloudServicesRequest: {}", Json.encode(k));
 
-        IsReady<CloudServicesRequest> ready = last -> Future.succeededFuture(OperatorUtils.cloudServicesRequest(oc).withName(CLOUD_SERVICES_REQUEST_NAME).get())
-            .map(r -> {
+        ReadyFunction<CloudServicesRequest> ready = (__, atom) -> {
+            var r = OperatorUtils.cloudServicesRequest(oc).withName(CLOUD_SERVICES_REQUEST_NAME).get();
+            LOGGER.debug(r);
 
-                LOGGER.info("CloudServicesRequest status is: {}", Json.encode(r.getStatus()));
+            if (r.getStatus() != null
+                && r.getStatus().getUserKafkas() != null
+                && !r.getStatus().getUserKafkas().isEmpty()) {
 
-                if (last) {
-                    LOGGER.warn("last CloudServicesRequest is: {}", Json.encode(r));
-                }
-
-                if (r.getStatus() != null
-                    && r.getStatus().getUserKafkas() != null
-                    && !r.getStatus().getUserKafkas().isEmpty()) {
-
-                    return Pair.with(true, r);
-                }
-                return Pair.with(false, null);
-            });
-        cloudServicesRequest = bwait(waitFor(vertx, "CloudServicesRequest to complete", ofSeconds(10), ofMinutes(3), ready));
-        LOGGER.info("CloudServicesRequest is ready: {}", Json.encode(cloudServicesRequest));
+                atom.set(r);
+                return true;
+            }
+            return false;
+        };
+        cloudServicesRequest = waitFor("CloudServicesRequest to complete", ofSeconds(10), ofMinutes(3), ready);
+        LOGGER.info("CloudServicesRequest is completed");
     }
 
     @Test(dependsOnMethods = {"testCreateCloudServiceAccountRequest", "testCreateCloudServicesRequest"}, timeOut = DEFAULT_TIMEOUT)
@@ -351,24 +298,15 @@ public class KafkaOperatorTest extends TestBase {
         c = OperatorUtils.kafkaConnection(oc).create(c);
         LOGGER.info("created ManagedKafkaConnection: {}", Json.encode(c));
 
-        IsReady<KafkaConnection> ready = last -> Future.succeededFuture(OperatorUtils.kafkaConnection(oc).withName(KAFKA_CONNECTION_NAME).get())
-            .map(r -> {
+        ReadyFunction<Void> ready = (__, ___) -> {
+            var r = OperatorUtils.kafkaConnection(oc).withName(KAFKA_CONNECTION_NAME).get();
+            LOGGER.debug(r);
 
-                LOGGER.info("ManagedKafkaConnection status is: {}", Json.encode(r.getStatus()));
-
-                if (last) {
-                    LOGGER.warn("last ManagedKafkaConnection is: {}", Json.encode(r));
-                }
-
-                if (r.getStatus() != null
-                    && r.getStatus().getMessage() != null
-                    && r.getStatus().getMessage().equals("Created")) {
-
-                    return Pair.with(true, r);
-                }
-                return Pair.with(false, null);
-            });
-        var r = bwait(waitFor(vertx, "ManagedKafkaConnection to complete", ofSeconds(10), ofMinutes(2), ready));
-        LOGGER.info("ManagedKafkaConnection is ready: {}", Json.encode(r));
+            return r.getStatus() != null
+                && r.getStatus().getMessage() != null
+                && r.getStatus().getMessage().equals("Created");
+        };
+        waitFor("ManagedKafkaConnection to be created", ofSeconds(10), ofMinutes(2), ready);
+        LOGGER.info("ManagedKafkaConnection is created");
     }
 }
