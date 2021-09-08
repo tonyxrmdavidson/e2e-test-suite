@@ -1,4 +1,4 @@
-Feature: Quickstarts
+Feature: Quick starts for OpenShift Streams for Apache Kafka
 
   Scenario: Getting started with Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
