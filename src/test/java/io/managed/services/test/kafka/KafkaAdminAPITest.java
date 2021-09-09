@@ -12,7 +12,7 @@ import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
@@ -73,7 +73,7 @@ public class KafkaAdminAPITest extends TestBase {
         securityMgmtApi = apps.securityMgmt();
         LOGGER.info("kafka and security mgmt api initialized");
 
-        kafka = KafkaMgmtAPIUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
         kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka));
         LOGGER.info("kafka instance api client initialized");
@@ -85,7 +85,7 @@ public class KafkaAdminAPITest extends TestBase {
 
         // delete kafka instance
         try {
-            KafkaMgmtAPIUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("failed to clean kafka instance: ", t);
         }

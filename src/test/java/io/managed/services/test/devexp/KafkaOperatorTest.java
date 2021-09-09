@@ -15,7 +15,7 @@ import io.fabric8.openshift.client.OpenShiftClient;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
@@ -99,7 +99,7 @@ public class KafkaOperatorTest extends TestBase {
         user = bwait(auth.loginToRHSSO());
 
         LOGGER.info("initialize kafka and security apis");
-        kafkaMgmtApi = KafkaMgmtAPIUtils.kafkaMgmtApi(Environment.SERVICE_API_URI, user);
+        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.SERVICE_API_URI, user);
         securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.SERVICE_API_URI, user);
 
 
@@ -112,7 +112,7 @@ public class KafkaOperatorTest extends TestBase {
         oc = new DefaultOpenShiftClient(config);
 
         LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
-        KafkaMgmtAPIUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
         try {
             OperatorUtils.patchTheOperatorCloudServiceAPIEnv(oc);
@@ -204,7 +204,7 @@ public class KafkaOperatorTest extends TestBase {
         }
 
         try {
-            KafkaMgmtAPIUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("cleanKafkaInstance error: ", t);
         }

@@ -12,7 +12,7 @@ import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
@@ -74,13 +74,13 @@ public class KafkaManagerAPITest extends TestBase {
 
         // delete kafka instance
         try {
-            KafkaMgmtAPIUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             log.error("clean main kafka instance error: ", t);
         }
 
         try {
-            KafkaMgmtAPIUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA2_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA2_INSTANCE_NAME);
         } catch (Throwable t) {
             log.error("clean second kafka instance error: ", t);
         }
@@ -105,9 +105,9 @@ public class KafkaManagerAPITest extends TestBase {
             .region("us-east-1");
 
         log.info("create kafka instance '{}'", payload.getName());
-        var k = KafkaMgmtAPIUtils.createKafkaInstance(kafkaMgmtApi, payload);
+        var k = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
 
-        kafka = KafkaMgmtAPIUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
+        kafka = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
@@ -242,7 +242,7 @@ public class KafkaManagerAPITest extends TestBase {
 
         // Search kafka by name
         log.info("search kafka instance '{}' by name", KAFKA_INSTANCE_NAME);
-        var kafkaOptional = KafkaMgmtAPIUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        var kafkaOptional = KafkaMgmtApiUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         log.debug(kafkaOptional.orElse(null));
         assertTrue(kafkaOptional.isPresent());
         assertEquals(kafkaOptional.get().getName(), KAFKA_INSTANCE_NAME);
@@ -285,7 +285,7 @@ public class KafkaManagerAPITest extends TestBase {
         // Delete the Kafka instance
         log.info("delete kafka instance '{}'", KAFKA_INSTANCE_NAME);
         kafkaMgmtApi.deleteKafkaById(kafka.getId(), true);
-        KafkaMgmtAPIUtils.waitUntilKafkaIsDeleted(kafkaMgmtApi, kafka.getId());
+        KafkaMgmtApiUtils.waitUntilKafkaIsDeleted(kafkaMgmtApi, kafka.getId());
 
         // Produce Kafka messages
         log.info("send message to topic '{}'", TOPIC_NAME);
@@ -313,7 +313,7 @@ public class KafkaManagerAPITest extends TestBase {
             .region("us-east-1");
 
         log.info("create kafka instance '{}'", KAFKA2_INSTANCE_NAME);
-        var kafkaToDelete = KafkaMgmtAPIUtils.createKafkaInstance(kafkaMgmtApi, payload);
+        var kafkaToDelete = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
         log.debug(kafkaToDelete);
 
         log.info("wait 3 seconds before start deleting");
@@ -323,6 +323,6 @@ public class KafkaManagerAPITest extends TestBase {
         kafkaMgmtApi.deleteKafkaById(kafkaToDelete.getId(), true);
 
         log.info("wait for kafka to be deleted '{}'", kafkaToDelete.getId());
-        KafkaMgmtAPIUtils.waitUntilKafkaIsDeleted(kafkaMgmtApi, kafkaToDelete.getId());
+        KafkaMgmtApiUtils.waitUntilKafkaIsDeleted(kafkaMgmtApi, kafkaToDelete.getId());
     }
 }

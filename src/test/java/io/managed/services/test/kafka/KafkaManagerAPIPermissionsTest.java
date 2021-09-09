@@ -11,7 +11,7 @@ import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.exception.HTTPUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
@@ -78,7 +78,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
             Environment.SSO_ALIEN_PASSWORD);
 
         LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
-        kafka = KafkaMgmtAPIUtils.applyKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -87,7 +87,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
         assumeTeardown();
 
         try {
-            KafkaMgmtAPIUtils.deleteKafkaByNameIfExists(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.deleteKafkaByNameIfExists(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("clan kafka error: ", t);
         }

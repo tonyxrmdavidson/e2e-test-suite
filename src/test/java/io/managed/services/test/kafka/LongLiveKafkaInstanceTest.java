@@ -13,7 +13,7 @@ import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
@@ -81,7 +81,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     public void testThatTheLongLiveKafkaInstanceAlreadyExist() {
 
         LOGGER.info("get kafka instance '{}'", KAFKA_INSTANCE_NAME);
-        var optionalKafka = KafkaMgmtAPIUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        var optionalKafka = KafkaMgmtApiUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         if (optionalKafka.isEmpty()) {
             fail(message("the long living kafka instance '{}' doesn't exist", KAFKA_INSTANCE_NAME));
         }
@@ -95,7 +95,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         // recreate the instance only if it doesn't exist
         if (Objects.isNull(kafka)) {
             LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
-            kafka = KafkaMgmtAPIUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+            kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         }
 
         LOGGER.info("initialize kafka instance api");

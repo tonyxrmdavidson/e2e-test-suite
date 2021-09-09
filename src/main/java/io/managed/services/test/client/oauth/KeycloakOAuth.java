@@ -18,13 +18,17 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jsoup.Jsoup;
 
 import java.net.HttpURLConnection;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.managed.services.test.client.BaseVertxClient.getRedirectLocation;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.authenticateUser;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.followRedirects;
+import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.grantAccess;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.postUsernamePassword;
 import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.startLogin;
 
@@ -38,7 +42,7 @@ public class KeycloakOAuth {
     private final String password;
 
     private final Vertx vertx;
-    private final WebClientSession session;
+    private final VertxWebClientSession session;
 
     static public String getToken(User user) {
         return user.get("access_token");
@@ -60,7 +64,7 @@ public class KeycloakOAuth {
         var client = WebClient.create(vertx, new WebClientOptions()
             .setFollowRedirects(false));
 
-        this.session = WebClientSession.create(client);
+        this.session = new VertxWebClientSession(WebClientSession.create(client));
     }
 
     private OAuth2Auth createOAuth2(
@@ -73,7 +77,7 @@ public class KeycloakOAuth {
 
         return OAuth2Auth.create(vertx, new OAuth2Options()
             .setFlow(OAuth2FlowType.AUTH_CODE)
-            .setClientID(clientID)
+            .setClientId(clientID)
             .setSite(keycloakURI)
             .setTokenPath(tokenPath)
             .setAuthorizationPath(authPath));
@@ -136,24 +140,67 @@ public class KeycloakOAuth {
             });
     }
 
-    private Future<HttpResponse<Buffer>> login(String authURI, String redirectURI) {
+    private Future<VertxHttpResponse> login(String authURI, String redirectURI) {
 
         // follow redirects until the new location doesn't match the redirect URI
         Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> !r.getHeader("Location").contains(redirectURI);
 
         return retry(() -> startLogin(session, authURI)
-            .compose(r -> followRedirects(session, r, stopRedirect))
-            .compose(r -> {
-                // if the user is already authenticated don't post username/password
-                if (r.statusCode() == HttpURLConnection.HTTP_MOVED_TEMP) {
-                    return Future.succeededFuture(r);
-                }
+            .compose(r -> followAuthenticationRedirects(session, r, redirectURI))
+            .compose(r -> VertxWebClientSession.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP)));
+    }
 
-                return BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK)
-                    .compose(r2 -> postUsernamePassword(session, r2, username, password))
-                    .compose(r2 -> followRedirects(session, r2, stopRedirect));
-            })
-            .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP)));
+    private Future<VertxHttpResponse> followAuthenticationRedirects(
+        VertxWebClientSession session,
+        VertxHttpResponse response,
+        String redirectURI) {
+
+        if (response.statusCode() == HttpURLConnection.HTTP_MOVED_TEMP
+            && response.getHeader("Location").contains(redirectURI)) {
+
+            // the authentication is completed because we are redirected to the redirectURI
+            return Future.succeededFuture(response);
+        }
+
+        if (response.statusCode() == HttpURLConnection.HTTP_OK) {
+
+            var document = Jsoup.parse(response.bodyAsString());
+            var forms = document.getAllElements().forms();
+            if (forms.size() == 0) {
+                return Future.failedFuture(new ResponseException("the response should contain a <form>", response));
+            }
+            if (forms.size() > 1) {
+                return Future.failedFuture(new ResponseException("the response shouldn't have multiple <form>", response));
+            }
+
+            var form = Objects.requireNonNull(forms.get(0));
+            if ("kc-form-login".equals(form.id())) {
+
+                // we are at the login page therefore we are going to post the username and password to proceed with the
+                // authentication
+                return postUsernamePassword(session, form, username, password)
+                    .recover(t -> Future.failedFuture(new ResponseException(t.getMessage(), response)))
+                    .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
+            }
+
+            // we should be at the Grant Access page
+            return grantAccess(session, form, response.getRequest().getAbsoluteURI())
+                .recover(t -> Future.failedFuture(new ResponseException(t.getMessage(), response)))
+                .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
+        }
+
+        if (response.statusCode() >= 300 && response.statusCode() < 400) {
+
+            // handle redirects
+            return getRedirectLocation(response)
+                .compose(l -> {
+                    LOGGER.info("follow authentication redirect to: {}", l);
+                    return session.getAbs(l).send();
+                })
+                .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
+        }
+
+        return Future.succeededFuture(response);
     }
 
     private <T> Future<T> retry(Supplier<Future<T>> call) {
@@ -162,9 +209,7 @@ public class KeycloakOAuth {
             if (t instanceof ResponseException) {
                 var r = ((ResponseException) t).response;
                 // retry request in case of error 502
-                if (r.statusCode() == HttpURLConnection.HTTP_BAD_GATEWAY) {
-                    return true;
-                }
+                return r.statusCode() == HttpURLConnection.HTTP_BAD_GATEWAY;
             }
 
             return false;

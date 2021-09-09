@@ -1,6 +1,8 @@
 package io.managed.services.test.client.kafkainstance;
 
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
+import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.ThrowableFunction;
@@ -17,6 +19,7 @@ import io.vertx.kafka.client.consumer.KafkaConsumer;
 import lombok.extern.log4j.Log4j2;
 import org.javatuples.Pair;
 
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -101,5 +104,27 @@ public class KafkaInstanceApiUtils {
         waitFor("consumers in consumer group", ofSeconds(2), ofMinutes(1), ready);
 
         return groupAtom.get();
+    }
+
+    public static Optional<Topic> getTopicByName(KafkaInstanceApi api, String name) throws ApiGenericException {
+        try {
+            return Optional.of(api.getTopic(name));
+        } catch (ApiNotFoundException e) {
+            return Optional.empty();
+        }
+    }
+
+    public static Topic applyTopic(KafkaInstanceApi api, NewTopicInput payload) throws ApiGenericException {
+        var existing = getTopicByName(api, payload.getName());
+
+        if (existing.isPresent()) {
+            var topic = existing.get();
+            log.warn("topic '{}' already exists", topic.getName());
+            log.debug(topic);
+            return topic;
+        } else {
+            log.info("create kafka instance '{}'", payload.getName());
+            return api.createTopic(payload);
+        }
     }
 }

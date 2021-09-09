@@ -5,15 +5,15 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.net.HttpURLConnection;
 import java.util.Map;
 
-@Deprecated
 public class ResponseException extends Exception {
     public final HttpResponse<?> response;
 
-    protected ResponseException(String message, HttpResponse<?> response) {
+    public ResponseException(String message, HttpResponse<?> response) {
         super(message(message, response));
         this.response = response;
     }
 
+    @Deprecated
     public static ResponseException httpException(String message, HttpResponse<?> response) {
         switch (response.statusCode()) {
             case HttpURLConnection.HTTP_NOT_FOUND:

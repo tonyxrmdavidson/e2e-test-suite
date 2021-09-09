@@ -29,8 +29,8 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
 
-public class KafkaMgmtAPIUtils {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtAPIUtils.class);
+public class KafkaMgmtApiUtils {
+    private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtApiUtils.class);
 
     public static KafkaMgmtApi kafkaMgmtApi(User user) {
         return kafkaMgmtApi(Environment.SERVICE_API_URI, user);

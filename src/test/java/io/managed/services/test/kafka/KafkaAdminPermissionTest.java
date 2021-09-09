@@ -5,7 +5,7 @@ import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
@@ -90,7 +90,7 @@ public class KafkaAdminPermissionTest extends TestBase {
 
         // delete kafka instance
         try {
-            KafkaMgmtAPIUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             log.error("clean kafka error: ", t);
         }
@@ -109,7 +109,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         securityMgmtApi = apps.securityMgmt();
 
         // create the kafka admin
-        var kafka = KafkaMgmtAPIUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        var kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
         var serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
 

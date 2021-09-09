@@ -14,7 +14,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtAPIUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
@@ -63,7 +63,7 @@ public class QuickstartsStepDefinitions {
             .cloudProvider("aws")
             .region("us-east-1");
 
-        kafkaInstance = KafkaMgmtAPIUtils.createKafkaInstance(kafkaMgmtApi, payload);
+        kafkaInstance = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
         LOGGER.debug(kafkaInstance);
     }
 
@@ -81,7 +81,7 @@ public class QuickstartsStepDefinitions {
 
     @Then("the Kafka instance is shown as Ready")
     public void the_kafka_instance_is_shown_as_ready() throws Throwable {
-        kafkaInstance = KafkaMgmtAPIUtils.waitUntilKafkaIsReady(kafkaMgmtApi, kafkaInstance.getId());
+        kafkaInstance = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, kafkaInstance.getId());
         LOGGER.debug(kafkaInstance);
 
         assertEquals(kafkaInstance.getStatus(), "ready");
@@ -149,7 +149,7 @@ public class QuickstartsStepDefinitions {
     public void teardown() throws Throwable {
         // delete kafka instance
         try {
-            KafkaMgmtAPIUtils.deleteKafkaByNameIfExists(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.deleteKafkaByNameIfExists(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean main kafka instance error: ", t);
         }
