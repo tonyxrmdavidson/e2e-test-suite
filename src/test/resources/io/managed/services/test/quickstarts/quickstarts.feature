@@ -12,14 +12,16 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     And the Kafka instance is shown as Ready
 
     # 2. Creating a service account to connect to a Kafka instance in OpenShift Streams for Apache Kafka
-    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka and the instance is in Ready state
+    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
     * The Kafka instance has a generated bootstrap server
     When you create a service account with a unique name
     Then the service account has a generated Client ID and Client Secret
     And the service account is listed in the service accounts table
 
     # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
-    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka and the instance is in Ready state
+    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
     When you create a Kafka topic with a unique name
     Then the Kafka topic is listed in the topics table
 
@@ -42,13 +44,15 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Then the `src/main/resources/application.properties` file of the Quarkus example application contains all required configurations to authenticate the Kafka instance
 
     # 3. Creating the prices Kafka topic in OpenShift Streams for Apache Kafka
-    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka and the instance is in Ready state
+    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
     When you create a Kafka topic called `prices`
     Then the `prices` Kafka topic is listed in the topics table
 
     #4. Running the Quarkus example application
     Given you've configured the Quarkus example application to connect to the Kafka instance
-    * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka and the instance is in Ready state
+    * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
     When you navigate to the `code-examples/quarkus-kafka-quickstart` of the Quarkus example application and run the applications
     Then the application is running and the `Last price` is updated at http://localhost:8080/prices.html
 
@@ -69,7 +73,8 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
     # 3. Producing messages in Kafkacat
     Given Kafkacat is installed
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka and the instance is in Ready state
+    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
     * You’ve set the Kafka bootstrap server endpoint and your service account credentials as environment variables
     When you start Kafkacat in producer mode
     And you enter messages into Kafkacat that you want to produce
@@ -77,7 +82,8 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
     #4. Consuming messages in Kafkacat
     Given Kafkacat is installed
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka and the instance is in Ready state
+    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * The instance is in Ready state
     * You’ve set the Kafka bootstrap server endpoint and your service account credentials as environment variables
     * You used a producer to produce example messages to a topic
     When you start Kafkacat in consumer mode
