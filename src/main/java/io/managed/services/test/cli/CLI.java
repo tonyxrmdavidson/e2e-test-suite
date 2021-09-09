@@ -1,42 +1,39 @@
 package io.managed.services.test.cli;
 
+import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
+import com.openshift.cloud.api.kas.auth.models.ConsumerGroupList;
+import com.openshift.cloud.api.kas.auth.models.Topic;
+import com.openshift.cloud.api.kas.auth.models.TopicsList;
+import com.openshift.cloud.api.kas.models.KafkaRequest;
+import com.openshift.cloud.api.kas.models.KafkaRequestList;
+import com.openshift.cloud.api.kas.models.ServiceAccount;
+import com.openshift.cloud.api.kas.models.ServiceAccountList;
+import io.managed.services.test.Environment;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.serviceapi.ConsumerGroupListResponse;
-import io.managed.services.test.client.serviceapi.ConsumerGroupResponse;
-import io.managed.services.test.client.serviceapi.KafkaListResponse;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAccountList;
-import io.managed.services.test.client.serviceapi.TopicListResponse;
-import io.managed.services.test.client.serviceapi.TopicResponse;
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import io.managed.services.test.ThrowableSupplier;
+import lombok.SneakyThrows;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static io.managed.services.test.cli.ProcessUtils.stdout;
 import static io.managed.services.test.cli.ProcessUtils.stdoutAsJson;
 import static java.time.Duration.ofMinutes;
+import static lombok.Lombok.sneakyThrow;
 
 public class CLI {
-    private static final Logger LOGGER = LogManager.getLogger(CLI.class);
 
     private static final Duration DEFAULT_TIMEOUT = ofMinutes(3);
 
-    private final Vertx vertx;
     private final String workdir;
     private final String cmd;
 
-    public CLI(Vertx vertx, String workdir, String name) {
-        this.vertx = vertx;
+    public CLI(String workdir, String name) {
         this.workdir = workdir;
         this.cmd = String.format("./%s", name);
     }
@@ -55,31 +52,38 @@ public class CLI {
             .directory(new File(workdir));
     }
 
-    private Future<Process> exec(String... command) {
+    private Process exec(String... command) throws CliGenericException {
         return exec(List.of(command));
     }
 
-    private Future<Process> exec(List<String> command) {
-        return execAsync(command).compose(c -> c.future(DEFAULT_TIMEOUT));
+    private Process exec(List<String> command) throws CliGenericException {
+        try {
+            return execAsync(command).future(DEFAULT_TIMEOUT).get();
+        } catch (ExecutionException e) {
+            var cause = e.getCause();
+            if (cause instanceof ProcessException) {
+                throw CliGenericException.exception((ProcessException) cause);
+            }
+            throw sneakyThrow(cause);
+        } catch (InterruptedException e) {
+            throw sneakyThrow(e);
+        }
     }
 
-    private Future<AsyncProcess> execAsync(String... command) {
+    private AsyncProcess execAsync(String... command) {
         return execAsync(List.of(command));
     }
 
-    private Future<AsyncProcess> execAsync(List<String> command) {
-        try {
-            return Future.succeededFuture(new AsyncProcess(vertx, builder(command).start()));
-        } catch (IOException e) {
-            return Future.failedFuture(e);
-        }
+    @SneakyThrows
+    private AsyncProcess execAsync(List<String> command) {
+        return new AsyncProcess(builder(command).start());
     }
 
     /**
      * This method only starts the CLI login, use CLIUtils.login instead of this method
      * to login using username and password
      */
-    public Future<AsyncProcess> login(String apiGateway, String authURL, String masAuthURL) {
+    public AsyncProcess login(String apiGateway, String authURL, String masAuthURL) {
 
         List<String> cmd = new ArrayList<>();
         cmd.add("login");
@@ -101,122 +105,125 @@ public class CLI {
         return execAsync(cmd);
     }
 
-    public Future<AsyncProcess> login() {
+    public AsyncProcess login() {
         return login(null, null, null);
     }
 
-    public Future<Process> logout() {
+    @SneakyThrows
+    public Process logout() {
         return exec("logout");
     }
 
-    public Future<String> help() {
-        return exec("--help")
-            .map(p -> stdout(p));
+    @SneakyThrows
+    public String help() {
+        var p = exec("--help");
+        return stdout(p);
     }
 
-    public Future<Process> listKafka() {
-        return retry(() -> exec("kafka", "list"));
+    public KafkaRequest createKafka(String name) throws CliGenericException {
+        var p = retry(() -> exec("kafka", "create", "--name", name));
+        return stdoutAsJson(p, KafkaRequest.class);
     }
 
-    public Future<KafkaResponse> createKafka(String name) {
-        return retry(() -> exec("kafka", "create", "--name", name)
-            .map(p -> stdoutAsJson(p, KafkaResponse.class)));
+    public void deleteKafka(String id) throws CliGenericException {
+        retry(() -> exec("kafka", "delete", "--id", id, "-y"));
     }
 
-    public Future<Process> deleteKafka(String id) {
-        return retry(() -> exec("kafka", "delete", "--id", id, "-y"));
+    public KafkaRequest describeKafka(String id) throws CliGenericException {
+        var p = retry(() -> exec("kafka", "describe", "--id", id));
+        return stdoutAsJson(p, KafkaRequest.class);
     }
 
-    public Future<KafkaResponse> describeKafka(String id) {
-        return retry(() -> exec("kafka", "describe", "--id", id)
-            .map(p -> stdoutAsJson(p, KafkaResponse.class)));
+    public void useKafka(String id) throws CliGenericException {
+        retry(() -> exec("kafka", "use", "--id", id));
     }
 
-    public Future<Process> useKafka(String id) {
-        return retry(() -> exec("kafka", "use", "--id", id));
+    public KafkaRequestList listKafka() throws CliGenericException {
+        var p = retry(() -> exec("kafka", "list", "-o", "json"));
+        return stdoutAsJson(p, KafkaRequestList.class);
     }
 
-    public Future<KafkaListResponse> listKafkaAsJson() {
-        return retry(() -> exec("kafka", "list", "-o", "json")
-            .map(p -> stdoutAsJson(p, KafkaListResponse.class)));
+    public KafkaRequestList searchKafkaByName(String name) throws CliGenericException {
+        var p = retry(() -> exec("kafka", "list", "--search", name, "-o", "json"));
+        if (ProcessUtils.stderr(p).contains("No Kafka instances were found")) {
+            return new KafkaRequestList();
+        }
+        return stdoutAsJson(p, KafkaRequestList.class);
     }
 
-    public Future<KafkaListResponse> listKafkaByNameAsJson(String name) {
-        return retry(() -> exec("kafka", "list", "--search", name, "-o", "json")
-            .map(p -> ProcessUtils.stderr(p).contains("No Kafka instances were found") ?
-                new KafkaListResponse() :
-                stdoutAsJson(p, KafkaListResponse.class)));
+    public ServiceAccount describeServiceAccount(String id) throws CliGenericException {
+        var p = retry(() -> exec("service-account", "describe", "--id", id));
+        return stdoutAsJson(p, ServiceAccount.class);
     }
 
-    public Future<ServiceAccountList> listServiceAccountAsJson() {
-        return retry(() -> exec("service-account", "list", "-o", "json")
-            .map(p -> stdoutAsJson(p, ServiceAccountList.class)));
+    public ServiceAccountList listServiceAccount() throws CliGenericException {
+        var p = retry(() -> exec("service-account", "list", "-o", "json"));
+        return stdoutAsJson(p, ServiceAccountList.class);
     }
 
-    public Future<Process> deleteServiceAccount(String id) {
-        return retry(() -> exec("service-account", "delete", "--id", id, "-y"));
+    public void deleteServiceAccount(String id) throws CliGenericException {
+        retry(() -> exec("service-account", "delete", "--id", id, "-y"));
     }
 
-    public Future<Process> createServiceAccount(String name, Path path) {
-        return retry(() -> exec("service-account", "create", "--name", name, "--file-format", "json", "--output-file", path.toString(), "--overwrite"));
+    public void createServiceAccount(String name, Path path) throws CliGenericException {
+        retry(() -> exec("service-account", "create", "--name", name, "--file-format", "json", "--output-file", path.toString(), "--overwrite"));
     }
 
-    public Future<TopicResponse> createTopic(String topicName) {
-        return retry(() -> exec("kafka", "topic", "create", "--name", topicName, "-o", "json").map(p -> stdoutAsJson(p, TopicResponse.class)));
+    public Topic createTopic(String topicName) throws CliGenericException {
+        var p = retry(() -> exec("kafka", "topic", "create", "--name", topicName, "-o", "json"));
+        return stdoutAsJson(p, Topic.class);
     }
 
-    public Future<Process> deleteTopic(String topicName) {
-        return retry(() -> exec("kafka", "topic", "delete", "--name", topicName, "-y"));
+    public void deleteTopic(String topicName) throws CliGenericException {
+        retry(() -> exec("kafka", "topic", "delete", "--name", topicName, "-y"));
     }
 
-    public Future<TopicListResponse> listTopics() {
-        return retry(() -> exec("kafka", "topic", "list", "-o", "json")
-            .map(p -> stdoutAsJson(p, TopicListResponse.class)));
+    public TopicsList listTopics() throws CliGenericException {
+        var p = retry(() -> exec("kafka", "topic", "list", "-o", "json"));
+        return stdoutAsJson(p, TopicsList.class);
     }
 
-    public Future<TopicResponse> describeTopic(String topicName) {
-        return retry(() -> exec("kafka", "topic", "describe", "--name", topicName, "-o", "json")
-            .map(p -> stdoutAsJson(p, TopicResponse.class)));
+    public Topic describeTopic(String topicName) throws CliGenericException {
+        var p = retry(() -> exec("kafka", "topic", "describe", "--name", topicName, "-o", "json"));
+        return stdoutAsJson(p, Topic.class);
     }
 
-    public Future<TopicResponse> updateTopic(String topicName, String retentionTime) {
-        return retry(() -> exec("kafka", "topic", "update", "--name", topicName, "--retention-ms", retentionTime, "-o", "json")
-            .map(p -> stdoutAsJson(p, TopicResponse.class)));
+    public Topic updateTopic(String topicName, String retentionTime) throws CliGenericException {
+        var p = retry(() -> exec("kafka", "topic", "update", "--name", topicName, "--retention-ms", retentionTime, "-o", "json"));
+        return stdoutAsJson(p, Topic.class);
     }
 
-    public Future<ConsumerGroupListResponse> listConsumerGroups() {
-        return retry(() -> exec("kafka", "consumer-group", "list", "-o", "json")
-                .map(p -> stdoutAsJson(p, ConsumerGroupListResponse.class)));
+    public ConsumerGroupList listConsumerGroups() throws CliGenericException {
+        var p = retry(() -> exec("kafka", "consumer-group", "list", "-o", "json"));
+        return stdoutAsJson(p, ConsumerGroupList.class);
     }
 
-    public Future<Process> deleteConsumerGroup(String id) {
-        return retry(() -> exec("kafka", "consumer-group", "delete", "--id", id, "-y"));
+    public void deleteConsumerGroup(String id) throws CliGenericException {
+        retry(() -> exec("kafka", "consumer-group", "delete", "--id", id, "-y"));
     }
 
-    public Future<ConsumerGroupResponse> describeConsumerGroup(String name) {
-        return retry(() -> exec("kafka", "consumer-group", "describe", "--id", name, "-o", "json")
-                .map(p -> stdoutAsJson(p, ConsumerGroupResponse.class)));
+    public ConsumerGroup describeConsumerGroup(String name) throws CliGenericException {
+        var p = retry(() -> exec("kafka", "consumer-group", "describe", "--id", name, "-o", "json"));
+        return stdoutAsJson(p, ConsumerGroup.class);
     }
 
-    public Future<Process> connectCluster(String token, String kubeconfig) {
-        return retry(() -> exec("cluster", "connect", "--token", token, "--kubeconfig", kubeconfig, "-y"));
+    public void connectCluster(String token, String kubeconfig) throws CliGenericException {
+        retry(() -> exec("cluster", "connect", "--token", token, "--kubeconfig", kubeconfig, "-y"));
     }
 
-    public <T> Future<T> retry(Supplier<Future<T>> call) {
+    public <T, E extends Throwable> T retry(ThrowableSupplier<T, E> call) throws E {
 
         Function<Throwable, Boolean> condition = t -> {
             if (t instanceof ProcessException) {
-                if (t.getMessage().contains("504")
+                return t.getMessage().contains("504")
                     || t.getMessage().contains("500")
                     || t.getMessage().contains("503")
-                    || t.getMessage().contains("internal")) {
-                    return true;
-                }
+                    || t.getMessage().contains("internal");
             }
 
             return false;
         };
 
-        return TestUtils.retry(vertx, call, condition);
+        return TestUtils.retry(call, condition, Environment.RETRY_CALL_THRESHOLD);
     }
 }

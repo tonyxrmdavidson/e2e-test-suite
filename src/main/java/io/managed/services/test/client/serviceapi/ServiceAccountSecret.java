@@ -1,7 +1,15 @@
 package io.managed.services.test.client.serviceapi;
 
-@Deprecated
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class ServiceAccountSecret {
-    public String clientID;
-    public String clientSecret;
+    private String clientID;
+    private String clientSecret;
 }

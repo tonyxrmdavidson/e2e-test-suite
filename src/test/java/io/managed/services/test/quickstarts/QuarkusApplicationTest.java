@@ -130,8 +130,8 @@ public class QuarkusApplicationTest extends TestBase {
         LOGGER.info("cli downloaded successfully to: {}", cliBinary.directory);
 
         LOGGER.info("login the cli");
-        cli = new CLI(vertx, cliBinary.directory, cliBinary.name);
-        bwait(CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        cli = new CLI(cliBinary.directory, cliBinary.name);
+        CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD).get();
 
         // User
         var auth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
@@ -266,12 +266,10 @@ public class QuarkusApplicationTest extends TestBase {
     private Future<Void> cleanCLI() {
         if (cli != null) {
             LOGGER.info("logout from cli");
-            return cli.logout()
+            cli.logout();
 
-                .compose(__ -> {
-                    LOGGER.info("clean workdir: {}", cli.getWorkdir());
-                    return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
-                });
+            LOGGER.info("clean workdir: {}", cli.getWorkdir());
+            return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
         }
         return Future.succeededFuture();
     }
@@ -363,10 +361,10 @@ public class QuarkusApplicationTest extends TestBase {
         bwait(vertx.fileSystem().writeFile(kubeconfgipath, Buffer.buffer(config)));
 
         LOGGER.info("cli use kafka instance: {}", kafka.getId());
-        bwait(cli.useKafka(kafka.getId()));
+        cli.useKafka(kafka.getId());
 
         LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
-        bwait(cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath));
+        cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
     }
 
     @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)

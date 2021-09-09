@@ -6,6 +6,7 @@ import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
 import io.managed.services.test.DNSUtils;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowableFunction;
+import io.managed.services.test.ThrowableSupplier;
 import io.managed.services.test.client.KasApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
@@ -179,9 +180,22 @@ public class KafkaMgmtApiUtils {
     public static KafkaRequest waitUntilKafkaIsReady(KafkaMgmtApi api, String kafkaID)
         throws KafkaNotReadyException, ApiGenericException, InterruptedException, KafkaUnknownHostsException {
 
+        return waitUntilKafkaIsReady(() -> api.getKafkaById(kafkaID));
+    }
+
+
+    /**
+     * Returns KafkaRequest only if status is in ready
+     *
+     * @param supplier Returns the kafka instance to wait for
+     * @return KafkaRequest
+     */
+    public static <T extends Throwable> KafkaRequest waitUntilKafkaIsReady(ThrowableSupplier<KafkaRequest, T> supplier)
+        throws T, InterruptedException, KafkaUnknownHostsException, KafkaNotReadyException {
+
         var kafkaAtom = new AtomicReference<KafkaRequest>();
-        ThrowableFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
-            var kafka = api.getKafkaById(kafkaID);
+        ThrowableFunction<Boolean, Boolean, T> ready = last -> {
+            var kafka = supplier.get();
             kafkaAtom.set(kafka);
 
             LOGGER.debug(kafka);
@@ -231,7 +245,7 @@ public class KafkaMgmtApiUtils {
 
                     // TODO: Move to trace with isTrace enable
                     LOGGER.debug("dig {}:\n{}", hosts.get(i), DNSUtils.dig(hosts.get(i)));
-                    LOGGER.debug("dig {} 1.1.1.1:\n{}", hosts.get(i), DNSUtils.dig(hosts.get(i), "1.1.1.1"));
+                    LOGGER.debug("dig @1.1.1.1 {}:\n{}", hosts.get(i), DNSUtils.dig(hosts.get(i), "1.1.1.1"));
                 }
             }
             return hosts.isEmpty();
@@ -255,17 +269,34 @@ public class KafkaMgmtApiUtils {
     public static void waitUntilKafkaIsDeleted(KafkaMgmtApi api, String kafkaID)
         throws ApiGenericException, InterruptedException, KafkaNotDeletedException {
 
-        var kafkaAtom = new AtomicReference<KafkaRequest>();
-        ThrowableFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
-            KafkaRequest kafka;
+        waitUntilKafkaIsDeleted(() -> {
             try {
-                kafka = api.getKafkaById(kafkaID);
+                return Optional.of(api.getKafkaById(kafkaID));
             } catch (ApiNotFoundException __) {
+                return Optional.empty();
+            }
+        });
+    }
+
+    /**
+     * Return only if the Kafka instance is deleted
+     *
+     * @param supplier Return true if the instance doesn't exist anymore
+     */
+    public static <T extends Throwable> void waitUntilKafkaIsDeleted(
+        ThrowableSupplier<Optional<KafkaRequest>, T> supplier)
+        throws T, InterruptedException, KafkaNotDeletedException {
+
+        var kafkaAtom = new AtomicReference<KafkaRequest>();
+        ThrowableFunction<Boolean, Boolean, T> ready = l -> {
+            var exists = supplier.get();
+            if (exists.isEmpty()) {
                 return true;
             }
 
-            kafkaAtom.set(kafka);
+            var kafka = exists.get();
             LOGGER.debug(kafka);
+            kafkaAtom.set(kafka);
             return false;
         };
 

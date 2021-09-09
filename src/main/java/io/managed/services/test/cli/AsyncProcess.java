@@ -1,53 +1,46 @@
 package io.managed.services.test.cli;
 
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-
 import java.io.BufferedReader;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-import static io.managed.services.test.TestUtils.toVertxFuture;
 import static io.managed.services.test.cli.ProcessUtils.buffer;
-import static io.managed.services.test.cli.ProcessUtils.toError;
-import static io.managed.services.test.cli.ProcessUtils.toTimeoutError;
+import static lombok.Lombok.sneakyThrow;
 
 class AsyncProcess {
 
-    private final Vertx vertx;
     private final Process process;
     private final ProcessHandle.Info info;
 
-    AsyncProcess(Vertx vertx, Process process) {
-        this.vertx = vertx;
+    AsyncProcess(Process process) {
         this.info = process.info();
         this.process = process;
     }
 
-    public Future<Process> future(Duration timeout) {
-        var onExitFuture = toVertxFuture(process.onExit());
+    public CompletableFuture<Process> future(Duration timeout) {
+        var cause = new Exception();
+        return process.onExit()
 
-        var timeoutPromise = Promise.promise();
-        var timeoutTimer = vertx.setTimer(timeout.toMillis(), __ -> {
-            var m = toTimeoutError(process, info);
-            process.destroy();
-            timeoutPromise.fail(new ProcessException(m, process));
-        });
+            // set a timeout for the process
+            .orTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)
 
-        onExitFuture.onComplete(__ -> {
-            vertx.cancelTimer(timeoutTimer);
-            timeoutPromise.tryComplete();
-        });
+            // handle the process result
+            .handle((p, t) -> {
 
-        return CompositeFuture.all(onExitFuture, timeoutPromise.future())
-                .compose(__ -> {
-                    var p = onExitFuture.result();
-                    if (p.exitValue() != 0) {
-                        return Future.failedFuture(new ProcessException(toError(p, info), p));
-                    }
-                    return Future.succeededFuture(p);
-                });
+                if (process.isAlive()) {
+                    process.destroyForcibly();
+                }
+
+                if (t != null) {
+                    throw sneakyThrow(t);
+                }
+
+                if (p.exitValue() != 0) {
+                    throw sneakyThrow(new ProcessException(p, info, cause));
+                }
+                return p;
+            });
     }
 
     public BufferedReader stdout() {

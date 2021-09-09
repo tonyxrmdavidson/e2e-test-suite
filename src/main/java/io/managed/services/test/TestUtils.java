@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.time.Duration.ofSeconds;
+import static lombok.Lombok.sneakyThrow;
 
 /**
  * Test utils contains static help methods
@@ -302,6 +303,32 @@ public class TestUtils {
         });
     }
 
+    public static <T, E extends Throwable> T retry(
+        ThrowableSupplier<T, E> call, Function<Throwable, Boolean> condition, int attempts)
+        throws E {
+
+        try {
+            return call.get();
+
+        } catch (Throwable t) {
+
+            if (attempts > 0 && condition.apply(t)) {
+                // retry the call if there are available attempts and if the condition returns true
+                LOGGER.error("skip error: ", t);
+
+                // retry the API call
+                try {
+                    Thread.sleep(ofSeconds(1).toMillis());
+                } catch (InterruptedException e) {
+                    throw sneakyThrow(e);
+                }
+
+                return retry(call, condition, attempts - 1);
+            }
+            throw sneakyThrow(t);
+        }
+    }
+
     public static List<Throwable> getRetries() {
         return RETRIES;
     }
@@ -338,6 +365,7 @@ public class TestUtils {
     }
 
     public static <T> T asJson(Class<T> c, String s) {
+        LOGGER.debug(s);
         return BodyCodecImpl.jsonDecoder(c).apply(Buffer.buffer(s));
     }
 

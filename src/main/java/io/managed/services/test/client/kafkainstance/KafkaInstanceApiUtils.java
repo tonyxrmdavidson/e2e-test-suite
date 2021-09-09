@@ -7,6 +7,7 @@ import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.ThrowableFunction;
+import io.managed.services.test.ThrowableSupplier;
 import io.managed.services.test.client.KasAuthApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
@@ -84,19 +85,34 @@ public class KafkaInstanceApiUtils {
             .map(__ -> consumer);
     }
 
+    public static Optional<ConsumerGroup> getConsumerGroupByName(KafkaInstanceApi api, String consumerGroupId)
+        throws ApiGenericException {
+
+        try {
+            return Optional.of(api.getConsumerGroupById(consumerGroupId));
+        } catch (ApiNotFoundException e) {
+            return Optional.empty();
+        }
+    }
+
     public static ConsumerGroup waitForConsumerGroup(KafkaInstanceApi api, String consumerGroupId)
         throws ApiGenericException, InterruptedException, TimeoutException {
 
-        var groupAtom = new AtomicReference<ConsumerGroup>();
+        return waitForConsumerGroup(() -> getConsumerGroupByName(api, consumerGroupId));
+    }
 
-        ThrowableFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
-            try {
-                var group = api.getConsumerGroupById(consumerGroupId);
-                groupAtom.set(group);
-                return group.getConsumers().size() > 0;
-            } catch (ApiNotFoundException e) {
-                return false;
+    public static <T extends Throwable> ConsumerGroup waitForConsumerGroup(
+        ThrowableSupplier<Optional<ConsumerGroup>, T> supplier)
+        throws T, InterruptedException, TimeoutException {
+
+        var groupAtom = new AtomicReference<ConsumerGroup>();
+        ThrowableFunction<Boolean, Boolean, T> ready = last -> {
+            var exists = supplier.get();
+            if (exists.isPresent()) {
+                groupAtom.set(exists.get());
+                return true;
             }
+            return false;
         };
 
         // wait for the consumer group to show at least one consumer

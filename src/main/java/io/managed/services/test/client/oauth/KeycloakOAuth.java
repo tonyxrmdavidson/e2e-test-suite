@@ -16,12 +16,12 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jsoup.Jsoup;
 
 import java.net.HttpURLConnection;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -150,6 +150,7 @@ public class KeycloakOAuth {
             .compose(r -> VertxWebClientSession.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP)));
     }
 
+    @SneakyThrows
     private Future<VertxHttpResponse> followAuthenticationRedirects(
         VertxWebClientSession session,
         VertxHttpResponse response,
@@ -165,25 +166,20 @@ public class KeycloakOAuth {
         if (response.statusCode() == HttpURLConnection.HTTP_OK) {
 
             var document = Jsoup.parse(response.bodyAsString());
-            var forms = document.getAllElements().forms();
-            if (forms.size() == 0) {
-                return Future.failedFuture(new ResponseException("the response should contain a <form>", response));
-            }
-            if (forms.size() > 1) {
-                return Future.failedFuture(new ResponseException("the response shouldn't have multiple <form>", response));
-            }
 
-            var form = Objects.requireNonNull(forms.get(0));
-            if ("kc-form-login".equals(form.id())) {
-
+            var loginForm = document.select("#rh-password-verification-form")
+                .forms().stream().findAny();
+            if (loginForm.isPresent()) {
                 // we are at the login page therefore we are going to post the username and password to proceed with the
                 // authentication
-                return postUsernamePassword(session, form, username, password)
+                return postUsernamePassword(session, loginForm.get(), username, password)
                     .recover(t -> Future.failedFuture(new ResponseException(t.getMessage(), response)))
                     .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
             }
 
             // we should be at the Grant Access page
+            var form = document.getAllElements().forms().stream().findAny()
+                .orElseThrow(() -> new ResponseException("the response doesn't contain any <form>", response));
             return grantAccess(session, form, response.getRequest().getAbsoluteURI())
                 .recover(t -> Future.failedFuture(new ResponseException(t.getMessage(), response)))
                 .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
