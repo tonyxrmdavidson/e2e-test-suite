@@ -1,5 +1,7 @@
 Feature: Quick starts for OpenShift Streams for Apache Kafka
 
+  A quick start is a guided tutorial with user tasks. OpenShift Streams for Apache Kafka provides several quick starts to help you get started quickly with the main features and functionality of the service.
+
   Scenario: Getting started with Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
 
