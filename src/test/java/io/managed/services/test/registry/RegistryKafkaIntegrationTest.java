@@ -1,21 +1,26 @@
 package io.managed.services.test.registry;
 
 
+import com.openshift.cloud.api.kas.models.KafkaRequest;
+import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.srs.models.RegistryRest;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
+import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.AvroKafkaGenericDeserializer;
 import io.managed.services.test.client.kafka.AvroKafkaGenericSerializer;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
@@ -32,19 +37,9 @@ import org.testng.annotations.Test;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
-import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.kafkaAdminAPI;
-import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
-import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyServiceAccount;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanServiceAccount;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.serviceAPI;
 import static org.testng.Assert.assertEquals;
 
 @Test(groups = TestTag.REGISTRY)
@@ -61,40 +56,41 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
     private RegistryMgmtApi registryMgmtApi;
     private RegistryRest registry;
-    private ServiceAPI kafkasApi;
-    private KafkaResponse kafka;
+    private KafkaMgmtApi kafkaMgmtApi;
+    private SecurityMgmtApi securityMgmtApi;
+    private KafkaRequest kafka;
     private ServiceAccount serviceAccount;
 
     @BeforeClass(timeOut = 20 * MINUTES)
     public void bootstrap() throws Throwable {
 
         var oauth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-        var rhuser = bwait(oauth.loginToRHSSO());
-        var masuser = bwait(oauth.loginToMASSSO());
 
         // registry api
-        LOGGER.info("initialize registry service api");
-        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(rhuser);
-
-        // kafka api
-        LOGGER.info("initialize kafka service api");
-        kafkasApi = serviceAPI(vertx, rhuser);
+        LOGGER.info("initialize registry, kafka security services apis");
+        var apis = ApplicationServicesApi.applicationServicesApi(oauth, Environment.SERVICE_API_URI);
+        registryMgmtApi = apis.registryMgmt();
+        kafkaMgmtApi = apis.kafkaMgmt();
+        securityMgmtApi = apis.securityMgmt();
 
         // registry
         LOGGER.info("create service registry: {}", SERVICE_REGISTRY_NAME);
-        registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
+        registry = RegistryMgmtApiUtils.applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
 
         // kafka
         LOGGER.info("create kafka instance: {}", KAFKA_INSTANCE_NAME);
-        kafka = bwait(applyKafkaInstance(vertx, kafkasApi, KAFKA_INSTANCE_NAME));
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        LOGGER.debug(kafka);
 
         // service account
         LOGGER.info("create service account: {}", SERVICE_ACCOUNT_NAME);
-        serviceAccount = bwait(applyServiceAccount(kafkasApi, SERVICE_ACCOUNT_NAME));
+        serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
 
         // topic
-        var kafkaApi = kafkaAdminAPI(vertx, kafka.bootstrapServerHost, masuser);
-        bwait(applyTopics(kafkaApi, Set.of(TOPIC_NAME)));
+        LOGGER.info("create topic: {}", TOPIC_NAME);
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(oauth, kafka));
+        var topic = KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME);
+        LOGGER.debug(topic);
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
@@ -102,19 +98,19 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         assumeTeardown();
 
         try {
-            bwait(cleanKafkaInstance(kafkasApi, KAFKA_INSTANCE_NAME));
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("clan kafka error: ", t);
         }
 
         try {
-            bwait(cleanServiceAccount(kafkasApi, SERVICE_ACCOUNT_NAME));
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean service account error: ", t);
         }
 
         try {
-            cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
+            RegistryMgmtApiUtils.cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
@@ -131,14 +127,14 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         producerRegistryConfig.put(SerdeConfig.REGISTRY_URL, registry.getRegistryUrl());
         producerRegistryConfig.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
         producerRegistryConfig.put(SerdeConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS, "RETURN");
-        producerRegistryConfig.put(SerdeConfig.AUTH_USERNAME, serviceAccount.clientID);
-        producerRegistryConfig.put(SerdeConfig.AUTH_PASSWORD, serviceAccount.clientSecret);
+        producerRegistryConfig.put(SerdeConfig.AUTH_USERNAME, serviceAccount.getClientId());
+        producerRegistryConfig.put(SerdeConfig.AUTH_PASSWORD, serviceAccount.getClientSecret());
 
         var producer = new KafkaProducerClient<>(
             vertx,
-            kafka.bootstrapServerHost,
-            serviceAccount.clientID,
-            serviceAccount.clientSecret,
+            kafka.getBootstrapServerHost(),
+            serviceAccount.getClientId(),
+            serviceAccount.getClientSecret(),
             KafkaAuthMethod.OAUTH,
             StringSerializer.class,
             AvroKafkaGenericSerializer.class,
@@ -148,14 +144,14 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         LOGGER.info("initialize consumer with registry");
         var consumerRegistryConfig = new HashMap<String, String>();
         consumerRegistryConfig.put(SerdeConfig.REGISTRY_URL, registry.getRegistryUrl());
-        consumerRegistryConfig.put(SerdeConfig.AUTH_USERNAME, serviceAccount.clientID);
-        consumerRegistryConfig.put(SerdeConfig.AUTH_PASSWORD, serviceAccount.clientSecret);
+        consumerRegistryConfig.put(SerdeConfig.AUTH_USERNAME, serviceAccount.getClientId());
+        consumerRegistryConfig.put(SerdeConfig.AUTH_PASSWORD, serviceAccount.getClientSecret());
 
         var consumer = new KafkaConsumerClient<>(
             vertx,
-            kafka.bootstrapServerHost,
-            serviceAccount.clientID,
-            serviceAccount.clientSecret,
+            kafka.getBootstrapServerHost(),
+            serviceAccount.getClientId(),
+            serviceAccount.getClientSecret(),
             KafkaAuthMethod.OAUTH,
             "test-group",
             "latest",

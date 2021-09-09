@@ -18,6 +18,7 @@ import java.net.URI;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+@Deprecated
 public abstract class BaseVertxClient {
     private static final Logger LOGGER = LogManager.getLogger(BaseVertxClient.class);
 

@@ -3,6 +3,7 @@ package io.managed.services.test.client.kafkainstance;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.Topic;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.ThrowableFunction;
@@ -112,6 +113,14 @@ public class KafkaInstanceApiUtils {
         } catch (ApiNotFoundException e) {
             return Optional.empty();
         }
+    }
+
+    public static Topic applyTopic(KafkaInstanceApi api, String topicName) throws ApiGenericException {
+        var topicPayload = new NewTopicInput()
+            .name(topicName)
+            .settings(new TopicSettings().numPartitions(1));
+
+        return applyTopic(api, topicPayload);
     }
 
     public static Topic applyTopic(KafkaInstanceApi api, NewTopicInput payload) throws ApiGenericException {
