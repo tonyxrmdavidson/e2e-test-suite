@@ -89,51 +89,51 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     When you start Kafkacat in consumer mode
     Then messages from the producer are consumed and displayed on the command line
 
-    Scenario: Using Kafka scripts to connect with Red Hat OpenShift Streams for Apache Kafka
-      Given you have a Red Hat account
-      * You have a running Kafka instance in OpenShift Streams for Apache Kafka
-      * The Kafka instance has a generated bootstrap server
-      * You created a service account for the Kafka instance
-      * JDK 11 or later is installed
-      * For Windows, the latest version of Oracle JDK is installed
+  Scenario: Using Kafka scripts to connect with Red Hat OpenShift Streams for Apache Kafka
+    Given you have a Red Hat account
+    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance has a generated bootstrap server
+    * You created a service account for the Kafka instance
+    * JDK 11 or later is installed
+    * For Windows, the latest version of Oracle JDK is installed
 
-      # 1. Downloading Kafka binaries
-      When you download the latest Kafka binaries from `https://kafka.apache.org/downloads`
-      Then the Kafka scripts are available locally
-      And you can verify the Kafka version on the command line
+    # 1. Downloading Kafka binaries
+    When you download the latest Kafka binaries from `https://kafka.apache.org/downloads`
+    Then the Kafka scripts are available locally
+    And you can verify the Kafka version on the command line
 
-      # 2. Configuring Kafka scripts to connect to a Kafka instance
-      Given you have connection values for your Kafka instance
-      * Client ID for the service account
-      * Client Secret for the service account
-      * SASL connection mechanism
-      When you create an `app-services.properties` file in the local `/config` directory of the Kafka binaries
-      Then it contains the connection values
+    # 2. Configuring Kafka scripts to connect to a Kafka instance
+    Given you have connection values for your Kafka instance
+    * Client ID for the service account
+    * Client Secret for the service account
+    * SASL connection mechanism
+    When you create an `app-services.properties` file in the local `/config` directory of the Kafka binaries
+    Then it contains the connection values
 
-      # 3. Producing messages using kafka scripts
-      Given you are set up to produce messages to Kafka topics
-      * The Kafka topic creation script `kafka-topics.sh` is available in the `/bin` directory of the Kafka binaries
-      * The Kafka producer creation script `kafka-console-producer.sh` is available in the `/bin` directory of the Kafka binaries
-      * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
-      * You have the bootstrap server address for the Kafka instance
-      When you enter a command to create a Kafka topic using `kafka-topics.sh`
-      And use the bootstrap server address
-      And use the `app-services.properties` file
-      Then a topic is created in the Kafka instance
-      Given you have created a topic
-      When you produce messages to the topic you created using `kafka-console-producer.sh`
-      And use the bootstrap server address as a parameter
-      And use the `app-services.properties` file as a parameter
-      Then messages are produced to the topic in the Kafka instance
+    # 3. Producing messages using kafka scripts
+    Given you are set up to produce messages to Kafka topics
+    * The Kafka topic creation script `kafka-topics.sh` is available in the `/bin` directory of the Kafka binaries
+    * The Kafka producer creation script `kafka-console-producer.sh` is available in the `/bin` directory of the Kafka binaries
+    * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
+    * You have the bootstrap server address for the Kafka instance
+    When you enter a command to create a Kafka topic using `kafka-topics.sh`
+    And use the bootstrap server address
+    And use the `app-services.properties` file
+    Then a topic is created in the Kafka instance
+    Given you have created a topic
+    When you produce messages to the topic you created using `kafka-console-producer.sh`
+    And use the bootstrap server address as a parameter
+    And use the `app-services.properties` file as a parameter
+    Then messages are produced to the topic in the Kafka instance
 
-      # 4. Consuming messages using kafka scripts
-      Given you are set up to consume messages
-      * The Kafka consumer creation script `kafka-console-consumer.sh` is available in the `/bin` directory of the Kafka binaries
-      * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
-      * You have the bootstrap server address for the Kafka instance
-      * A topic contains the messages you produced in the Kafka instance
-      When you consumer messages from the topic you created using `kafka-console-consumer.sh`
-      And use the bootstrap server address as a parameter
-      And use the `app-services.properties` file as a parameter
-      Then messages are consumed from the topic
-      And displayed on the command line
+    # 4. Consuming messages using kafka scripts
+    Given you are set up to consume messages
+    * The Kafka consumer creation script `kafka-console-consumer.sh` is available in the `/bin` directory of the Kafka binaries
+    * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
+    * You have the bootstrap server address for the Kafka instance
+    * A topic contains the messages you produced in the Kafka instance
+    When you consumer messages from the topic you created using `kafka-console-consumer.sh`
+    And use the bootstrap server address as a parameter
+    And use the `app-services.properties` file as a parameter
+    Then messages are consumed from the topic
+    And displayed on the command line
