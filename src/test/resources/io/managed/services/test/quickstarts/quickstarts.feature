@@ -132,7 +132,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
     * You have the bootstrap server address for the Kafka instance
     * A topic contains the messages you produced in the Kafka instance
-    When you consumer messages from the topic you created using `kafka-console-consumer.sh`
+    When you consume messages from the topic you created using `kafka-console-consumer.sh`
     And use the bootstrap server address as a parameter
     And use the `app-services.properties` file as a parameter
     Then messages are consumed from the topic
