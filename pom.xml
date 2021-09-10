@@ -206,11 +206,6 @@
             <version>2.6</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-jackson-provider</artifactId>
-            <version>3.15.1.Final</version>
-        </dependency>
     </dependencies>
 
     <build>
