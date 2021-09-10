@@ -74,6 +74,9 @@ container/test:
 	mkdir -p test-results/failsafe-reports
 	mkdir -p test-results/logs
 	${DOCKER_RUN} \
+		--dns "1.1.1.1" \
+		--dns "10.5.30.45" \
+		--dns "10.5.30.46" \
 		-v "${ROOT_DIR}/test-results/failsafe-reports:/home/jboss/test-suite/target/failsafe-reports:z" \
 		-v "${ROOT_DIR}/test-results/logs:/home/jboss/test-suite/target/logs:z" \
 		-e TESTCASE=${TESTCASE} \
