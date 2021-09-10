@@ -6,7 +6,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
 
     # 1. Creating a Kafka instance in OpenShift Streams for Apache Kafka
-    Given you’re logged in to the OpenShift Streams for Apache Kafka web console at https://console.redhat.com/beta/application-services/streams/
+    Given you’re logged in to the OpenShift Streams for Apache Kafka web console
     When you create a Kafka instance with a unique name
     Then the Kafka instance is listed in the instances table
     And the Kafka instance is shown as Ready
