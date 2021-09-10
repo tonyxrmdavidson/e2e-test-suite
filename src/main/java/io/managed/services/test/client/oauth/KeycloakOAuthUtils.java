@@ -67,7 +67,7 @@ public class KeycloakOAuthUtils {
         WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
 
         Document d = Jsoup.parse(response.bodyAsString());
-        String actionURI = d.select("#kc-form-login").attr("action");
+        String actionURI = d.select("#rh-password-verification-form").attr("action");
 
         MultiMap f = MultiMap.caseInsensitiveMultiMap();
         f.add("username", username);
