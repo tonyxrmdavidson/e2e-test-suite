@@ -1,41 +1,35 @@
 package io.managed.services.test.devexp;
 
+import com.openshift.cloud.api.kas.auth.models.Topic;
+import com.openshift.cloud.api.kas.models.KafkaRequest;
+import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
 import io.managed.services.test.Environment;
-import io.managed.services.test.IsReady;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
-import io.managed.services.test.cli.ProcessException;
-import io.managed.services.test.client.kafka.KafkaAuthMethod;
-import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
-import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
-import io.managed.services.test.client.serviceapi.TopicResponse;
+import io.managed.services.test.cli.CliGenericException;
+import io.managed.services.test.cli.CliNotFoundException;
+import io.managed.services.test.cli.ServiceAccountSecret;
+import io.managed.services.test.client.ApplicationServicesApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.framework.TestTag;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
+import lombok.SneakyThrows;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.util.Objects;
+
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.TestUtils.waitFor;
-import static io.managed.services.test.cli.CLIUtils.waitForConsumerGroupDelete;
-import static io.managed.services.test.cli.CLIUtils.waitForKafkaDelete;
-import static io.managed.services.test.cli.CLIUtils.waitForKafkaReady;
-import static io.managed.services.test.cli.CLIUtils.waitForTopicDelete;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static java.time.Duration.ofMinutes;
-import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -43,11 +37,11 @@ import static org.testng.Assert.assertTrue;
 /**
  * Test the application services CLI[1] kafka commands.
  * <p>
- * The tests download the CLI from github to the local machine where the test suite is running
+ * The tests download the CLI from GitHub to the local machine where the test suite is running
  * and perform all operations using the CLI.
  * <p>
  * By default the latest version of the CLI is downloaded otherwise a specific version can be set using
- * the CLI_VERSION env. The CLI platform (linux, mac, win) and arch (amd64, arm) is automatically detected
+ * the CLI_VERSION env. The CLI platform (linux, mac, win) and arch (amd64, arm) is automatically detected,
  * or it can be enforced using the CLI_PLATFORM and CLI_ARCH env.
  * <p>
  * The SSO_USERNAME and SSO_PASSWORD will be used to login to the service through the CLI.
@@ -69,61 +63,42 @@ public class KafkaCLITest extends TestBase {
     private final Vertx vertx = Vertx.vertx();
 
     private CLI cli;
-    private KafkaResponse kafkaInstance;
-    private ServiceAccount serviceAccount;
-    private TopicResponse topic;
-    private ServiceAPI serviceAPI;
 
-    private Future<Void> cleanServiceAccount(ServiceAPI api) {
-        LOGGER.info("delete service account with name: {}", SERVICE_ACCOUNT_NAME);
-        return ServiceAPIUtils.deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
-    }
 
-    private Future<Void> cleanKafkaInstance(ServiceAPI api) {
-        LOGGER.info("delete kafka instance with name: {}", KAFKA_INSTANCE_NAME);
-        return ServiceAPIUtils.deleteKafkaByNameIfExists(api, KAFKA_INSTANCE_NAME);
-    }
-
-    private void logoutCLI(CLI cli) {
-        if (cli != null) {
-            LOGGER.info("logout user from rhoas");
-            cli.logout();
-        }
-    }
-
-    private Future<Void> cleanWorkdir(CLI cli) {
-        if (cli != null) {
-            LOGGER.info("delete workdir: {}", cli.getWorkdir());
-            return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
-        }
-        return Future.succeededFuture();
-    }
+    private KafkaRequest kafka;
+    private ServiceAccountSecret serviceAccountSecret;
+    private ServiceAccountListItem serviceAccount;
+    private Topic topic;
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void clean() throws Throwable {
+    @SneakyThrows
+    public void clean() {
 
-        var api = bwait(ServiceAPIUtils.serviceAPI(vertx));
+        var apis = ApplicationServicesApi.applicationServicesApi(Environment.SERVICE_API_URI,
+            Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
 
         try {
-            bwait(cleanServiceAccount(api));
+            KafkaMgmtApiUtils.deleteKafkaByNameIfExists(apis.kafkaMgmt(), KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
-            LOGGER.error("cleanServiceAccount error: ", t);
+            LOGGER.error("delete kafka instance error: ", t);
         }
 
         try {
-            bwait(cleanKafkaInstance(api));
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(apis.securityMgmt(), SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
-            LOGGER.error("cleanServiceAccount error: ", t);
+            LOGGER.error("delete service account error: ", t);
         }
 
         try {
-            logoutCLI(cli);
+            LOGGER.info("logout user from rhoas");
+            cli.logout();
         } catch (Throwable t) {
             LOGGER.error("logoutCLI error: ", t);
         }
 
         try {
-            bwait(cleanWorkdir(cli));
+            LOGGER.info("delete workdir: {}", cli.getWorkdir());
+            FileUtils.deleteDirectory(new File(cli.getWorkdir()));
         } catch (Throwable t) {
             LOGGER.error("cleanWorkdir error: ", t);
         }
@@ -132,85 +107,145 @@ public class KafkaCLITest extends TestBase {
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testDownloadCLI() throws Throwable {
+    @SneakyThrows
+    public void testDownloadCLI() {
 
         var downloader = CLIDownloader.defaultDownloader(vertx);
 
         // download the cli
         var binary = bwait(downloader.downloadCLIInTempDir());
 
-        this.cli = new CLI(vertx, binary.directory, binary.name);
+        this.cli = new CLI(binary.directory, binary.name);
 
         LOGGER.info("validate cli");
-        bwait(cli.help());
+        LOGGER.debug(cli.help());
     }
 
 
     @Test(dependsOnMethods = "testDownloadCLI", timeOut = DEFAULT_TIMEOUT)
-    public void testLogin() throws Throwable {
+    @SneakyThrows
+    public void testLogin() {
 
         LOGGER.info("verify that we aren't logged-in");
-        assertThrows(ProcessException.class, () -> bwait(cli.listKafka()));
+        assertThrows(CliGenericException.class, () -> cli.listKafka());
 
         LOGGER.info("login the CLI");
-        bwait(CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+        CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD).get();
 
         LOGGER.info("verify that we are logged-in");
-        bwait(cli.listKafka());
+        cli.listKafka();
     }
 
     @Test(dependsOnMethods = "testLogin", timeOut = DEFAULT_TIMEOUT)
-    public void testCreateServiceAccount() throws Throwable {
+    @SneakyThrows
+    public void testCreateServiceAccount() {
 
         LOGGER.info("create a service account");
-        serviceAccount = bwait(CLIUtils.createServiceAccount(vertx, cli, SERVICE_ACCOUNT_NAME));
+        serviceAccountSecret = CLIUtils.createServiceAccount(cli, SERVICE_ACCOUNT_NAME);
 
-        LOGGER.info("get the service account secret");
-        ServiceAccountSecret secret = CLIUtils.getServiceAccountSecret(cli, serviceAccount.name);
-        serviceAccount.clientSecret = secret.clientSecret;
+        LOGGER.info("get the service account");
+        var sa = CLIUtils.getServiceAccountByName(cli, SERVICE_ACCOUNT_NAME);
+        LOGGER.debug(sa);
 
-        LOGGER.info("created service account {} with id {}", serviceAccount.name, serviceAccount.id);
+        assertTrue(sa.isPresent());
+        assertEquals(sa.get().getName(), SERVICE_ACCOUNT_NAME);
+        assertEquals(sa.get().getClientId(), serviceAccountSecret.getClientID());
+
+        serviceAccount = sa.get();
+    }
+
+    @Test(dependsOnMethods = "testCreateServiceAccount", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testDescribeServiceAccount() {
+
+        var sa = cli.describeServiceAccount(serviceAccount.getId());
+        LOGGER.debug(sa);
+
+        assertEquals(sa.getName(), SERVICE_ACCOUNT_NAME);
     }
 
     @Test(dependsOnMethods = "testLogin", timeOut = 15 * MINUTES)
-    public void testCreateKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testCreateKafkaInstance() {
 
         LOGGER.info("create kafka instance with name {}", KAFKA_INSTANCE_NAME);
-        var kafka = bwait(cli.createKafka(KAFKA_INSTANCE_NAME));
+        var k = cli.createKafka(KAFKA_INSTANCE_NAME);
+        LOGGER.debug(k);
 
-        LOGGER.info("wait for kafka instance: {}", kafka.id);
-        kafkaInstance = bwait(waitForKafkaReady(vertx, cli, kafka.id));
-
-        LOGGER.info("kafka instance is ready: {}", Json.encode(kafkaInstance));
+        LOGGER.info("wait for kafka instance: {}", k.getId());
+        kafka = CLIUtils.waitUntilKafkaIsReady(cli, k.getId());
+        LOGGER.debug(kafka);
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testGetStatusOfKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testDescribeKafkaInstance() {
 
         LOGGER.info("get kafka instance with name {}", KAFKA_INSTANCE_NAME);
-        var kafka = bwait(cli.describeKafka(kafkaInstance.id));
+        var k = cli.describeKafka(kafka.getId());
+        LOGGER.debug(k);
 
-        assertEquals("ready", kafka.status);
-        LOGGER.info("found kafka instance {} with id {}", kafka.name, kafka.id);
+        assertEquals("ready", k.getStatus());
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testCreateKafkaTopic() throws Throwable {
+    @SneakyThrows
+    public void testListKafkaInstances() {
 
-        LOGGER.info("create kafka topic with name {}", KAFKA_INSTANCE_NAME);
-        topic = bwait(cli.createTopic(TOPIC_NAME));
+        var list = cli.listKafka();
+        LOGGER.debug(list);
 
-        assertEquals(topic.name, TOPIC_NAME);
-        assertEquals(topic.partitions.size(), DEFAULT_PARTITIONS);
-        LOGGER.info("topic created: {}", topic.name);
+        var exists = list.getItems().stream()
+            .filter(k -> KAFKA_INSTANCE_NAME.equals(k.getName()))
+            .findAny();
+        assertTrue(exists.isPresent());
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testKafkaInstanceTopic() throws Throwable {
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testSearchKafkaByName() {
 
-        var bootstrapHost = kafkaInstance.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var list = cli.searchKafkaByName(KAFKA_INSTANCE_NAME);
+        LOGGER.debug(list);
+
+        var exists = list.getItems().stream().findAny();
+        assertTrue(exists.isPresent());
+        assertEquals(exists.get().getName(), KAFKA_INSTANCE_NAME);
+    }
+
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testCreateTopic() {
+
+        LOGGER.info("create kafka topic with name {}", KAFKA_INSTANCE_NAME);
+        topic = cli.createTopic(TOPIC_NAME);
+        LOGGER.debug(topic);
+
+        assertEquals(topic.getName(), TOPIC_NAME);
+        assertEquals(Objects.requireNonNull(topic.getPartitions()).size(), DEFAULT_PARTITIONS);
+    }
+
+    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testListTopics() {
+
+        var list = cli.listTopics();
+        LOGGER.debug(list);
+
+        var exists = Objects.requireNonNull(list.getItems()).stream()
+            .filter(t -> TOPIC_NAME.equals(t.getName()))
+            .findAny();
+        assertTrue(exists.isPresent());
+    }
+
+
+    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testKafkaInstanceTopic() {
+
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccountSecret.getClientID();
+        var clientSecret = serviceAccountSecret.getClientSecret();
 
         bwait(testTopic(
             vertx,
@@ -223,51 +258,60 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testUpdateKafkaTopic() throws Throwable {
+    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testUpdateTopic() {
 
         var retentionTime = "4";
         var retentionKey = "retention.ms";
 
         LOGGER.info("update kafka topic with name {}", TOPIC_NAME);
-        var testTopic = bwait(cli.updateTopic(TOPIC_NAME, retentionTime));
+        var t = cli.updateTopic(TOPIC_NAME, retentionTime);
+        LOGGER.debug(t);
 
-        var retentionValue = testTopic.config.stream()
-            .filter(conf -> conf.key.equals(retentionKey))
+        var retentionValue = Objects.requireNonNull(t.getConfig())
+            .stream()
+            .filter(conf -> retentionKey.equals(conf.getKey()))
             .findFirst();
 
         assertTrue(retentionValue.isPresent(), "updated config not found");
-        assertEquals(retentionValue.get().value, retentionTime);
+        assertEquals(retentionValue.get().getValue(), retentionTime);
 
-        topic = testTopic;
+        topic = t;
     }
 
-    @Test(dependsOnMethods = "testUpdateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testGetRetentionConfigFromTopic() throws Throwable {
+    @Test(dependsOnMethods = "testUpdateTopic", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testDescribeUpdatedTopic() {
 
         var retentionTime = "4";
         var retentionKey = "retention.ms";
 
         LOGGER.info("describe kafka topic with name {}", TOPIC_NAME);
-        var testTopic = bwait(cli.describeTopic(TOPIC_NAME));
+        var t = cli.describeTopic(TOPIC_NAME);
+        LOGGER.debug(t);
 
-        assertEquals(testTopic.name, TOPIC_NAME);
-        assertEquals(testTopic.partitions.size(), topic.partitions.size());
+        assertEquals(t.getName(), TOPIC_NAME);
+        assertEquals(
+            Objects.requireNonNull(t.getPartitions()).size(),
+            Objects.requireNonNull(topic.getPartitions()).size());
 
-        var retentionValue = testTopic.config.stream()
-            .filter(conf -> conf.key.equals(retentionKey))
+        var retentionValue = Objects.requireNonNull(t.getConfig())
+            .stream()
+            .filter(conf -> retentionKey.equals(conf.getKey()))
             .findFirst();
 
         assertTrue(retentionValue.isPresent(), "updated config not found");
-        assertEquals(retentionValue.get().value, retentionTime);
+        assertEquals(retentionValue.get().getValue(), retentionTime);
     }
 
-    @Test(dependsOnMethods = "testUpdateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testKafkaInstanceUpdatedTopic() throws Throwable {
+    @Test(dependsOnMethods = "testUpdateTopic", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testKafkaInstanceUpdatedTopic() {
 
-        var bootstrapHost = kafkaInstance.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccountSecret.getClientID();
+        var clientSecret = serviceAccountSecret.getClientSecret();
 
         bwait(testTopic(
             vertx,
@@ -280,90 +324,92 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testGetConsumerGroup() throws Throwable {
+    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testDescribeConsumerGroup() {
 
-        // create consumer group
-        serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
-        LOGGER.info("create or retrieve service account: {}", SERVICE_ACCOUNT_NAME);
-
-        LOGGER.info("crete kafka consumer with group id: {}", CONSUMER_GROUP_NAME);
-        var consumer = KafkaConsumerClient.createConsumer(vertx,
-                kafkaInstance.bootstrapServerHost,
-                serviceAccount.clientID,
-                serviceAccount.clientSecret,
-                KafkaAuthMethod.OAUTH,
-                CONSUMER_GROUP_NAME,
-                "latest");
-
-        LOGGER.info("subscribe to topic: {}", TOPIC_NAME);
-        consumer.subscribe(TOPIC_NAME);
-        consumer.handler(r -> {
-            // ignore
-        });
-        IsReady<Object> subscribed = last -> consumer.assignment().map(partitions -> {
-            var o = partitions.stream().filter(p -> p.getTopic().equals(TOPIC_NAME)).findAny();
-            return Pair.with(o.isPresent(), null);
-        });
-        bwait(waitFor(vertx, "consumer group to subscribe", ofSeconds(2), ofMinutes(2), subscribed));
+        var consumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
+            CONSUMER_GROUP_NAME,
+            TOPIC_NAME,
+            kafka.getBootstrapServerHost(),
+            serviceAccountSecret.getClientID(),
+            serviceAccountSecret.getClientSecret()));
         bwait(consumer.close());
 
-        // list all consumer groups
-        LOGGER.info("get list of consumer group and check if expected group (with name {})  is present", TOPIC_NAME);
-        var consumerGroup = bwait(CLIUtils.getConsumerGroupByName(cli, CONSUMER_GROUP_NAME));
-        assertTrue(consumerGroup.isPresent(), "Consumer group isn't present amongst listed groups");
+        var group = CLIUtils.waitForConsumerGroup(cli, CONSUMER_GROUP_NAME);
+        LOGGER.debug(group);
 
-        // additional check for description of the same consumer Group
-        var consumerGroupDescription = bwait(cli.describeConsumerGroup(CONSUMER_GROUP_NAME));
-        assertNotNull(consumerGroupDescription, "consumer group isn't present");
+        assertEquals(group.getGroupId(), CONSUMER_GROUP_NAME);
     }
 
-    @Test(dependsOnMethods = "testGetConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteConsumerGroup() throws Throwable {
+    @Test(dependsOnMethods = "testDescribeConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testListConsumerGroups() {
+        var groups = cli.listConsumerGroups();
+        LOGGER.debug(groups);
 
-        LOGGER.info("delete consumer group with name (id): {}",  CONSUMER_GROUP_NAME);
-        bwait(cli.deleteConsumerGroup(CONSUMER_GROUP_NAME));
-        bwait(waitForConsumerGroupDelete(vertx, cli, CONSUMER_GROUP_NAME));
+        var filteredGroup = Objects.requireNonNull(groups.getItems())
+            .stream()
+            .filter(g -> CONSUMER_GROUP_NAME.equals(g.getGroupId()))
+            .findAny();
+
+        assertTrue(filteredGroup.isPresent());
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteTopic() throws Throwable {
+    @Test(dependsOnMethods = "testDescribeConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testDeleteConsumerGroup() {
 
-        LOGGER.info("delete topic: {}", TOPIC_NAME);
-        bwait(cli.deleteTopic(TOPIC_NAME));
+        LOGGER.info("delete consumer group '{}'", CONSUMER_GROUP_NAME);
+        cli.deleteConsumerGroup(CONSUMER_GROUP_NAME);
 
-        LOGGER.info("wait for topic to be deleted: {}", TOPIC_NAME);
-        bwait(waitForTopicDelete(vertx, cli, TOPIC_NAME)); // also verify that the topic doesn't exists anymore
+        assertThrows(CliNotFoundException.class,
+            () -> cli.describeConsumerGroup(CONSUMER_GROUP_NAME));
+    }
+
+    @Test(dependsOnMethods = "testCreateTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testDeleteTopic() {
+
+        LOGGER.info("delete topic '{}'", TOPIC_NAME);
+        cli.deleteTopic(TOPIC_NAME);
+
+        assertThrows(CliNotFoundException.class,
+            () -> cli.describeTopic(TOPIC_NAME));
     }
 
     @Test(dependsOnMethods = "testCreateServiceAccount", priority = 2, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteServiceAccount() throws Throwable {
+    @SneakyThrows
+    public void testDeleteServiceAccount() {
 
-        bwait(cli.deleteServiceAccount(serviceAccount.id));
-        LOGGER.info("service account {} with id {} deleted", serviceAccount.name, serviceAccount.id);
+        LOGGER.info("delete service account '{}'", serviceAccount.getId());
+        cli.deleteServiceAccount(serviceAccount.getId());
 
-        // TODO: Verify that the service account doesn't exists
+        assertThrows(CliNotFoundException.class,
+            () -> cli.describeServiceAccount(serviceAccount.getId()));
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testDeleteKafkaInstance() {
 
-        LOGGER.info("delete kafka instance {} with id {}", kafkaInstance.name, kafkaInstance.id);
-        bwait(cli.deleteKafka(kafkaInstance.id));
+        LOGGER.info("delete kafka instance '{}'", kafka.getId());
+        cli.deleteKafka(kafka.getId());
 
-        bwait(waitForKafkaDelete(vertx, cli, kafkaInstance.name));
+        CLIUtils.waitUntilKafkaIsDeleted(cli, kafka.getId());
     }
 
     @Test(dependsOnMethods = "testLogin", priority = 3, timeOut = DEFAULT_TIMEOUT)
-    public void testLogout() throws Throwable {
+    @SneakyThrows
+    public void testLogout() {
 
         LOGGER.info("verify that we are logged-in");
-        bwait(cli.listKafka()); // successfully run cli command while logged in
+        cli.listKafka(); // successfully run cli command while logged in
 
         LOGGER.info("logout");
-        bwait(cli.logout());
+        cli.logout();
 
         LOGGER.info("verify that we are logged-in");
-        assertThrows(ProcessException.class, () -> bwait(cli.listKafka())); // unable to run the same command after logout
+        assertThrows(CliGenericException.class, () -> cli.listKafka()); // unable to run the same command after logout
     }
 }

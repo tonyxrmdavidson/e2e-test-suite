@@ -1,41 +1,38 @@
 package io.managed.services.test.kafka;
 
+import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
+import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.Environment;
-import io.managed.services.test.IsReady;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.exception.HTTPConflictException;
-import io.managed.services.test.client.exception.HTTPLockedException;
-import io.managed.services.test.client.exception.HTTPNotFoundException;
-import io.managed.services.test.client.exception.HTTPUnauthorizedException;
-import io.managed.services.test.client.kafka.KafkaAuthMethod;
-import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.kafkaadminapi.ConsumerGroup;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPI;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
-import io.managed.services.test.client.kafkaadminapi.Topic;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.client.ApplicationServicesApi;
+import io.managed.services.test.client.exception.ApiConflictException;
+import io.managed.services.test.client.exception.ApiLockedException;
+import io.managed.services.test.client.exception.ApiNotFoundException;
+import io.managed.services.test.client.exception.ApiUnauthorizedException;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
+import io.vertx.ext.auth.User;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.TestUtils.waitFor;
-import static java.time.Duration.ofMinutes;
-import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -60,256 +57,214 @@ public class KafkaAdminAPITest extends TestBase {
 
     private final Vertx vertx = Vertx.vertx();
 
-    private KafkaAdminAPI kafkaAdminAPI;
-    private ServiceAPI serviceAPI;
-    private KafkaResponse kafka;
+    private KafkaInstanceApi kafkaInstanceApi;
+    private KafkaMgmtApi kafkaMgmtApi;
+    private SecurityMgmtApi securityMgmtApi;
+    private KafkaRequest kafka;
     private KafkaConsumer<String, String> kafkaConsumer;
 
     // TODO: Test update topic with random values
 
     @BeforeClass(timeOut = 10 * MINUTES)
-    public void bootstrap() throws Throwable {
-        serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
-        LOGGER.info("service api initialized");
+    @SneakyThrows
+    public void bootstrap() {
+        var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var apps = ApplicationServicesApi.applicationServicesApi(auth, Environment.SERVICE_API_URI);
+        kafkaMgmtApi = apps.kafkaMgmt();
+        securityMgmtApi = apps.securityMgmt();
+        LOGGER.info("kafka and security mgmt api initialized");
 
-        kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME));
-        LOGGER.info("kafka instance created: {}", Json.encode(kafka));
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
-        var bootstrapServerHost = kafka.bootstrapServerHost;
-        kafkaAdminAPI = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapServerHost));
-        LOGGER.info("kafka admin api client initialized");
+        kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka));
+        LOGGER.info("kafka instance api client initialized");
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void teardown() throws Throwable {
+    public void teardown() {
         assumeTeardown();
 
         // delete kafka instance
         try {
-            
-            bwait(ServiceAPIUtils.cleanKafkaInstance(serviceAPI, KAFKA_INSTANCE_NAME));
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("failed to clean kafka instance: ", t);
         }
 
         // delete service account
         try {
-            bwait(ServiceAPIUtils.deleteServiceAccountByNameIfExists(serviceAPI, SERVICE_ACCOUNT_NAME));
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("failed to clean service account: ", t);
         }
-
-        // close vertx
-        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testFailToCallAPIIfUserBelongsToADifferentOrganization() throws Throwable {
+    @SneakyThrows
+    public void testFailToCallAPIIfUserBelongsToADifferentOrganization() {
 
-        LOGGER.info("Test different organisation user");
-        var bootstrapServerHost = kafka.bootstrapServerHost;
-        var kafkaAdminAPIDifferentOrganization = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(
-            vertx,
-            bootstrapServerHost,
-            Environment.SSO_ALIEN_USERNAME,
-            Environment.SSO_ALIEN_PASSWORD
-        ));
-        assertThrows(HTTPUnauthorizedException.class, () ->
-            bwait(kafkaAdminAPIDifferentOrganization.getAllTopics()));
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
+            new KeycloakOAuth(Environment.SSO_ALIEN_USERNAME, Environment.SSO_ALIEN_PASSWORD), kafka));
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testFailToCallAPIIfUserDoesNotOwnTheKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testFailToCallAPIIfUserDoesNotOwnTheKafkaInstance() {
 
-        LOGGER.info("Test same organisation user");
-        var bootstrapServerHost = kafka.bootstrapServerHost;
-        var kafkaAdminAPISameOrganisationUser = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(
-            vertx,
-            bootstrapServerHost,
-            Environment.SSO_SECONDARY_USERNAME,
-            Environment.SSO_SECONDARY_PASSWORD
-        ));
-        assertThrows(HTTPUnauthorizedException.class, () ->
-            bwait(kafkaAdminAPISameOrganisationUser.getAllTopics()));
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
+            new KeycloakOAuth(Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD), kafka));
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
     public void testFailToCallAPIIfTokenIsInvalid() {
 
-        LOGGER.info("Test invalid token");
-        var bootstrapServerHost = kafka.bootstrapServerHost;
-        var apiURI = String.format("%s%s", Environment.KAFKA_ADMIN_API_SERVER_PREFIX, bootstrapServerHost);
-        KafkaAdminAPI kafkaAdminAPIUnauthorizedUser = new KafkaAdminAPI(vertx, apiURI, TestUtils.FAKE_TOKEN);
-        assertThrows(HTTPUnauthorizedException.class, () ->
-            bwait(kafkaAdminAPIUnauthorizedUser.getAllTopics()));
+        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(
+            KafkaInstanceApiUtils.kafkaInstanceApiUri(kafka), User.fromToken(TestUtils.FAKE_TOKEN));
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testCreateTopic() throws Throwable {
+    @SneakyThrows
+    public void testCreateTopic() {
+
         // getting test-topic should fail because the topic shouldn't exist
-        assertThrows(HTTPNotFoundException.class,
-            () -> bwait(kafkaAdminAPI.getTopic(TEST_TOPIC_NAME)));
-        LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
+        assertThrows(ApiNotFoundException.class, () -> kafkaInstanceApi.getTopic(TEST_TOPIC_NAME));
+        LOGGER.info("topic '{}' not found", TEST_TOPIC_NAME);
 
-        LOGGER.info("create topic: {}", TEST_TOPIC_NAME);
-        // TODO: Randomize topic configuration where possible
-        bwait(KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME));
-
-        LOGGER.info("topic created: {}", TEST_TOPIC_NAME);
-
-        // TODO: Test the topic
+        LOGGER.info("create topic '{}'", TEST_TOPIC_NAME);
+        var payload = new NewTopicInput()
+            .name(TEST_TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        var topic = kafkaInstanceApi.createTopic(payload);
+        LOGGER.debug(topic);
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
     public void testFailToCreateTopicIfItAlreadyExist() {
         // create existing topic should fail
-        assertThrows(HTTPConflictException.class,
-            () -> bwait(KafkaAdminAPIUtils.createDefaultTopic(kafkaAdminAPI, TEST_TOPIC_NAME)));
-
-        LOGGER.info("existing topic cannot be created again : {}", TEST_TOPIC_NAME);
+        var payload = new NewTopicInput()
+            .name(TEST_TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        assertThrows(ApiConflictException.class,
+            () -> kafkaInstanceApi.createTopic(payload));
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testGetTopicByName() throws Throwable {
-        var t = bwait(kafkaAdminAPI.getTopic(TEST_TOPIC_NAME));
-        LOGGER.info("topic retrieved: {}", Json.encode(t));
-
-        assertEquals(TEST_TOPIC_NAME, t.name);
+    @SneakyThrows
+    public void testGetTopicByName() {
+        var topic = kafkaInstanceApi.getTopic(TEST_TOPIC_NAME);
+        LOGGER.debug(topic);
+        assertEquals(topic.getName(), TEST_TOPIC_NAME);
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
     public void testFailToGetTopicIfItDoesNotExist() {
         // get none existing topic should fail
-        assertThrows(HTTPNotFoundException.class,
-            () -> bwait(kafkaAdminAPI.getTopic(TEST_NOT_EXISTING_TOPIC_NAME)));
-
-        LOGGER.info("topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
+        assertThrows(ApiNotFoundException.class,
+            () -> kafkaInstanceApi.getTopic(TEST_NOT_EXISTING_TOPIC_NAME));
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void tetGetAllTopics() throws Throwable {
-        var topics = bwait(kafkaAdminAPI.getAllTopics());
-        LOGGER.info("topics: {}", Json.encode(topics));
-        List<Topic> filteredTopics = topics.items.stream()
-            .filter(k -> k.name.equals(TEST_TOPIC_NAME))
-            .collect(Collectors.toList());
+    @SneakyThrows
+    public void tetGetAllTopics() {
+        var topics = kafkaInstanceApi.getTopics();
+        LOGGER.debug(topics);
 
-        assertEquals(1, filteredTopics.size());
+        var filteredTopics = Objects.requireNonNull(topics.getItems())
+            .stream()
+            .filter(k -> TEST_TOPIC_NAME.equals(k.getName()))
+            .findAny();
+
+        assertTrue(filteredTopics.isPresent());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testFailToDeleteTopicIfItDoesNotExist() {
         // deleting not existing topic should fail
-        assertThrows(HTTPNotFoundException.class,
-            () -> bwait(kafkaAdminAPI.deleteTopic(TEST_NOT_EXISTING_TOPIC_NAME)));
-        LOGGER.info("topic not found : {}", TEST_NOT_EXISTING_TOPIC_NAME);
+        assertThrows(ApiNotFoundException.class,
+            () -> kafkaInstanceApi.deleteTopic(TEST_NOT_EXISTING_TOPIC_NAME));
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void startConsumerGroup() throws Throwable {
-        LOGGER.info("create or retrieve service account: {}", SERVICE_ACCOUNT_NAME);
-        var account = bwait(ServiceAPIUtils.applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME));
+    @SneakyThrows
+    public void testConsumerGroup() {
+        LOGGER.info("create or retrieve service account '{}'", SERVICE_ACCOUNT_NAME);
+        var account = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
 
-        LOGGER.info("crete kafka consumer with group id: {}", TEST_GROUP_NAME);
-        var consumer = KafkaConsumerClient.createConsumer(vertx,
-            kafka.bootstrapServerHost,
-            account.clientID,
-            account.clientSecret,
-            KafkaAuthMethod.OAUTH,
+        kafkaConsumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
             TEST_GROUP_NAME,
-            "latest");
+            TEST_TOPIC_NAME,
+            kafka.getBootstrapServerHost(),
+            account.getClientId(),
+            account.getClientSecret()));
 
-        LOGGER.info("subscribe to topic: {}", TEST_TOPIC_NAME);
-        consumer.subscribe(TEST_TOPIC_NAME);
-        consumer.handler(r -> {
-            // ignore
-        });
+        var group = KafkaInstanceApiUtils.waitForConsumerGroup(kafkaInstanceApi, TEST_GROUP_NAME);
+        LOGGER.debug(group);
 
-        IsReady<Object> subscribed = last -> consumer.assignment().map(partitions -> {
-            var o = partitions.stream().filter(p -> p.getTopic().equals(TEST_TOPIC_NAME)).findAny();
-            return Pair.with(o.isPresent(), null);
-        });
-        bwait(waitFor(vertx, "consumer group to subscribe", ofSeconds(2), ofMinutes(2), subscribed));
-
-        kafkaConsumer = consumer;
+        assertEquals(group.getGroupId(), TEST_GROUP_NAME);
+        assertTrue(group.getConsumers().size() > 0);
     }
 
+    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testGetAllConsumerGroups() {
+        var groups = kafkaInstanceApi.getConsumerGroups();
+        LOGGER.debug(groups);
 
-    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
-    public void testGetAllConsumerGroups() throws Throwable {
-        var groups = bwait(kafkaAdminAPI.getAllConsumerGroups());
-        LOGGER.info("got consumer groups: {}", Json.encode(groups));
+        var filteredGroup = Objects.requireNonNull(groups.getItems())
+            .stream()
+            .filter(g -> TEST_GROUP_NAME.equals(g.getGroupId()))
+            .findAny();
 
-        assertTrue(groups.items.size() >= 1);
+        assertTrue(filteredGroup.isPresent());
     }
 
-
-    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
-    public void testGetConsumerGroup() throws Throwable {
-        IsReady<ConsumerGroup> ready = last -> kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME).map(consumerGroup -> {
-            if (last) {
-                LOGGER.warn("last consumer group: {}", Json.encode(consumerGroup));
-            }
-
-            // wait for the consumer group to show at least one consumer
-            // because it could take a few seconds for the kafka admin api to
-            // report the connected consumer
-            return Pair.with(consumerGroup.consumers.size() > 0, consumerGroup);
-        });
-        var group = bwait(waitFor(vertx, "consumers in consumer group", ofSeconds(2), ofMinutes(1), ready));
-        LOGGER.info("consumer group: {}", Json.encode(group));
-
-        assertEquals(group.groupId, TEST_GROUP_NAME);
-        assertTrue(group.consumers.size() > 0);
-    }
-
-
-    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
     public void testFailToGetConsumerGroupIfItDoesNotExist() {
-        // get consumer group non existing consumer group should fail
-        assertThrows(HTTPNotFoundException.class,
-            () -> bwait(kafkaAdminAPI.getConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)));
-        LOGGER.info("consumer group '{}' doesn't exists", TEST_NOT_EXISTING_GROUP_NAME);
+        // get consumer group non-existing consumer group should fail
+        assertThrows(ApiNotFoundException.class,
+            () -> kafkaInstanceApi.getConsumerGroupById(TEST_NOT_EXISTING_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
     public void testFailToDeleteConsumerGroupIfItIsActive() {
         // deleting active consumer group should fail
-        assertThrows(HTTPLockedException.class,
-            () -> bwait(kafkaAdminAPI.deleteConsumerGroup(TEST_GROUP_NAME)));
-        LOGGER.info("active consumer group cannot be deleted: {}", TEST_GROUP_NAME);
+        assertThrows(ApiLockedException.class,
+            () -> kafkaInstanceApi.deleteConsumerGroupById(TEST_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "startConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
     public void testFailToDeleteConsumerGroupIfItDoesNotExist() {
         // deleting not existing consumer group should fail
-        assertThrows(HTTPNotFoundException.class,
-            () -> bwait(kafkaAdminAPI.deleteConsumerGroup(TEST_NOT_EXISTING_GROUP_NAME)));
-        LOGGER.info("not existing consumer group cannot be deleted: {}", TEST_NOT_EXISTING_TOPIC_NAME);
+        assertThrows(ApiNotFoundException.class,
+            () -> kafkaInstanceApi.deleteConsumerGroupById(TEST_NOT_EXISTING_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "startConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteConsumerGroup() throws Throwable {
         LOGGER.info("close kafka consumer");
         bwait(kafkaConsumer.close());
 
-        LOGGER.info("delete consumer group: {}", TEST_GROUP_NAME);
-        bwait(kafkaAdminAPI.deleteConsumerGroup(TEST_GROUP_NAME));
+        LOGGER.info("delete consumer group '{}'", TEST_GROUP_NAME);
+        kafkaInstanceApi.deleteConsumerGroupById(TEST_GROUP_NAME);
 
-        // consumer group should had been deleted
-        assertThrows(HTTPNotFoundException.class,
-            () -> bwait(kafkaAdminAPI.getConsumerGroup(TEST_GROUP_NAME)));
-        LOGGER.info("consumer group not found : {}", TEST_GROUP_NAME);
+        // consumer group should have been deleted
+        assertThrows(ApiNotFoundException.class,
+            () -> kafkaInstanceApi.getConsumerGroupById(TEST_GROUP_NAME));
+        LOGGER.info("consumer group '{}' not found", TEST_GROUP_NAME);
     }
 
     @Test(dependsOnMethods = "testCreateTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteTopic() throws Throwable {
-        bwait(kafkaAdminAPI.deleteTopic(TEST_TOPIC_NAME));
-        LOGGER.info("topic deleted: {}", TEST_TOPIC_NAME);
+        kafkaInstanceApi.deleteTopic(TEST_TOPIC_NAME);
+        LOGGER.info("topic '{}' deleted", TEST_TOPIC_NAME);
 
         // get test-topic should fail due to topic being deleted in current test
-        assertThrows(HTTPNotFoundException.class,
-            () -> bwait(kafkaAdminAPI.getTopic(TEST_TOPIC_NAME)));
-        LOGGER.info("topic not found : {}", TEST_TOPIC_NAME);
+        assertThrows(ApiNotFoundException.class,
+            () -> kafkaInstanceApi.getTopic(TEST_TOPIC_NAME));
+        LOGGER.info("topic '{}' not found", TEST_TOPIC_NAME);
     }
 }

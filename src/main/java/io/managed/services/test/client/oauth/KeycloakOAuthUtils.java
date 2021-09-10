@@ -1,7 +1,6 @@
 package io.managed.services.test.client.oauth;
 
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -11,13 +10,12 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClientSession;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
+import org.jsoup.internal.StringUtil;
+import org.jsoup.nodes.FormElement;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -30,21 +28,11 @@ import static io.managed.services.test.client.BaseVertxClient.getRedirectLocatio
 public class KeycloakOAuthUtils {
     private static final Logger LOGGER = LogManager.getLogger(KeycloakOAuthUtils.class);
 
-    public static Future<HttpResponse<Buffer>> followRedirects(
-        WebClientSession session,
-        HttpResponse<Buffer> response
-    ) {
-        return followRedirects(session, response, __ -> true);
-    }
-
-    public static Future<HttpResponse<Buffer>> followRedirects(
-        WebClientSession session,
-        HttpResponse<Buffer> response,
-        Function<HttpResponse<Buffer>, Boolean> condition) {
+    public static Future<VertxHttpResponse> followRedirects(
+        VertxWebClientSession session, VertxHttpResponse response) {
 
         var c = response.statusCode();
-        if (c >= 300 && c < 400
-            && condition.apply(response)) {
+        if (c >= 300 && c < 400) {
 
             // handle redirects
             return getRedirectLocation(response)
@@ -52,32 +40,53 @@ public class KeycloakOAuthUtils {
                     LOGGER.info("follow redirect to: {}", l);
                     return session.getAbs(l).send();
                 })
-                .compose(r -> followRedirects(session, r, condition));
+                .compose(r -> followRedirects(session, r));
         }
 
         return Future.succeededFuture(response);
     }
 
-    public static Future<HttpResponse<Buffer>> startLogin(WebClientSession session, String authURI) {
+    public static Future<VertxHttpResponse> startLogin(VertxWebClientSession session, String authURI) {
         LOGGER.info("start oauth login; uri={}", authURI);
         return session.getAbs(authURI).send();
     }
 
-    public static Future<HttpResponse<Buffer>> postUsernamePassword(
-        WebClientSession session, HttpResponse<Buffer> response, String username, String password) {
+    public static Future<VertxHttpResponse> postUsernamePassword(
+        VertxWebClientSession session, FormElement form, String username, String password) {
 
-        Document d = Jsoup.parse(response.bodyAsString());
-        String actionURI = d.select("#rh-password-verification-form").attr("action");
+        String actionURI = form.attr("action");
 
-        MultiMap f = MultiMap.caseInsensitiveMultiMap();
+        var f = MultiMap.caseInsensitiveMultiMap();
         f.add("username", username);
         f.add("password", password);
 
-        if (actionURI == null || actionURI.isBlank()) {
-            return Future.failedFuture(ResponseException.httpException("action URI not found", response));
+        if (actionURI.isEmpty()) {
+            return Future.failedFuture("action URI not found");
         }
 
         LOGGER.info("post username and password; uri={}; username={}", actionURI, username);
+        return session.postAbs(actionURI).sendForm(f);
+    }
+
+    public static Future<VertxHttpResponse> grantAccess(
+        VertxWebClientSession session, FormElement form, String baseURI) {
+
+        var actionURI = form.attr("action");
+
+        var code = form.select("input[name=code]").val();
+        var accept = form.select("input[name=accept]").val();
+
+        if (actionURI.isEmpty() || code.isEmpty() || accept.isEmpty()) {
+            return Future.failedFuture("action URI, code input or accept input not found");
+        }
+
+        actionURI = StringUtil.resolve(baseURI, actionURI);
+
+        var f = MultiMap.caseInsensitiveMultiMap();
+        f.add("code", code);
+        f.add("accept", accept);
+
+        LOGGER.info("grant access; uri: {}", actionURI);
         return session.postAbs(actionURI).sendForm(f);
     }
 
@@ -103,9 +112,7 @@ public class KeycloakOAuthUtils {
         Function<Throwable, Boolean> condition = t -> {
             if (t instanceof NoStackTraceThrowable) {
                 // retry request in case of Service Unavailable: Access Denied
-                if (t.getMessage().startsWith("Service Unavailable:")) {
-                    return true;
-                }
+                return t.getMessage().startsWith("Service Unavailable:");
             }
 
             return false;

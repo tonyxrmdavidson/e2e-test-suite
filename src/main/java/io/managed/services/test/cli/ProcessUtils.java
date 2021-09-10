@@ -1,6 +1,8 @@
 package io.managed.services.test.cli;
 
-import io.managed.services.test.TestUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.SneakyThrows;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,8 +23,11 @@ public class ProcessUtils {
         return read(process.getInputStream());
     }
 
+    @SneakyThrows
     public static <T> T stdoutAsJson(Process process, Class<T> c) {
-        return TestUtils.asJson(c, stdout(process));
+        return new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .readValue(stdout(process), c);
     }
 
     /**
@@ -36,7 +41,7 @@ public class ProcessUtils {
     }
 
     /**
-     * Read everything that is available in the stream right now without waiting for a EOF
+     * Read everything that is available in the stream right now without waiting for an EOF
      */
     public static String readNow(InputStream stream) {
         try {
@@ -52,28 +57,5 @@ public class ProcessUtils {
 
     static BufferedReader buffer(InputStream stream) {
         return new BufferedReader(new InputStreamReader(stream));
-    }
-
-    static String toError(Process process) {
-        return toError(process, process.info());
-    }
-
-    static String toTimeoutError(Process process, ProcessHandle.Info info) {
-        return toError(String.format("timeout cmd '%s'", info.commandLine().orElse(null)), process);
-    }
-
-    public static String toError(Process process, ProcessHandle.Info info) {
-        return toError(String.format("cmd '%s' failed with exit code: %d", info.commandLine().orElse(null), process.exitValue()), process);
-    }
-
-    static String toError(String message, Process process) {
-        return String.format("%s\n", message)
-            + "-- STDOUT --\n"
-            + readNow(process.getInputStream())
-            + "\n"
-            + "-- STDERR --\n"
-            + readNow(process.getErrorStream())
-            + "\n"
-            + "-- END --\n";
     }
 }

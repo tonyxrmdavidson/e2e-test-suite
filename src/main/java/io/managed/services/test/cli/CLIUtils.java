@@ -1,5 +1,8 @@
 package io.managed.services.test.cli;
 
+import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
+import com.openshift.cloud.api.kas.models.KafkaRequest;
+import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
 import io.fabric8.kubernetes.api.model.AuthInfo;
 import io.fabric8.kubernetes.api.model.Cluster;
 import io.fabric8.kubernetes.api.model.Config;
@@ -8,25 +11,22 @@ import io.fabric8.kubernetes.api.model.NamedAuthInfo;
 import io.fabric8.kubernetes.api.model.NamedCluster;
 import io.fabric8.kubernetes.api.model.NamedContext;
 import io.managed.services.test.Environment;
-import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaNotDeletedException;
+import io.managed.services.test.client.kafkamgmt.KafkaNotReadyException;
+import io.managed.services.test.client.kafkamgmt.KafkaUnknownHostsException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.serviceapi.ConsumerGroupResponse;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
-import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
-import io.managed.services.test.client.serviceapi.TopicResponse;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import lombok.SneakyThrows;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -34,16 +34,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
-import static io.managed.services.test.TestUtils.message;
-import static io.managed.services.test.TestUtils.waitFor;
-import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofMinutes;
-import static java.time.Duration.ofSeconds;
 
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
@@ -83,35 +81,32 @@ public class CLIUtils {
         throw new IOException("cli not found");
     }
 
-    public static Future<Void> login(Vertx vertx, CLI cli, String username, String password) {
+    public static CompletableFuture<Void> login(Vertx vertx, CLI cli, String username, String password) {
 
         var authURL = String.format("%s/auth/realms/%s", Environment.SSO_REDHAT_KEYCLOAK_URI, Environment.SSO_REDHAT_REALM);
         var masAuthURL = String.format("%s/auth/realms/%s", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI, Environment.MAS_SSO_REDHAT_REALM);
 
         LOGGER.info("start CLI login with username: {}", username);
-        return cli.login(Environment.SERVICE_API_URI, authURL, masAuthURL)
-                .compose(process -> {
+        var process = cli.login(Environment.SERVICE_API_URI, authURL, masAuthURL);
 
-                    var oauth2 = new KeycloakOAuth(vertx);
+        var oauth2 = new KeycloakOAuth(vertx, username, password);
 
-                    LOGGER.info("start oauth login against CLI");
-                    var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.SSO_REDHAT_KEYCLOAK_URI))
-                            .compose(l -> oauth2.login(l, username, password))
-                            .onSuccess(__ -> LOGGER.info("first oauth login completed"));
+        LOGGER.info("start oauth login against CLI");
+        var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.SSO_REDHAT_KEYCLOAK_URI))
+            .compose(l -> oauth2.login(l))
+            .onSuccess(__ -> LOGGER.info("first oauth login completed"))
+            .toCompletionStage().toCompletableFuture();
 
-                    var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
-                            .compose(l -> oauth2.login(l, username, password))
-                            .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"));
+        var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
+            .compose(l -> oauth2.login(l))
+            .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"))
+            .toCompletionStage().toCompletableFuture();
 
-                    var cliFuture = process.future(ofMinutes(3))
-                            .map(r -> {
-                                LOGGER.info("CLI login completed");
-                                return null;
-                            });
+        var cliFuture = process.future(ofMinutes(3))
+            .thenAccept(r -> LOGGER.info("CLI login completed"));
 
-                    return CompositeFuture.all(oauthFuture, edgeSSOFuture, cliFuture);
-                })
-                .map(n -> null);
+        return CompletableFuture.allOf(oauthFuture, edgeSSOFuture, cliFuture);
+
     }
 
     private static Future<String> parseUrl(Vertx vertx, BufferedReader stdout, String urlRegex) {
@@ -140,82 +135,50 @@ public class CLIUtils {
         });
     }
 
-    public static Future<?> deleteKafkaByNameIfExists(Vertx vertx, CLI cli, String name) {
-        return getKafkaByName(vertx, cli, name)
-                .compose(o -> o.map(k -> {
-                    LOGGER.info("delete kafka instance: {}", k.id);
-                    return cli.deleteKafka(k.id);
-                }).orElseGet(() -> {
-                    LOGGER.warn("kafka instance '{}' not found", name);
-                    return Future.succeededFuture();
-                }));
+    public static Optional<ConsumerGroup> getConsumerGroupByName(CLI cli, String consumerName) throws CliGenericException {
+        try {
+            return Optional.of(cli.describeConsumerGroup(consumerName));
+        } catch (CliNotFoundException e) {
+            return Optional.empty();
+        }
     }
 
-    public static Future<Optional<TopicResponse>> getTopicByName(Vertx vertx, CLI cli, String topicName) {
-        return cli.listTopics().map(r -> r.items != null ? r.items.stream().filter(topic -> topic.name.equals(topicName)).findFirst() : Optional.empty());
+    public static KafkaRequest waitUntilKafkaIsReady(CLI cli, String id)
+        throws KafkaUnknownHostsException, KafkaNotReadyException, InterruptedException, CliGenericException {
+
+        return KafkaMgmtApiUtils.waitUntilKafkaIsReady(() -> cli.describeKafka(id));
     }
 
-    public static Future<Optional<ConsumerGroupResponse>> getConsumerGroupByName(CLI cli, String topicName) {
-        return cli.listConsumerGroups().map(r -> r.items != null ? r.items.stream().filter(consumerGroup -> consumerGroup.groupId.equals(topicName)).findFirst() : Optional.empty());
+    public static void waitUntilKafkaIsDeleted(CLI cli, String id)
+        throws KafkaNotDeletedException, InterruptedException, CliGenericException {
+
+        KafkaMgmtApiUtils.waitUntilKafkaIsDeleted(() -> {
+            try {
+                return Optional.of(cli.describeKafka(id));
+            } catch (CliNotFoundException e) {
+                return Optional.empty();
+            }
+        });
     }
 
-    public static Future<Optional<KafkaResponse>> getKafkaByName(Vertx vertx, CLI cli, String name) {
-        return cli.listKafkaByNameAsJson(name)
-                .map(r -> r.items != null ? r.items.stream().findFirst() : Optional.empty());
+    public static Optional<ServiceAccountListItem> getServiceAccountByName(CLI cli, String name) throws CliGenericException {
+        return cli.listServiceAccount().getItems().stream().filter(sa -> name.equals(sa.getName())).findAny();
     }
 
-    public static Future<KafkaResponse> waitForKafkaReady(Vertx vertx, CLI cli, String id) {
-        IsReady<KafkaResponse> isReady = last -> cli.describeKafka(id)
-                .compose(r -> ServiceAPIUtils.isKafkaReady(r, last));
-        return waitFor(vertx, "kafka instance to be ready", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isReady);
+    public static ServiceAccountSecret createServiceAccount(CLI cli, String name) throws CliGenericException {
+        var secretPath = Paths.get(cli.getWorkdir(), name + ".json");
+        cli.createServiceAccount(name, secretPath);
+        return getServiceAccountSecret(secretPath);
     }
 
-    public static Future<Void> waitForKafkaDelete(Vertx vertx, CLI cli, String name) {
-        IsReady<Void> isDeleted = last -> getKafkaByName(vertx, cli, name)
-                .map(k -> Pair.with(k.isEmpty(), null));
-
-        return waitFor(vertx, "kafka instance to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
+    @SneakyThrows
+    public static ServiceAccountSecret getServiceAccountSecret(Path secretPath) {
+        return TestUtils.asJson(ServiceAccountSecret.class, Files.readString(secretPath));
     }
 
-    public static Future<Void> waitForConsumerGroupDelete(Vertx vertx, CLI cli, String name) {
-        IsReady<Void> isDeleted = last -> getConsumerGroupByName(cli, name)
-                .map(k -> Pair.with(k.isEmpty(), null));
-
-        return waitFor(vertx, "Consumer group to be deleted", ofSeconds(10), ofMillis(Environment.WAIT_READY_MS), isDeleted);
-    }
-
-    public static Future<Optional<ServiceAccount>> getServiceAccountByName(Vertx vertx, CLI cli, String name) {
-        return cli.listServiceAccountAsJson()
-                .map(r -> r.items.stream().filter(sa -> sa.name.equals(name)).findFirst());
-    }
-
-    public static Future<?> deleteServiceAccountByNameIfExists(Vertx vertx, CLI cli, String name) {
-        return getServiceAccountByName(vertx, cli, name)
-                .compose(o -> o.map(k -> {
-                    LOGGER.info("delete serviceaccount {} instance: {}", k.name, k.id);
-                    return cli.deleteServiceAccount(k.id);
-                }).orElseGet(() -> {
-                    LOGGER.warn("serviceaccount '{}' not found", name);
-                    return Future.succeededFuture();
-                }));
-    }
-
-    public static Future<ServiceAccount> createServiceAccount(Vertx vertx, CLI cli, String name) {
-        return cli.createServiceAccount(name, Paths.get(cli.getWorkdir(), name + ".json"))
-                .compose(p -> getServiceAccountByName(vertx, cli, name))
-                .compose(o -> o
-                        .map(Future::succeededFuture)
-                        .orElseGet(() -> Future.failedFuture(message("failed to find created service account: {}", name))));
-    }
-
-    public static ServiceAccountSecret getServiceAccountSecret(CLI cli, String secretName) throws IOException {
-        return TestUtils.asJson(ServiceAccountSecret.class, Files.readString(Paths.get(cli.getWorkdir(), secretName + ".json")));
-    }
-
-    public static Future<Void> waitForTopicDelete(Vertx vertx, CLI cli, String topicName) {
-        IsReady<Void> isDeleted = last -> getTopicByName(vertx, cli, topicName)
-                .map(k -> Pair.with(k.isEmpty(), null));
-        return waitFor(vertx, "kafka topic to be deleted", ofSeconds(10), ofSeconds(Environment.WAIT_READY_MS), isDeleted);
+    @SneakyThrows
+    public static ConsumerGroup waitForConsumerGroup(CLI cli, String name) {
+        return KafkaInstanceApiUtils.waitForConsumerGroup(() -> getConsumerGroupByName(cli, name));
     }
 
     public static Config kubeConfig(String server, String token, String namespace) {
@@ -252,4 +215,5 @@ public class CLIUtils {
 
         return c;
     }
+
 }

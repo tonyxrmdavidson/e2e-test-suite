@@ -1,5 +1,6 @@
 package io.managed.services.test;
 
+import io.managed.services.test.cli.ProcessException;
 import io.managed.services.test.cli.ProcessUtils;
 
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 
 public class DNSUtils {
 
+    @SuppressWarnings("unused")
     public static String dnsInfo(String hostname) {
 
         var apiKey = Environment.WHOISXMLAPI_KEY;
@@ -41,10 +43,10 @@ public class DNSUtils {
     public static String dig(String hostname, String server) {
         var cmd = new ArrayList<String>();
         cmd.add("dig");
-        cmd.add("hostname");
         if (server != null) {
-            cmd.add(server);
+            cmd.add(String.format("@%s", server));
         }
+        cmd.add(hostname);
 
         var processBuilder = new ProcessBuilder().command(cmd);
 
@@ -65,7 +67,7 @@ public class DNSUtils {
         }
 
         if (exitCode != 0) {
-            return ProcessUtils.toError(process, processInfo);
+            return new ProcessException(process, processInfo, null).getMessage();
         }
         return ProcessUtils.readNow(process.getInputStream());
     }

@@ -10,8 +10,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -19,16 +17,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class BaseVertxClient {
-    private static final Logger LOGGER = LogManager.getLogger(BaseVertxClient.class);
 
-    // TODO: Make vertx public so we can reuse it without passing both vertx and the api
     protected final Vertx vertx;
     protected final WebClient client;
 
     public BaseVertxClient(Vertx vertx, String uri) {
         this(vertx, URI.create(uri));
     }
-
 
     public BaseVertxClient(Vertx vertx, URI uri) {
         this(vertx, optionsForURI(uri));
@@ -90,9 +85,7 @@ public abstract class BaseVertxClient {
             }
 
             if (t instanceof VertxException) {
-                if (t.getMessage().equals("Connection was closed")) {
-                    return true;
-                }
+                return t.getMessage().equals("Connection was closed");
             }
 
             return false;
@@ -104,7 +97,7 @@ public abstract class BaseVertxClient {
     public static <T> Future<HttpResponse<T>> assertResponse(HttpResponse<T> response, Integer statusCode) {
         if (response.statusCode() != statusCode) {
             String message = String.format("Expected status code %d but got %s", statusCode, response.statusCode());
-            return Future.failedFuture(ResponseException.httpException(message, response));
+            return Future.failedFuture(new ResponseException(message, response));
         }
         return Future.succeededFuture(response);
     }
@@ -112,13 +105,8 @@ public abstract class BaseVertxClient {
     public static Future<String> getRedirectLocation(HttpResponse<Buffer> response) {
         var l = response.getHeader("Location");
         if (l == null) {
-            return Future.failedFuture(ResponseException.httpException("Location header not found", response));
+            return Future.failedFuture(new ResponseException("Location header not found", response));
         }
         return Future.succeededFuture(l);
-    }
-
-    public static Future<HttpResponse<Buffer>> followRedirect(WebClient client, HttpResponse<Buffer> response) {
-        return getRedirectLocation(response)
-            .compose(l -> client.getAbs(l).send());
     }
 }

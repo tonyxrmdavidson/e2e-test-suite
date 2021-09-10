@@ -1,5 +1,7 @@
 package io.managed.services.test;
 
+import io.managed.services.test.wait.ReadyFunction;
+import io.managed.services.test.wait.TReadyFunction;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -18,15 +20,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.time.Duration.ofSeconds;
+import static lombok.Lombok.sneakyThrow;
 
 /**
  * Test utils contains static help methods
@@ -34,12 +35,7 @@ import static java.time.Duration.ofSeconds;
 public class TestUtils {
     private static final Logger LOGGER = LogManager.getLogger(TestUtils.class);
 
-    private static final long MINUTES = 60 * 1000;
-    private static final long DEFAULT_TIMEOUT = 3 * MINUTES;
-
     private static final MessageFactory2 MESSAGE_FACTORY = new ParameterizedMessageFactory();
-
-    private static final List<Throwable> RETRIES = new LinkedList<>();
 
     public static final String FAKE_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUI" +
         "iwia2lkIiA6ICItNGVsY19WZE5fV3NPVVlmMkc0UXhyOEdjd0l4X0t0WFVDaXRhd" +
@@ -125,6 +121,22 @@ public class TestUtils {
             });
     }
 
+    public static <A> A waitFor(String description, Duration interval, Duration timeout, ReadyFunction<A> isReady)
+        throws TimeoutException, InterruptedException {
+
+        TReadyFunction<A, RuntimeException> ready = (l, a) -> isReady.apply(l, a);
+        return waitFor(description, interval, timeout, ready);
+    }
+
+    public static <A, T extends Throwable> A waitFor(String description, Duration interval, Duration timeout, TReadyFunction<A, T> isReady)
+        throws T, TimeoutException, InterruptedException {
+
+        var atom = new AtomicReference<A>();
+        ThrowableFunction<Boolean, Boolean, T> ready = l -> isReady.apply(l, atom);
+        waitFor(description, interval, timeout, ready);
+        return atom.get();
+    }
+
     // TODO: Convert waitFor into and independent class
     // TODO: The default interval should be timeout / 30s
     // TODO: The timeout should always be a multiple 30s
@@ -137,6 +149,8 @@ public class TestUtils {
 
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
         var e = new TimeoutException(String.format("timeout after %s waiting for %s", timeout.toString(), description));
+
+        LOGGER.info("wait for {} for {}", description, timeout);
 
         Instant deadline = Instant.now().plus(timeout);
         waitFor(description, interval, deadline, e, isReady);
@@ -152,7 +166,7 @@ public class TestUtils {
 
         boolean last = Instant.now().isAfter(deadline);
 
-        LOGGER.info("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
+        LOGGER.debug("waiting for {}; left={}", description, Duration.between(Instant.now(), deadline));
         if (isReady.call(last)) {
             return;
         }
@@ -164,29 +178,6 @@ public class TestUtils {
         Thread.sleep(interval.toMillis());
 
         waitFor(description, interval, deadline, timeout, isReady);
-    }
-
-    /**
-     * Convert a Java CompletionStage or CompletableFuture to a Vertx Future
-     *
-     * @param completion CompletionStage | CompletableFuture
-     * @param <T>        Type
-     * @return Vertx Future
-     */
-    public static <T> Future<T> toVertxFuture(CompletionStage<T> completion) {
-        Promise<T> promise = Promise.promise();
-        completion.whenComplete((r, t) -> {
-            if (t == null) {
-                promise.complete(r);
-            } else {
-                promise.fail(t);
-            }
-        });
-        return promise.future();
-    }
-
-    public static <T> Future<Void> forEach(Iterable<T> iterable, Function<T, Future<Void>> action) {
-        return forEach(iterable.iterator(), action);
     }
 
     /**
@@ -229,13 +220,6 @@ public class TestUtils {
         return p.future();
     }
 
-
-    public static <T> Future<T> retry(Vertx x, Supplier<Future<T>> call) {
-
-        // retry in case of any error
-        return retry(x, call, __ -> true, Environment.RETRY_CALL_THRESHOLD);
-    }
-
     public static <T> Future<T> retry(
         Vertx x,
         Supplier<Future<T>> call,
@@ -262,8 +246,6 @@ public class TestUtils {
         int attempts) {
 
         Function<Throwable, Future<T>> retry = t -> {
-            // add the error to the list of retries
-            RETRIES.add(t);
 
             LOGGER.error("skip error: ", t);
 
@@ -281,9 +263,33 @@ public class TestUtils {
         });
     }
 
-    public static List<Throwable> getRetries() {
-        return RETRIES;
+    @SuppressWarnings("RedundantThrows")
+    public static <T, E extends Throwable> T retry(
+        ThrowableSupplier<T, E> call, Function<Throwable, Boolean> condition, int attempts)
+        throws E {
+
+        try {
+            return call.get();
+
+        } catch (Throwable t) {
+
+            if (attempts > 0 && condition.apply(t)) {
+                // retry the call if there are available attempts and if the condition returns true
+                LOGGER.error("skip error: ", t);
+
+                // retry the API call
+                try {
+                    Thread.sleep(ofSeconds(1).toMillis());
+                } catch (InterruptedException e) {
+                    throw sneakyThrow(e);
+                }
+
+                return retry(call, condition, attempts - 1);
+            }
+            throw sneakyThrow(t);
+        }
     }
+
 
     /**
      * Format the message like log4j
@@ -310,13 +316,8 @@ public class TestUtils {
         return path;
     }
 
-    public static void logWithSeparator(String pattern, String text) {
-        LOGGER.info("=======================================================================");
-        LOGGER.info(pattern, text);
-        LOGGER.info("=======================================================================");
-    }
-
     public static <T> T asJson(Class<T> c, String s) {
+        LOGGER.debug(s);
         return BodyCodecImpl.jsonDecoder(c).apply(Buffer.buffer(s));
     }
 
@@ -325,7 +326,7 @@ public class TestUtils {
     }
 
     /**
-     * Block the Thread and wait for for the Future result and in case of Future failure throw the Future error
+     * Block the Thread and wait for the Future result and in case of Future failure throw the Future error
      */
     public static <T> T bwait(Future<T> future) throws Throwable {
         if (Vertx.currentContext() != null) {

@@ -1,6 +1,8 @@
 package io.managed.services.test.quickstarts;
 
-import io.fabric8.kubernetes.api.model.HasMetadata;
+import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
+import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -16,23 +18,27 @@ import io.managed.services.test.WriteStreamConsumer;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
+import io.managed.services.test.client.ApplicationServicesApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.sample.QuarkusSample;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.operator.ServiceBinding;
 import io.managed.services.test.operator.ServiceBindingApplication;
 import io.managed.services.test.operator.ServiceBindingSpec;
+import io.managed.services.test.operator.ServiceBindingSpecService;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.auth.User;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -42,10 +48,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
@@ -53,9 +57,6 @@ import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.decodeBase64;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
-import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.applyTopics;
-import static io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils.kafkaAdminAPI;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.applyKafkaInstance;
 import static io.vertx.core.Future.failedFuture;
 import static io.vertx.core.Future.succeededFuture;
 import static java.time.Duration.ofMinutes;
@@ -72,7 +73,7 @@ import static org.testng.Assert.assertNotNull;
 public class QuarkusApplicationTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(QuarkusApplicationTest.class);
 
-    // NOTE: Some of the names are hard coded because generated from CLI or hard coded in the yaml files
+    // NOTE: Some names are hard coded because generated from CLI or hard coded in the yaml files
 
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-quarkus-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String TOPIC_NAME = "prices";
@@ -102,90 +103,60 @@ public class QuarkusApplicationTest extends TestBase {
 
     private CLI cli;
     private User user;
-    private ServiceAPI api;
+    private KafkaMgmtApi kafkaMgmtApi;
+    private SecurityMgmtApi securityMgmtApi;
     private OpenShiftClient oc;
-    private KafkaResponse kafka;
+    private KafkaRequest kafka;
     private Route route;
 
-    private static InputStream getResource(String path) {
-        return QuarkusApplicationTest.class.getClassLoader().getResourceAsStream(path);
-    }
+    @BeforeClass(timeOut = 15 * MINUTES)
+    @SneakyThrows
+    public void bootstrap() {
+        assertENVs();
 
-    private List<HasMetadata> loadK8sResources(String path) {
-        return oc.load(getResource(path)).get();
-    }
-
-    private void bootstrapK8sClient() {
-
+        // OC
         var config = new ConfigBuilder()
             .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
             .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
             .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
             .build();
 
-        LOGGER.info("initialize kubernetes client");
+        LOGGER.info("initialize openshift client");
         oc = new DefaultOpenShiftClient(config);
-    }
 
-    private Future<Void> bootstrapCLI() {
-
+        // CLI
         var downloader = CLIDownloader.defaultDownloader(vertx);
-        return downloader.downloadCLIInTempDir()
-            .compose(binary -> {
-                LOGGER.info("cli downloaded successfully to: {}", binary.directory);
-                this.cli = new CLI(vertx, binary.directory, binary.name);
+        LOGGER.info("download cli");
+        var cliBinary = bwait(downloader.downloadCLIInTempDir());
+        LOGGER.info("cli downloaded successfully to: {}", cliBinary.directory);
 
-                return CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-            });
-    }
+        LOGGER.info("login the cli");
+        cli = new CLI(cliBinary.directory, cliBinary.name);
+        CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD).get();
 
-    private Future<Void> bootstrapUserAndAPI() {
+        // User
+        var auth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
+        user = bwait(auth.loginToRHSSO());
 
-        KeycloakOAuth auth = new KeycloakOAuth(vertx);
+        // APIs
+        LOGGER.info("initialize kafka and security mgmt apis");
+        var apis = new ApplicationServicesApi(Environment.SERVICE_API_URI, user);
+        kafkaMgmtApi = apis.kafkaMgmt();
+        securityMgmtApi = apis.securityMgmt();
 
-        LOGGER.info("authenticate user: {} against: {}", Environment.SSO_USERNAME, Environment.SSO_REDHAT_KEYCLOAK_URI);
-        return auth.login(
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID,
-            Environment.SSO_USERNAME,
-            Environment.SSO_PASSWORD)
+        // Kafka Instance
+        LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
-            .map(u -> {
-                user = u;
+        // Topic
+        LOGGER.info("create topic '{}'", TOPIC_NAME);
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka));
 
-                api = new ServiceAPI(vertx, Environment.SERVICE_API_URI, user);
-
-                return null;
-            });
-    }
-
-    private Future<Void> bootstrapKafkaInstance() {
-        return applyKafkaInstance(vertx, api, KAFKA_INSTANCE_NAME)
-            .onSuccess(k -> kafka = k)
-
-            .compose(__ -> kafkaAdminAPI(
-                vertx,
-                kafka.bootstrapServerHost,
-                Environment.SSO_USERNAME,
-                Environment.SSO_PASSWORD))
-            .compose(admin -> applyTopics(admin, Set.of(TOPIC_NAME)))
-
-            .map(__ -> null);
-    }
-
-    @BeforeClass(timeOut = 15 * MINUTES)
-    public void bootstrap() throws Throwable {
-        assertENVs();
-
-        bootstrapK8sClient();
-
-        bwait(bootstrapCLI());
-
-        bwait(bootstrapUserAndAPI());
-
-        bwait(bootstrapKafkaInstance());
+        var topicPayload = new NewTopicInput()
+            .name(TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, topicPayload);
 
         try {
             OperatorUtils.patchTheOperatorCloudServiceAPIEnv(oc);
@@ -259,55 +230,47 @@ public class QuarkusApplicationTest extends TestBase {
         oc.routes().withName(APP_ROUTE_NAME).delete();
     }
 
-    private Future<Void> cleanServiceAccount() {
+    @SneakyThrows
+    private void cleanServiceAccount() {
         var secret = oc.secrets().withName(SERVICE_ACCOUNT_SECRET_NAME).get();
         if (secret == null) {
-            return failedFuture(message("failed to find secret with name: {}", SERVICE_ACCOUNT_SECRET_NAME));
+            throw new Error(message("failed to find secret with name: {}", SERVICE_ACCOUNT_SECRET_NAME));
         }
 
         LOGGER.info("clean service account secret: {}", secret.getMetadata().getName());
         var encodedClientID = secret.getData().get("client-id");
         if (encodedClientID == null) {
-            return failedFuture(message("client-id data not found in secret: {}", secret));
+            throw new Error(message("client-id data not found in secret: {}", secret));
         }
         var secretClientID = decodeBase64(encodedClientID);
 
-        return api.getListOfServiceAccounts()
-            // find the service account with the same client-id as the secret
-            .map(accounts -> accounts.items.stream()
-                .filter(a -> a.clientID.equals(secretClientID))
-                .findAny())
+        var accounts = securityMgmtApi.getServiceAccounts();
+        var accountOptional = accounts.getItems().stream()
+            .filter(a -> secretClientID.equals(a.getClientId()))
+            .findAny();
 
-            // unwrap the optional service account
-            .compose(o -> o
-                .map(a -> {
-                    // delete the service account if founded
-                    LOGGER.info("delete service account {} with id: {}", a.name, a.id);
-                    return api.deleteServiceAccount(a.id);
-                })
-                .orElseGet(() -> {
-                    LOGGER.error("failed to find service account with client-id: {}", secretClientID);
-                    return Future.succeededFuture();
-                }))
+        if (accountOptional.isPresent()) {
+            var account = accountOptional.get();
 
-            // delete the secret only after deleting the service account
-            .map(__ -> {
-                LOGGER.info("delete secret: {}", secret.getMetadata().getName());
-                oc.secrets().delete(secret);
+            // delete the service account if founded
+            LOGGER.info("delete service account '{}' with id: {}", account.getName(), account.getId());
+            securityMgmtApi.deleteServiceAccountById(account.getId());
+        } else {
+            LOGGER.error("failed to find service account with client-id: {}", secretClientID);
+        }
 
-                return null;
-            });
+        // delete the secret only after deleting the service account
+        LOGGER.info("delete secret: {}", secret.getMetadata().getName());
+        oc.secrets().delete(secret);
     }
 
     private Future<Void> cleanCLI() {
         if (cli != null) {
             LOGGER.info("logout from cli");
-            return cli.logout()
+            cli.logout();
 
-                .compose(__ -> {
-                    LOGGER.info("clean workdir: {}", cli.getWorkdir());
-                    return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
-                });
+            LOGGER.info("clean workdir: {}", cli.getWorkdir());
+            return vertx.fileSystem().deleteRecursive(cli.getWorkdir(), true);
         }
         return Future.succeededFuture();
     }
@@ -363,13 +326,13 @@ public class QuarkusApplicationTest extends TestBase {
         }
 
         try {
-            bwait(cleanServiceAccount());
+            cleanServiceAccount();
         } catch (Throwable e) {
             LOGGER.error("cleanServiceAccount error: ", e);
         }
 
         try {
-            bwait(ServiceAPIUtils.cleanKafkaInstance(api, KAFKA_INSTANCE_NAME));
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable e) {
             LOGGER.error("cleanKafkaInstance error: ", e);
         }
@@ -398,11 +361,11 @@ public class QuarkusApplicationTest extends TestBase {
         var kubeconfgipath = cli.getWorkdir() + "/kubeconfig";
         bwait(vertx.fileSystem().writeFile(kubeconfgipath, Buffer.buffer(config)));
 
-        LOGGER.info("cli use kafka instance: {}", kafka.id);
-        bwait(cli.useKafka(kafka.id));
+        LOGGER.info("cli use kafka instance: {}", kafka.getId());
+        cli.useKafka(kafka.getId());
 
         LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
-        bwait(cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath));
+        cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
     }
 
     @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)
@@ -411,7 +374,8 @@ public class QuarkusApplicationTest extends TestBase {
         // TODO: Deploy the application from https://raw.githubusercontent.com/redhat-developer/app-services-guides/main/code-examples/quarkus-kafka-quickstart/.kubernetes/kubernetes.yml
 
         LOGGER.info("deploy the rhoas-kafka-quickstart-example app");
-        oc.resourceList(loadK8sResources(APP_YAML_PATH)).createOrReplace();
+        var resource = QuarkusApplicationTest.class.getClassLoader().getResourceAsStream(APP_YAML_PATH);
+        oc.resourceList(oc.load(resource).get()).createOrReplace();
 
         route = oc.routes().withName(APP_ROUTE_NAME).get();
         LOGGER.info("app deployed to: {}", route.getSpec().getHost());
@@ -423,22 +387,25 @@ public class QuarkusApplicationTest extends TestBase {
 
         // TODO: Bind the Kafka instance to the application using `rhoas cluster bind`
 
-        var application = new ServiceBindingApplication();
-        application.group = "apps";
-        application.name = APP_DEPLOYMENT_NAME;
-        application.resource = "deployments";
-        application.version = "v1";
+        var application = ServiceBindingApplication.builder()
+            .group("apps")
+            .name(APP_DEPLOYMENT_NAME)
+            .resource("deployments")
+            .version("v1")
+            .build();
 
-        var service = new ServiceBindingSpec.Service();
-        service.group = "rhoas.redhat.com";
-        service.version = "v1alpha1";
-        service.kind = "KafkaConnection";
-        service.name = KAFKA_INSTANCE_NAME;
+        var service = ServiceBindingSpecService.builder()
+            .group("rhoas.redhat.com")
+            .version("v1alpha1")
+            .kind("KafkaConnection")
+            .name(KAFKA_INSTANCE_NAME)
+            .build();
 
-        var spec = new ServiceBindingSpec();
-        spec.application = application;
-        spec.bindAsFiles = true;
-        spec.services = List.of(service);
+        var spec = ServiceBindingSpec.builder()
+            .application(application)
+            .bindAsFiles(true)
+            .services(List.of(service))
+            .build();
 
         var sb = new ServiceBinding();
         sb.setMetadata(new ObjectMeta());
@@ -469,15 +436,15 @@ public class QuarkusApplicationTest extends TestBase {
                 return succeededFuture(Pair.with(false, null));
             }
 
-            var isReady = status.conditions.stream()
-                .filter(c -> c.type.equals("Ready"))
+            var isReady = status.getConditions().stream()
+                .filter(c -> c.getType().equals("Ready"))
                 .findAny()
-                .map(c -> c.status.equals("True"))
+                .map(c -> c.getStatus().equals("True"))
                 .orElse(false);
             return succeededFuture(Pair.with(isReady, b));
         };
 
-        // wait for for the service binding to be gone
+        // wait for the service binding to be gone
         bwait(waitFor(vertx, "service binding to be deleted", ofSeconds(3), ofMinutes(1), serviceBindingIsDeleted));
 
         LOGGER.info("create service binding: {}", Json.encode(sb));
@@ -495,9 +462,9 @@ public class QuarkusApplicationTest extends TestBase {
         LOGGER.info("start streaming prices from: {}", endpoint);
 
         // The /prices/stream endpoint returns a new price every 5s if the
-        // the quarkus app can connect successfully to the kafka instance
+        // quarkus app can connect successfully to the kafka instance
         //
-        // The test will wait until it receive 6 price consecutively
+        // The test will wait until it receive 6 price consecutively,
         // and then it will complete
 
         var reg = Pattern.compile("^data: (?<data>\\d+(\\.\\d+)?)$");
@@ -535,7 +502,7 @@ public class QuarkusApplicationTest extends TestBase {
                     return Pair.with(true, null);
                 }
 
-                // clean the data list between each failures
+                // clean the data list between each failure
                 prices.clear();
 
                 return Pair.with(false, null);

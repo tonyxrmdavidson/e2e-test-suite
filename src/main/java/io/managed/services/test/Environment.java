@@ -73,7 +73,6 @@ public class Environment {
     private static final String CLI_ARCH_ENV = "CLI_ARCH";
 
     private static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
-    private static final String WAIT_READY_MS_ENV = "WAIT_READY_MS";
 
     private static final String RETRY_CALL_THRESHOLD_ENV = "RETRY_CALL_THRESHOLD";
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
@@ -110,6 +109,7 @@ public class Environment {
     public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
     public static final String MAS_SSO_REDHAT_REDIRECT_URI = getOrDefault(MAS_SSO_REDHAT_REDIRECT_URI_ENV, "https://cloud.redhat.com/beta/application-services");
 
+    @Deprecated
     public static final String KAFKA_ADMIN_API_SERVER_PREFIX = getOrDefault(KAFKA_ADMIN_API_SERVER_PREFIX_ENV, "https://admin-server-");
 
     // TODO: Rename to OPENSHIFT_API_URI
@@ -132,7 +132,7 @@ public class Environment {
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
 
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
-    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
+//    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
     public static final int RETRY_CALL_THRESHOLD = getOrDefault(RETRY_CALL_THRESHOLD_ENV, Integer::parseInt, 2);
 
@@ -195,8 +195,9 @@ public class Environment {
      * @return json object with loaded variables
      */
     private static JsonNode loadConfigurationFile() {
-        config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
+        var config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
             Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
+        Environment.config = config;
         ObjectMapper mapper = new ObjectMapper();
         try {
             File jsonFile = new File(config).getAbsoluteFile();

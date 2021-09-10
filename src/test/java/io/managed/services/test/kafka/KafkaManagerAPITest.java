@@ -1,46 +1,42 @@
 package io.managed.services.test.kafka;
 
+import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
+import com.openshift.cloud.api.kas.models.KafkaRequest;
+import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
+import com.openshift.cloud.api.kas.models.ServiceAccount;
+import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
-import io.managed.services.test.client.exception.HTTPConflictException;
+import io.managed.services.test.client.ApplicationServicesApi;
+import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
-import io.managed.services.test.client.serviceapi.CreateKafkaPayload;
-import io.managed.services.test.client.serviceapi.CreateServiceAccountPayload;
-import io.managed.services.test.client.serviceapi.KafkaResponse;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
-import io.managed.services.test.client.serviceapi.ServiceAccount;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
+import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
+import lombok.SneakyThrows;
+import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.TestUtils.sleep;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static io.managed.services.test.client.serviceapi.MetricsUtils.messageInTotalMetric;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.cleanKafkaInstance;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteKafkaByNameIfExists;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.deleteServiceAccountByNameIfExists;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.getKafkaByName;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsDeleted;
-import static io.managed.services.test.client.serviceapi.ServiceAPIUtils.waitUntilKafkaIsReady;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
@@ -48,8 +44,8 @@ import static org.testng.Assert.assertTrue;
 
 
 @Test(groups = TestTag.SERVICE_API)
+@Log4j2
 public class KafkaManagerAPITest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaManagerAPITest.class);
 
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
     static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.KAFKA_POSTFIX_NAME;
@@ -57,102 +53,111 @@ public class KafkaManagerAPITest extends TestBase {
     static final String TOPIC_NAME = "test-topic";
     static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
-    private final Vertx vertx = Vertx.vertx();
-
-    private ServiceAPI api;
-    private KafkaResponse kafka;
+    private KafkaMgmtApi kafkaMgmtApi;
+    private SecurityMgmtApi securityMgmtApi;
+    private KafkaRequest kafka;
     private ServiceAccount serviceAccount;
 
     // TODO: Test delete Service Account
     // TODO: Test create existing Service Account
 
     @BeforeClass
-    public void bootstrap() throws Throwable {
-        api = bwait(ServiceAPIUtils.serviceAPI(vertx));
-    }
+    public void bootstrap() {
+        var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var apps = ApplicationServicesApi.applicationServicesApi(auth, Environment.SERVICE_API_URI);
 
-    private Future<Void> deleteServiceAccount() {
-        return deleteServiceAccountByNameIfExists(api, SERVICE_ACCOUNT_NAME);
+        securityMgmtApi = apps.securityMgmt();
+        kafkaMgmtApi = apps.kafkaMgmt();
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void teardown() throws Throwable {
+    public void teardown() {
 
         // delete kafka instance
         try {
-            bwait(cleanKafkaInstance(api, KAFKA_INSTANCE_NAME));
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
-            LOGGER.error("clean main kafka instance error: ", t);
+            log.error("clean main kafka instance error: ", t);
         }
 
         try {
-            bwait(deleteKafkaByNameIfExists(api, KAFKA2_INSTANCE_NAME));
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA2_INSTANCE_NAME);
         } catch (Throwable t) {
-            LOGGER.error("clean second kafka instance error: ", t);
+            log.error("clean second kafka instance error: ", t);
         }
 
         // delete service account
         try {
-            bwait(deleteServiceAccount());
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
-            LOGGER.error("clean service account error: ", t);
+            log.error("clean service account error: ", t);
         }
-
-        // close vertx
-        bwait(vertx.close());
     }
 
     @Test(timeOut = 15 * MINUTES)
-    public void testCreateKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testCreateKafkaInstance() {
 
         // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
-        LOGGER.info("create kafka instance: {}", kafkaPayload.name);
-        var k = bwait(api.createKafka(kafkaPayload, true));
-        kafka = bwait(waitUntilKafkaIsReady(vertx, api, k.id));
+        var payload = new KafkaRequestPayload()
+            .name(KAFKA_INSTANCE_NAME)
+            .multiAz(true)
+            .cloudProvider("aws")
+            .region("us-east-1");
+
+        log.info("create kafka instance '{}'", payload.getName());
+        var k = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+
+        kafka = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testCreateServiceAccount() throws Throwable {
+    @SneakyThrows
+    public void testCreateServiceAccount() {
 
         // Create Service Account
-        CreateServiceAccountPayload serviceAccountPayload = new CreateServiceAccountPayload();
-        serviceAccountPayload.name = SERVICE_ACCOUNT_NAME;
-
-        LOGGER.info("create service account: {}", serviceAccountPayload.name);
-        serviceAccount = bwait(api.createServiceAccount(serviceAccountPayload));
+        log.info("create service account '{}'", SERVICE_ACCOUNT_NAME);
+        serviceAccount = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME));
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
-    public void testCreateTopics() throws Throwable {
+    @SneakyThrows
+    public void testCreateTopics() {
 
-        var bootstrapHost = kafka.bootstrapServerHost;
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+            Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
-        var admin = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(vertx, bootstrapHost));
+        log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
+        var topicPayload = new NewTopicInput()
+            .name(TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        kafkaInstanceApi.createTopic(topicPayload);
 
-        LOGGER.info("create topic with name {} on the instance: {}", TOPIC_NAME, bootstrapHost);
-        bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, TOPIC_NAME));
-
-        LOGGER.info("create topic with name {} on the instance: {}", METRIC_TOPIC_NAME, bootstrapHost);
-        bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, METRIC_TOPIC_NAME));
+        log.info("create topic '{}' on the instance '{}'", METRIC_TOPIC_NAME, kafka.getName());
+        var metricTopicPayload = new NewTopicInput()
+            .name(METRIC_TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        kafkaInstanceApi.createTopic(metricTopicPayload);
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    public void testMessageInTotalMetric() throws Throwable {
+    @SneakyThrows
+    public void testMessageInTotalMetric() {
 
-        LOGGER.info("start testing message in total metric");
-        bwait(messageInTotalMetric(vertx, api, kafka, serviceAccount, TOPIC_NAME));
+        log.info("test message in total metric");
+        KafkaMgmtMetricsUtils.testMessageInTotalMetric(kafkaMgmtApi, kafka, serviceAccount, TOPIC_NAME);
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    public void testMessagingKafkaInstanceUsingOAuth() throws Throwable {
+    @SneakyThrows
+    public void testMessagingKafkaInstanceUsingOAuth() {
 
-        var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
 
         bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             clientSecret,
@@ -164,13 +169,14 @@ public class KafkaManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
     public void testFailedToMessageKafkaInstanceUsingOAuthAndFakeSecret() {
 
-        var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccount.getClientId();
 
         assertThrows(KafkaException.class, () -> bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             "invalid",
@@ -182,14 +188,15 @@ public class KafkaManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
-    public void testMessagingKafkaInstanceUsingPlainAuth() throws Throwable {
+    @SneakyThrows
+    public void testMessagingKafkaInstanceUsingPlainAuth() {
 
-        var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
 
         bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             clientSecret,
@@ -201,13 +208,14 @@ public class KafkaManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
     public void testFailedToMessageKafkaInstanceUsingPlainAuthAndFakeSecret() {
 
-        var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccount.getClientId();
 
         assertThrows(KafkaException.class, () -> bwait(testTopic(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             "invalid",
@@ -219,47 +227,60 @@ public class KafkaManagerAPITest extends TestBase {
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
-    public void testListAndSearchKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testListAndSearchKafkaInstance() {
 
-        //List kafka instances
-        var kafkaList = bwait(api.getListOfKafkas());
+        // TODO: Split in between list kafka and search kafka by name
 
-        LOGGER.info("fetch kafka instance list: {}", Json.encode(kafkaList.items));
-        assertTrue(kafkaList.items.size() > 0);
+        // List kafka instances
+        log.info("get kafka list");
+        var kafkaList = kafkaMgmtApi.getKafkas(null, null, null, null);
 
-        //Get created kafka instance from the list
-        List<KafkaResponse> filteredKafka = kafkaList.items.stream().filter(k -> k.name.equals(KAFKA_INSTANCE_NAME)).collect(Collectors.toList());
-        LOGGER.info("Filter kafka instance from list: {}", Json.encode(filteredKafka));
-        assertEquals(1, filteredKafka.size());
+        log.debug(kafkaList);
+        assertTrue(kafkaList.getItems().size() > 0);
 
-        //Search kafka by name
-        var kafkaOptional = bwait(getKafkaByName(api, KAFKA_INSTANCE_NAME));
+        // Get created kafka instance from the list
+        log.info("find kafka instance '{}' in list", KAFKA_INSTANCE_NAME);
+        var findKafka = kafkaList.getItems().stream()
+            .filter(k -> KAFKA_INSTANCE_NAME.equals(k.getName()))
+            .findAny();
+        log.debug(findKafka.orElse(null));
+        assertTrue(findKafka.isPresent());
 
-        var kafka = kafkaOptional.orElseThrow();
-        LOGGER.info("Get created kafka instance is : {}", Json.encode(kafka));
-        assertEquals(KAFKA_INSTANCE_NAME, kafka.name);
+        // Search kafka by name
+        log.info("search kafka instance '{}' by name", KAFKA_INSTANCE_NAME);
+        var kafkaOptional = KafkaMgmtApiUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        log.debug(kafkaOptional.orElse(null));
+        assertTrue(kafkaOptional.isPresent());
+        assertEquals(kafkaOptional.get().getName(), KAFKA_INSTANCE_NAME);
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
     public void testFailToCreateKafkaInstanceIfItAlreadyExist() {
 
         // Create Kafka Instance with existing name
-        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA_INSTANCE_NAME);
-        LOGGER.info("create kafka instance with existing name: {}", kafkaPayload.name);
-        assertThrows(HTTPConflictException.class, () -> bwait(api.createKafka(kafkaPayload, true)));
+        var payload = new KafkaRequestPayload()
+            .name(KAFKA_INSTANCE_NAME)
+            .multiAz(true)
+            .cloudProvider("aws")
+            .region("us-east-1");
+
+        log.info("create kafka instance '{}' with existing name", payload.getName());
+        assertThrows(ApiConflictException.class, () -> kafkaMgmtApi.createKafka(true, payload));
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testDeleteKafkaInstance() {
 
-        var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
 
         // Connect the Kafka producer
-        LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
+        log.info("initialize kafka producer");
         var producer = KafkaProducerClient.createProducer(
-            vertx,
+            Vertx.vertx(),
             bootstrapHost,
             clientID,
             clientSecret,
@@ -269,39 +290,46 @@ public class KafkaManagerAPITest extends TestBase {
             new HashMap<>());
 
         // Delete the Kafka instance
-        LOGGER.info("Delete kafka instance : {}", KAFKA_INSTANCE_NAME);
-        bwait(api.deleteKafka(kafka.id, true));
-        bwait(waitUntilKafkaIsDeleted(vertx, api, kafka.id));
+        log.info("delete kafka instance '{}'", KAFKA_INSTANCE_NAME);
+        kafkaMgmtApi.deleteKafkaById(kafka.getId(), true);
+        KafkaMgmtApiUtils.waitUntilKafkaIsDeleted(kafkaMgmtApi, kafka.getId());
 
         // Produce Kafka messages
-        LOGGER.info("send message to topic: {}", TOPIC_NAME);
-
-        waitFor(vertx, "sent message to fail", ofSeconds(1), ofSeconds(30), last ->
+        log.info("send message to topic '{}'", TOPIC_NAME);
+        waitFor(Vertx.vertx(), "sent message to fail", ofSeconds(1), ofSeconds(30), last ->
             producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world"))
                 .compose(
                     __ -> Future.succeededFuture(Pair.with(false, null)),
                     t -> Future.succeededFuture(Pair.with(true, null))));
 
-        LOGGER.info("close kafka producer and consumer");
+        log.info("close kafka producer and consumer");
         bwait(producer.close());
     }
 
     @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteProvisioningKafkaInstance() throws Throwable {
+    @SneakyThrows
+    public void testDeleteProvisioningKafkaInstance() {
+
+        // TODO: Move in a regression test class
 
         // Create Kafka Instance
-        CreateKafkaPayload kafkaPayload = ServiceAPIUtils.createKafkaPayload(KAFKA2_INSTANCE_NAME);
+        var payload = new KafkaRequestPayload()
+            .name(KAFKA2_INSTANCE_NAME)
+            .multiAz(true)
+            .cloudProvider("aws")
+            .region("us-east-1");
 
-        LOGGER.info("create kafka instance: {}", KAFKA2_INSTANCE_NAME);
-        var kafkaToDelete = bwait(api.createKafka(kafkaPayload, true));
+        log.info("create kafka instance '{}'", KAFKA2_INSTANCE_NAME);
+        var kafkaToDelete = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+        log.debug(kafkaToDelete);
 
-        LOGGER.info("wait 3 seconds before start deleting");
-        bwait(sleep(vertx, ofSeconds(3)));
+        log.info("wait 3 seconds before start deleting");
+        Thread.sleep(ofSeconds(3).toMillis());
 
-        LOGGER.info("delete kafka: {}", kafkaToDelete.id);
-        bwait(api.deleteKafka(kafkaToDelete.id, true));
+        log.info("delete kafka '{}'", kafkaToDelete.getId());
+        kafkaMgmtApi.deleteKafkaById(kafkaToDelete.getId(), true);
 
-        LOGGER.info("wait for kafka to be deleted: {}", kafkaToDelete.id);
-        bwait(waitUntilKafkaIsDeleted(vertx, api, kafkaToDelete.id));
+        log.info("wait for kafka to be deleted '{}'", kafkaToDelete.getId());
+        KafkaMgmtApiUtils.waitUntilKafkaIsDeleted(kafkaMgmtApi, kafkaToDelete.getId());
     }
 }

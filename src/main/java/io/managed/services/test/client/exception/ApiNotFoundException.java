@@ -1,7 +1,7 @@
 package io.managed.services.test.client.exception;
 
-public class ApiNotFoundException extends ApiException {
-    public ApiNotFoundException(com.openshift.cloud.api.srs.invoker.ApiException apiException) {
-        super(apiException);
+public class ApiNotFoundException extends ApiGenericException {
+    public ApiNotFoundException(ApiUnknownException e) {
+        super(e);
     }
 }

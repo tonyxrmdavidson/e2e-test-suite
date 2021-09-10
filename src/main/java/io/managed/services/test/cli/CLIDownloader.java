@@ -35,13 +35,13 @@ public class CLIDownloader {
     private final String archiveExt;
 
     public CLIDownloader(
-            Vertx vertx,
-            String token,
-            String organization,
-            String repository,
-            String version,
-            String platform,
-            String arch) {
+        Vertx vertx,
+        String token,
+        String organization,
+        String repository,
+        String version,
+        String platform,
+        String arch) {
 
         this.vertx = vertx;
         this.github = new GitHub(vertx, token);
@@ -55,13 +55,13 @@ public class CLIDownloader {
 
     public static CLIDownloader defaultDownloader(Vertx vertx) {
         return new CLIDownloader(
-                vertx,
-                Environment.BF2_GITHUB_TOKEN,
-                Environment.CLI_DOWNLOAD_ORG,
-                Environment.CLI_DOWNLOAD_REPO,
-                Environment.CLI_VERSION,
-                Environment.CLI_PLATFORM,
-                Environment.CLI_ARCH);
+            vertx,
+            Environment.BF2_GITHUB_TOKEN,
+            Environment.CLI_DOWNLOAD_ORG,
+            Environment.CLI_DOWNLOAD_REPO,
+            Environment.CLI_VERSION,
+            Environment.CLI_PLATFORM,
+            Environment.CLI_ARCH);
     }
 
     private String platformToArchive(String platform) {
@@ -75,29 +75,29 @@ public class CLIDownloader {
     public Future<CLIBinary> downloadCLIInTempDir() {
         LOGGER.info("download CLI in temporary directory");
         return vertx.fileSystem().createTempDirectory(TMPDIR)
-                .compose(workspace -> downloadCLIInWorkspace(workspace)
-                        .map(__ -> new CLIBinary(workspace, NAME)));
+            .compose(workspace -> downloadCLIInWorkspace(workspace)
+                .map(__ -> new CLIBinary(workspace, NAME)));
     }
 
     private Future<Void> downloadCLIInWorkspace(String workspace) {
         LOGGER.info("download CLI in workspace: {}", workspace);
         return github.getReleaseByTagName(organization, repository, version)
-                .compose(r -> downloadCLIReleaseInWorkspace(r, workspace));
+            .compose(r -> downloadCLIReleaseInWorkspace(r, workspace));
     }
 
     private Future<Void> downloadCLIReleaseInWorkspace(Release release, String workspace) {
         return getDownloadAssetFromRelease(release)
-                .compose(asset -> downloadCLIAssetInWorkspace(asset, workspace))
-                .compose(archive -> extractCLIBinaryInWorkspace(archive, workspace))
-                .compose(binary -> makeCLIBinaryExecutable(binary));
+            .compose(asset -> downloadCLIAssetInWorkspace(asset, workspace))
+            .compose(archive -> extractCLIBinaryInWorkspace(archive, workspace))
+            .compose(binary -> makeCLIBinaryExecutable(binary));
     }
 
     private Future<String> downloadCLIAssetInWorkspace(Asset asset, String workspace) {
         var archive = workspace + "/" + String.format(ARCHIVE_TEMPLATE, NAME, archiveExt);
         LOGGER.info("download asset '{}' to '{}'", asset.toString(), archive);
         return vertx.fileSystem().open(archive, new OpenOptions().setCreate(true).setAppend(false))
-                .compose(file -> github.downloadAsset(organization, repository, asset.id, file))
-                .map(__ -> archive);
+            .compose(file -> github.downloadAsset(organization, repository, asset.getId(), file))
+            .map(__ -> archive);
     }
 
     private Future<String> extractCLIBinaryInWorkspace(String archive, String workspace) {
@@ -125,18 +125,19 @@ public class CLIDownloader {
     private Future<Asset> getDownloadAssetFromRelease(Release release) {
         var assetName = String.format(DOWNLOAD_ASSET_TEMPLATE, NAME, platform, arch, archiveExt);
         LOGGER.info("search for asset '{}' in release: '{}'", assetName, release.toString());
-        return release.assets.stream()
-                .filter(a -> a.name.matches(assetName))
-                .findFirst()
-                .map(a -> Future.succeededFuture(a))
-                .orElseGet(() -> Future.failedFuture(format("asset '{}' not found in release: '{}'",
-                        assetName, release.toString()).getMessage()));
+        return release.getAssets().stream()
+            .filter(a -> a.getName().matches(assetName))
+            .findFirst()
+            .map(a -> Future.succeededFuture(a))
+            .orElseGet(() -> Future.failedFuture(format("asset '{}' not found in release: '{}'",
+                assetName, release.toString()).getMessage()));
     }
 
     public static class CLIBinary {
         public final String directory;
         public final String name;
 
+        @SuppressWarnings("SameParameterValue")
         private CLIBinary(String directory, String name) {
             this.directory = directory;
             this.name = name;

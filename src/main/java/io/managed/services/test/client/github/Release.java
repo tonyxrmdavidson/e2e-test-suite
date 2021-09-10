@@ -3,19 +3,27 @@ package io.managed.services.test.client.github;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.json.Json;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Release {
-    public String id;
+    private String id;
     @JsonProperty("tag_name")
-    public String tagName;
-    public String name;
-    public Boolean draft;
+    private String tagName;
+    private String name;
+    private Boolean draft;
     @JsonProperty("prerelease")
-    public Boolean preRelease;
-    public List<Asset> assets;
+    private Boolean preRelease;
+    private List<Asset> assets;
 
     @Override
     public String toString() {

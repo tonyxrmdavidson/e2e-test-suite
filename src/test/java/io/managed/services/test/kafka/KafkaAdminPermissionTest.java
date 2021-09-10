@@ -2,14 +2,18 @@ package io.managed.services.test.kafka;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
+import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafka.KafkaAuthMethod;
-import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.serviceapi.ServiceAPI;
-import io.managed.services.test.client.serviceapi.ServiceAPIUtils;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
+import lombok.SneakyThrows;
+import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.config.ConfigResource;
@@ -17,8 +21,6 @@ import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.DelegationTokenDisabledException;
 import org.apache.kafka.common.errors.InvalidRequestException;
 import org.apache.kafka.common.resource.ResourceType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -27,8 +29,6 @@ import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.TestUtils.sleep;
-import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertThrows;
 
 /**
@@ -38,8 +38,8 @@ import static org.testng.Assert.assertThrows;
  * 1. https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/admin/Admin.java
  */
 @Test(groups = TestTag.KAFKA_ADMIN_PERMISSIONS)
+@Log4j2
 public class KafkaAdminPermissionTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaAdminPermissionTest.class);
 
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-pe-" + Environment.KAFKA_POSTFIX_NAME;
     private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-pe-sa-" + Environment.KAFKA_POSTFIX_NAME;
@@ -50,20 +50,22 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     private final Vertx vertx = Vertx.vertx();
 
-    private ServiceAPI serviceAPI;
+    private KafkaMgmtApi kafkaMgmtApi;
+    private SecurityMgmtApi securityMgmtApi;
     private KafkaAdmin admin;
     private KafkaConsumer<String, String> consumer;
 
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void teardown() throws Throwable {
+    @SneakyThrows
+    public void teardown() {
 
         if (admin != null) {
             // delete temporary topic for test concerned about groups.
             try {
-                bwait(admin.deleteTopic(TOPIC_NAME_FOR_GROUPS));
+                admin.deleteTopic(TOPIC_NAME_FOR_GROUPS);
             } catch (Throwable t) {
-                LOGGER.error("error deleting temporary topic: ", t);
+                log.error("error deleting temporary topic: ", t);
             }
 
             // close KafkaAdmin
@@ -74,23 +76,23 @@ public class KafkaAdminPermissionTest extends TestBase {
 
         // close the consumer
         try {
-            consumer.close();
+            bwait(consumer.close());
         } catch (Throwable t) {
-            LOGGER.error("failed to close the consumer: ", t);
+            log.error("failed to close the consumer: ", t);
         }
 
         // delete service account
         try {
-            bwait(ServiceAPIUtils.deleteServiceAccountByNameIfExists(serviceAPI, SERVICE_ACCOUNT_NAME));
+            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
-            LOGGER.error("clean service account error: ", t);
+            log.error("clean service account error: ", t);
         }
 
         // delete kafka instance
         try {
-            bwait(ServiceAPIUtils.cleanKafkaInstance(serviceAPI, KAFKA_INSTANCE_NAME));
+            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
-            LOGGER.error("clean kafka error: ", t);
+            log.error("clean kafka error: ", t);
         }
 
         // close vertx
@@ -99,71 +101,65 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     @BeforeClass(timeOut = 15 * MINUTES)
     public void bootstrap() throws Throwable {
-        // create the serviceAPI
-        serviceAPI = bwait(ServiceAPIUtils.serviceAPI(vertx));
+
+        var apps = ApplicationServicesApi.applicationServicesApi(
+            Environment.SERVICE_API_URI, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+
+        kafkaMgmtApi = apps.kafkaMgmt();
+        securityMgmtApi = apps.securityMgmt();
 
         // create the kafka admin
-        var kafka = bwait(ServiceAPIUtils.applyKafkaInstance(vertx, serviceAPI, KAFKA_INSTANCE_NAME));
-        LOGGER.info("kafka instance connected/created: {}", kafka.name);
+        var kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
-        var serviceAccount = bwait(ServiceAPIUtils.applyServiceAccount(serviceAPI, SERVICE_ACCOUNT_NAME));
-        LOGGER.info("service account created/connected: {}", serviceAccount.name);
+        var serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
 
-        var bootstrapHost = kafka.bootstrapServerHost;
-        var clientID = serviceAccount.clientID;
-        var clientSecret = serviceAccount.clientSecret;
-        admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
-        LOGGER.info("kafka admin api initialized for instance: {}", bootstrapHost);
+        admin = new KafkaAdmin(
+            kafka.getBootstrapServerHost(),
+            serviceAccount.getClientId(),
+            serviceAccount.getClientSecret());
+        log.info("kafka admin api initialized for instance: {}", kafka.getBootstrapServerHost());
 
         // create temporary topic
-        bwait(admin.createTopic(TOPIC_NAME_FOR_GROUPS));
+        admin.createTopic(TOPIC_NAME_FOR_GROUPS);
 
-        // setup a consumer to create the group
-        consumer = KafkaConsumerClient.createConsumer(
-            vertx,
-            bootstrapHost,
-            clientID,
-            clientSecret,
-            KafkaAuthMethod.PLAIN,
-                TEST_GROUP_ID,
-            "latest");
-        bwait(consumer.subscribe(TOPIC_NAME_FOR_GROUPS));
-        consumer.handler(r -> {
-            // ignore
-        });
-        LOGGER.info("started a new consumer in the consumer group: {}", TEST_GROUP_ID);
+        // set up a consumer to create the group
+        consumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
+            TEST_GROUP_ID,
+            TOPIC_NAME_FOR_GROUPS,
+            kafka.getBootstrapServerHost(),
+            serviceAccount.getClientId(),
+            serviceAccount.getClientSecret()));
 
-        bwait(sleep(vertx, ofSeconds(3)));
-        LOGGER.info("close the consumer to release the consumer consumer group");
+        log.info("close the consumer to release the consumer consumer group");
         bwait(consumer.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToCreateTopic() throws Throwable {
+    public void testAllowedToCreateTopic() {
 
-        LOGGER.info("kafka-topics.sh --create <Permitted>, script representation test");
-        bwait(admin.createTopic(TOPIC_NAME));
+        log.info("kafka-topics.sh --create <Permitted>, script representation test");
+        admin.createTopic(TOPIC_NAME);
 
-        LOGGER.info("topic successfully created: {}", TOPIC_NAME);
+        log.info("topic successfully created: {}", TOPIC_NAME);
     }
 
     @Test(dependsOnMethods = "testAllowedToCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToListTopic() throws Throwable {
+    public void testAllowedToListTopic() {
 
-        LOGGER.info("kafka-topics.sh --list <Permitted>, script representation test");
-        var r = bwait(admin.listTopics());
+        log.info("kafka-topics.sh --list <Permitted>, script representation test");
+        var r = admin.listTopics();
 
-        LOGGER.info("topics successfully listed, response contains {} topic/s", r.size());
+        log.info("topics successfully listed, response contains {} topic/s", r.size());
     }
 
     @Test(dependsOnMethods = "testAllowedToCreateTopic", priority = 1, timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToDeleteTopic() throws Throwable {
+    public void testAllowedToDeleteTopic() {
 
-        LOGGER.info("kafka-topics.sh --delete <Permitted>, script representation test");
-        LOGGER.info("delete created topic : {}", TOPIC_NAME);
-        bwait(admin.deleteTopic(TOPIC_NAME));
+        log.info("kafka-topics.sh --delete <Permitted>, script representation test");
+        log.info("delete created topic : {}", TOPIC_NAME);
+        admin.deleteTopic(TOPIC_NAME);
 
-        LOGGER.info("topic {} successfully deleted", TOPIC_NAME);
+        log.info("topic {} successfully deleted", TOPIC_NAME);
     }
 
     @DataProvider
@@ -179,8 +175,8 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     @Test(dataProvider = "aclAddCmdProvider", timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToAlterACLResource(String testName, ResourceType resourceType) {
-        LOGGER.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.addAclResource(resourceType)));
+        log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
+        assertThrows(ClusterAuthorizationException.class, () -> admin.addAclResource(resourceType));
     }
 
     @DataProvider
@@ -195,27 +191,27 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     @Test(dataProvider = "aclListCmdProvider", timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToListACLResource(String testName, ResourceType resourceType) {
-        LOGGER.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.listAclResource(resourceType)));
+        log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
+        assertThrows(ClusterAuthorizationException.class, () -> admin.listAclResource(resourceType));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToDescribeTopicConfiguration() throws Throwable {
+    public void testAllowedToDescribeTopicConfiguration() {
 
-        LOGGER.info("kafka-configs.sh --describe --entity-type topics <permitted>, script representation test");
-        LOGGER.info("getting entity description for topic with name: {}", TOPIC_NAME_FOR_GROUPS);
-        var r = bwait(admin.getConfigurationTopic(TOPIC_NAME_FOR_GROUPS));
-        LOGGER.info("response size: {}", r.size());
+        log.info("kafka-configs.sh --describe --entity-type topics <permitted>, script representation test");
+        log.info("getting entity description for topic with name: {}", TOPIC_NAME_FOR_GROUPS);
+        var r = admin.getConfigurationTopic(TOPIC_NAME_FOR_GROUPS);
+        log.info("response size: {}", r.size());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     @Ignore
-    public void testAllowedToDescribeUserConfiguration() throws Throwable {
+    public void testAllowedToDescribeUserConfiguration() {
 
-        LOGGER.info("kafka-configs.sh --describe --entity-type brokerLogger <permitted>, script representation test");
-        LOGGER.info("getting entity description for default user");
-        var r = bwait(admin.getConfigurationUserAll());
-        LOGGER.info("user response: {}", r);
+        log.info("kafka-configs.sh --describe --entity-type brokerLogger <permitted>, script representation test");
+        log.info("getting entity description for default user");
+        var r = admin.getConfigurationUserAll();
+        log.info("user response: {}", r);
     }
 
     @DataProvider
@@ -230,134 +226,133 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     @Test(dataProvider = "configureBrokerCmdProvider", timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToAlterBrokerConfig(String testName, ConfigResource.Type resourceType, AlterConfigOp.OpType opType) {
-        LOGGER.info("kafka-config.sh {} <allowed>, script representation test", testName);
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.configureBrokerResource(resourceType, opType, "0")));
+        log.info("kafka-config.sh {} <allowed>, script representation test", testName);
+        assertThrows(ClusterAuthorizationException.class, () -> admin.configureBrokerResource(resourceType, opType, "0"));
     }
 
     @Test(dependsOnMethods = "testAllowedToCreateTopic", timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToDeleteTopicConfig() throws Throwable {
+    public void testAllowedToDeleteTopicConfig() {
 
-        LOGGER.info("kafka-config.sh --alter --entity-type topics --delete-config <allowed>, script representation test");
-        var r = bwait(admin.configureBrokerResource(ConfigResource.Type.TOPIC, AlterConfigOp.OpType.DELETE, TOPIC_NAME));
-        LOGGER.info("topic configured: {}", r);
+        log.info("kafka-config.sh --alter --entity-type topics --delete-config <allowed>, script representation test");
+        admin.configureBrokerResource(ConfigResource.Type.TOPIC, AlterConfigOp.OpType.DELETE, TOPIC_NAME);
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToDescribeBrokerConfig() {
 
-        LOGGER.info("kafka-configs.sh --describe --entity-type broker <forbidden>, script representation test");
-        LOGGER.info("getting entity description for broker: 0");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.getConfigurationBroker("0")));
+        log.info("kafka-configs.sh --describe --entity-type broker <forbidden>, script representation test");
+        log.info("getting entity description for broker: 0");
+        assertThrows(ClusterAuthorizationException.class, () -> admin.getConfigurationBroker("0"));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToDescribeBrokerLoggerConfig() {
 
-        LOGGER.info("kafka-configs.sh --describe --entity-type brokerLogger <forbidden>, script representation test");
-        LOGGER.info("getting entity description for brokerLogger: 0");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.getConfigurationBrokerLogger("0")));
+        log.info("kafka-configs.sh --describe --entity-type brokerLogger <forbidden>, script representation test");
+        log.info("getting entity description for brokerLogger: 0");
+        assertThrows(ClusterAuthorizationException.class, () -> admin.getConfigurationBrokerLogger("0"));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     @Ignore
     public void testForbiddenToAlterUserConfig() {
 
-        LOGGER.info("kafka-configs.sh --alter --entity-type brokerLogger <permitted>, script representation test");
+        log.info("kafka-configs.sh --alter --entity-type brokerLogger <permitted>, script representation test");
         // configuration-alter-users fail only due not previously existing configuration, but operation is allowed
-        assertThrows(InvalidRequestException.class, () -> bwait(admin.alterConfigurationUser()));
+        assertThrows(InvalidRequestException.class, () -> admin.alterConfigurationUser());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToListConsumerGroups() throws Throwable {
+    public void testAllowedToListConsumerGroups() {
 
-        LOGGER.info("kafka-consumer-groups.sh --list <permitted>, script representation test");
-        LOGGER.info("listing all consumer groups");
-        var r = bwait(admin.listConsumerGroups());
-        LOGGER.info("list consumer groups: {}", r);
+        log.info("kafka-consumer-groups.sh --list <permitted>, script representation test");
+        log.info("listing all consumer groups");
+        var r = admin.listConsumerGroups();
+        log.info("list consumer groups: {}", r);
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToDescribeConsumerGroup() throws Throwable {
+    public void testAllowedToDescribeConsumerGroup() {
 
-        LOGGER.info("kafka-consumer-groups.sh --group --describe <permitted>, script representation test");
-        LOGGER.info("describing specific consumer group");
-        var r = bwait(admin.describeConsumerGroups(TEST_GROUP_ID));
-        LOGGER.info("describe consumer groups: {}", r);
+        log.info("kafka-consumer-groups.sh --group --describe <permitted>, script representation test");
+        log.info("describing specific consumer group");
+        var r = admin.describeConsumerGroups(TEST_GROUP_ID);
+        log.info("describe consumer groups: {}", r);
     }
 
     // test is postponed from others due to existence of many test that require presence of to be deleted consumer group
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
-    public void testDeleteConsumerGroup() throws Throwable {
+    public void testDeleteConsumerGroup() {
 
-        LOGGER.info("kafka-consumer-groups.sh --all-groups --delete  <permitted>, script representation test");
-        LOGGER.info("deleting group");
+        log.info("kafka-consumer-groups.sh --all-groups --delete  <permitted>, script representation test");
+        log.info("deleting group");
         // because consumer is closed group can be deleted without causing any exception.
-        bwait(admin.deleteConsumerGroups(TEST_GROUP_ID));
+        admin.deleteConsumerGroups(TEST_GROUP_ID);
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToResetConsumerGroupOffset() throws Throwable {
+    public void testAllowedToResetConsumerGroupOffset() {
 
-        LOGGER.info("kafka-consumer-groups.sh --all-groups --reset-offsets --execute --all-groups --all-topics  <permitted>, script representation test");
-        bwait(admin.resetOffsets(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID));
-        LOGGER.info("offset successfully reset");
+        log.info("kafka-consumer-groups.sh --all-groups --reset-offsets --execute --all-groups --all-topics  <permitted>, script representation test");
+        admin.resetOffsets(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID);
+        log.info("offset successfully reset");
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToDeleteConsumerGroupOffset() throws Throwable {
+    public void testAllowedToDeleteConsumerGroupOffset() {
 
-        LOGGER.info("kafka-consumer-groups.sh --delete-offsets  <permitted>, script representation test");
-        bwait(admin.deleteOffset(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID));
-        LOGGER.info("offset successfully deleted");
+        log.info("kafka-consumer-groups.sh --delete-offsets  <permitted>, script representation test");
+        admin.deleteOffset(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID);
+        log.info("offset successfully deleted");
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
-    public void testAllowedToDeleteRecords() throws Throwable {
+    public void testAllowedToDeleteRecords() {
 
-        LOGGER.info("kafka-delete-records.sh --offset-json-file <permitted>, script representation test");
-        bwait(admin.deleteRecords(TOPIC_NAME_FOR_GROUPS));
-        LOGGER.info("record successfully deleted");
+        log.info("kafka-delete-records.sh --offset-json-file <permitted>, script representation test");
+        admin.deleteRecords(TOPIC_NAME_FOR_GROUPS);
+        log.info("record successfully deleted");
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToUncleanLeaderElection() {
 
-        LOGGER.info("kafka-leader-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_FOR_GROUPS)));
+        log.info("kafka-leader-election.sh <forbidden>, script representation test");
+        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_FOR_GROUPS));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToDescribeLogDirs() {
 
-        LOGGER.info("kafka-log-dirs.sh --describe <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.logDirs()));
+        log.info("kafka-log-dirs.sh --describe <forbidden>, script representation test");
+        assertThrows(ClusterAuthorizationException.class, () -> admin.logDirs());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToAlterPreferredReplicaElection() {
 
-        LOGGER.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_FOR_GROUPS)));
+        log.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
+        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_FOR_GROUPS));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToReassignPartitions() {
 
-        LOGGER.info("kafka-reassign-partitions.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> bwait(admin.reassignPartitions(TOPIC_NAME_FOR_GROUPS)));
+        log.info("kafka-reassign-partitions.sh <forbidden>, script representation test");
+        assertThrows(ClusterAuthorizationException.class, () -> admin.reassignPartitions(TOPIC_NAME_FOR_GROUPS));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToCreateDelegationToken() {
 
-        LOGGER.info("kafka-delegation-tokens.sh create <forbidden>, script representation test");
-        assertThrows(DelegationTokenDisabledException.class, () -> bwait(admin.createDelegationToken()));
+        log.info("kafka-delegation-tokens.sh create <forbidden>, script representation test");
+        assertThrows(DelegationTokenDisabledException.class, () -> admin.createDelegationToken());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testForbiddenToDescribeDelegationToken() {
 
-        LOGGER.info("kafka-delegation-tokens.sh describe <forbidden>, script representation test");
-        assertThrows(DelegationTokenDisabledException.class, () -> bwait(admin.describeDelegationToken()));
+        log.info("kafka-delegation-tokens.sh describe <forbidden>, script representation test");
+        assertThrows(DelegationTokenDisabledException.class, () -> admin.describeDelegationToken());
     }
 }

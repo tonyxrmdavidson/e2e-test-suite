@@ -7,6 +7,7 @@ import org.testng.annotations.DataProvider;
 @CucumberOptions()
 public class CucumberQuickstartsTest extends AbstractTestNGCucumberTests {
 
+    @SuppressWarnings("EmptyMethod")
     @DataProvider(parallel = true)
     @Override
     public Object[][] scenarios() {
