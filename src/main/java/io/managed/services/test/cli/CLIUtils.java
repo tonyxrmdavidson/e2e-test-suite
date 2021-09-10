@@ -1,7 +1,6 @@
 package io.managed.services.test.cli;
 
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
-import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
 import io.fabric8.kubernetes.api.model.AuthInfo;
@@ -19,7 +18,6 @@ import io.managed.services.test.client.kafkamgmt.KafkaNotDeletedException;
 import io.managed.services.test.client.kafkamgmt.KafkaNotReadyException;
 import io.managed.services.test.client.kafkamgmt.KafkaUnknownHostsException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
@@ -137,35 +135,12 @@ public class CLIUtils {
         });
     }
 
-    public static void deleteKafkaByNameIfExists(CLI cli, String name) throws CliGenericException {
-        var exists = getKafkaByName(cli, name);
-        if (exists.isPresent()) {
-            var k = exists.get();
-            LOGGER.info("delete kafka instance: {}", k.getId());
-            cli.deleteKafka(k.getId());
-        } else {
-            LOGGER.warn("kafka instance '{}' not found", name);
-        }
-    }
-
-    public static Optional<Topic> getTopicByName(CLI cli, String topicName) throws CliGenericException {
-        try {
-            return Optional.of(cli.describeTopic(topicName));
-        } catch (CliNotFoundException e) {
-            return Optional.empty();
-        }
-    }
-
     public static Optional<ConsumerGroup> getConsumerGroupByName(CLI cli, String consumerName) throws CliGenericException {
         try {
             return Optional.of(cli.describeConsumerGroup(consumerName));
         } catch (CliNotFoundException e) {
             return Optional.empty();
         }
-    }
-
-    public static Optional<KafkaRequest> getKafkaByName(CLI cli, String name) throws CliGenericException {
-        return cli.searchKafkaByName(name).getItems().stream().findAny();
     }
 
     public static KafkaRequest waitUntilKafkaIsReady(CLI cli, String id)
@@ -188,17 +163,6 @@ public class CLIUtils {
 
     public static Optional<ServiceAccountListItem> getServiceAccountByName(CLI cli, String name) throws CliGenericException {
         return cli.listServiceAccount().getItems().stream().filter(sa -> name.equals(sa.getName())).findAny();
-    }
-
-    public static void deleteServiceAccountByNameIfExists(CLI cli, String name) throws CliGenericException {
-        var exists = getServiceAccountByName(cli, name);
-        if (exists.isPresent()) {
-            var sa = exists.get();
-            LOGGER.info("delete service account '{}'", sa.getId());
-            cli.deleteServiceAccount(sa.getId());
-        } else {
-            LOGGER.warn("service account '{}' not found", name);
-        }
     }
 
     public static ServiceAccountSecret createServiceAccount(CLI cli, String name) throws CliGenericException {

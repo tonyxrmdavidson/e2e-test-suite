@@ -146,7 +146,7 @@ public class QuickstartsStepDefinitions {
     }
 
     @After
-    public void teardown() throws Throwable {
+    public void teardown() {
         // delete kafka instance
         try {
             KafkaMgmtApiUtils.deleteKafkaByNameIfExists(kafkaMgmtApi, KAFKA_INSTANCE_NAME);

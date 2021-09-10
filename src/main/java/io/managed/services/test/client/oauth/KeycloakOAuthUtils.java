@@ -112,9 +112,7 @@ public class KeycloakOAuthUtils {
         Function<Throwable, Boolean> condition = t -> {
             if (t instanceof NoStackTraceThrowable) {
                 // retry request in case of Service Unavailable: Access Denied
-                if (t.getMessage().startsWith("Service Unavailable:")) {
-                    return true;
-                }
+                return t.getMessage().startsWith("Service Unavailable:");
             }
 
             return false;

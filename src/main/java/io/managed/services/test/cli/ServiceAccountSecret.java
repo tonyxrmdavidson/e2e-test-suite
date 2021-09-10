@@ -1,4 +1,4 @@
-package io.managed.services.test.client.serviceapi;
+package io.managed.services.test.cli;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

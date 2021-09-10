@@ -31,6 +31,7 @@ import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.operator.ServiceBinding;
 import io.managed.services.test.operator.ServiceBindingApplication;
 import io.managed.services.test.operator.ServiceBindingSpec;
+import io.managed.services.test.operator.ServiceBindingSpecService;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -386,22 +387,25 @@ public class QuarkusApplicationTest extends TestBase {
 
         // TODO: Bind the Kafka instance to the application using `rhoas cluster bind`
 
-        var application = new ServiceBindingApplication();
-        application.group = "apps";
-        application.name = APP_DEPLOYMENT_NAME;
-        application.resource = "deployments";
-        application.version = "v1";
+        var application = ServiceBindingApplication.builder()
+            .group("apps")
+            .name(APP_DEPLOYMENT_NAME)
+            .resource("deployments")
+            .version("v1")
+            .build();
 
-        var service = new ServiceBindingSpec.Service();
-        service.group = "rhoas.redhat.com";
-        service.version = "v1alpha1";
-        service.kind = "KafkaConnection";
-        service.name = KAFKA_INSTANCE_NAME;
+        var service = ServiceBindingSpecService.builder()
+            .group("rhoas.redhat.com")
+            .version("v1alpha1")
+            .kind("KafkaConnection")
+            .name(KAFKA_INSTANCE_NAME)
+            .build();
 
-        var spec = new ServiceBindingSpec();
-        spec.application = application;
-        spec.bindAsFiles = true;
-        spec.services = List.of(service);
+        var spec = ServiceBindingSpec.builder()
+            .application(application)
+            .bindAsFiles(true)
+            .services(List.of(service))
+            .build();
 
         var sb = new ServiceBinding();
         sb.setMetadata(new ObjectMeta());
@@ -432,10 +436,10 @@ public class QuarkusApplicationTest extends TestBase {
                 return succeededFuture(Pair.with(false, null));
             }
 
-            var isReady = status.conditions.stream()
-                .filter(c -> c.type.equals("Ready"))
+            var isReady = status.getConditions().stream()
+                .filter(c -> c.getType().equals("Ready"))
                 .findAny()
-                .map(c -> c.status.equals("True"))
+                .map(c -> c.getStatus().equals("True"))
                 .orElse(false);
             return succeededFuture(Pair.with(isReady, b));
         };
@@ -458,9 +462,9 @@ public class QuarkusApplicationTest extends TestBase {
         LOGGER.info("start streaming prices from: {}", endpoint);
 
         // The /prices/stream endpoint returns a new price every 5s if the
-        // the quarkus app can connect successfully to the kafka instance
+        // quarkus app can connect successfully to the kafka instance
         //
-        // The test will wait until it receive 6 price consecutively
+        // The test will wait until it receive 6 price consecutively,
         // and then it will complete
 
         var reg = Pattern.compile("^data: (?<data>\\d+(\\.\\d+)?)$");
@@ -498,7 +502,7 @@ public class QuarkusApplicationTest extends TestBase {
                     return Pair.with(true, null);
                 }
 
-                // clean the data list between each failures
+                // clean the data list between each failure
                 prices.clear();
 
                 return Pair.with(false, null);

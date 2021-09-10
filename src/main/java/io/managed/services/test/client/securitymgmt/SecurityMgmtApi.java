@@ -28,6 +28,7 @@ public class SecurityMgmtApi extends BaseApi<ApiException> {
         return new ApiUnknownException(e.getMessage(), e.getCode(), e.getResponseHeaders(), e.getResponseBody(), e);
     }
 
+    @SuppressWarnings("unused")
     public ServiceAccount getServiceAccountById(String id) throws ApiGenericException {
         return handle(() -> api.getServiceAccountById(id));
     }

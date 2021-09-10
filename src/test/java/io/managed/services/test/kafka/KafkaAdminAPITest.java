@@ -1,5 +1,7 @@
 package io.managed.services.test.kafka;
 
+import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
@@ -9,11 +11,10 @@ import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.exception.ApiLockedException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
-import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
@@ -80,7 +81,7 @@ public class KafkaAdminAPITest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void teardown() throws Throwable {
+    public void teardown() {
         assumeTeardown();
 
         // delete kafka instance
@@ -134,15 +135,21 @@ public class KafkaAdminAPITest extends TestBase {
         LOGGER.info("topic '{}' not found", TEST_TOPIC_NAME);
 
         LOGGER.info("create topic '{}'", TEST_TOPIC_NAME);
-        var topic = kafkaInstanceApi.createTopic(new DefaultTopicInput(TEST_TOPIC_NAME).build());
+        var payload = new NewTopicInput()
+            .name(TEST_TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        var topic = kafkaInstanceApi.createTopic(payload);
         LOGGER.debug(topic);
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
     public void testFailToCreateTopicIfItAlreadyExist() {
         // create existing topic should fail
+        var payload = new NewTopicInput()
+            .name(TEST_TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
         assertThrows(ApiConflictException.class,
-            () -> kafkaInstanceApi.createTopic(new DefaultTopicInput(TEST_TOPIC_NAME).build()));
+            () -> kafkaInstanceApi.createTopic(payload));
     }
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)

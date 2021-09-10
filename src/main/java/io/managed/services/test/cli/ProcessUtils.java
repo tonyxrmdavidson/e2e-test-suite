@@ -41,7 +41,7 @@ public class ProcessUtils {
     }
 
     /**
-     * Read everything that is available in the stream right now without waiting for a EOF
+     * Read everything that is available in the stream right now without waiting for an EOF
      */
     public static String readNow(InputStream stream) {
         try {

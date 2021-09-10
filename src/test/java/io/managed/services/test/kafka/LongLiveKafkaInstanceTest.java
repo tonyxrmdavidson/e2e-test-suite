@@ -2,6 +2,7 @@ package io.managed.services.test.kafka;
 
 
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.Environment;
@@ -10,11 +11,10 @@ import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.bwait;
@@ -42,7 +43,7 @@ import static org.testng.Assert.fail;
 
 
 /**
- * Test a Long Live Kafka Instance that will be deleted only before it expires but otherwise it will continue to run
+ * Test a Long Live Kafka Instance that will be deleted only before it expires, but otherwise it will continue to run
  * also after the tests are concluded. This is a very basic test to ensure that an update doesn't break
  * an existing Kafka Instance.
  */
@@ -129,10 +130,15 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     }
 
     private Map<String, NewTopicInput> expectedTopics() {
+        BiFunction<String, Integer, NewTopicInput> topic = (String topicName, Integer numPartitions) ->
+            new NewTopicInput()
+                .name(topicName)
+                .settings(new TopicSettings().numPartitions(numPartitions));
+
         var map = new HashMap<String, NewTopicInput>();
-        map.put(TEST_TOPIC_NAME, new DefaultTopicInput(TEST_TOPIC_NAME).build());
-        map.put(METRIC_TOPIC_NAME, new DefaultTopicInput(METRIC_TOPIC_NAME).build());
-        map.put(MULTI_PARTITION_TOPIC_NAME, new DefaultTopicInput(MULTI_PARTITION_TOPIC_NAME).numPartitions(3).build());
+        map.put(TEST_TOPIC_NAME, topic.apply(TEST_TOPIC_NAME, 1));
+        map.put(METRIC_TOPIC_NAME, topic.apply(METRIC_TOPIC_NAME, 1));
+        map.put(MULTI_PARTITION_TOPIC_NAME, topic.apply(MULTI_PARTITION_TOPIC_NAME, 3));
         return map;
     }
 
@@ -175,14 +181,14 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist",
         "testRecreateTheLongLiveServiceAccountIfItDoesNotExist"
     }, timeOut = DEFAULT_TIMEOUT)
-    void testThatTheCanaryTopicExist() throws Throwable {
+    void testThatTheCanaryTopicExist() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
         var clientID = serviceAccount.getClientId();
         var clientSecret = serviceAccount.getClientSecret();
 
         var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
-        var topics = bwait(admin.listTopics());
+        var topics = admin.listTopics();
         LOGGER.debug(topics);
 
         var topicOptional = topics.stream().filter(e -> e.equals(TEST_CANARY_NAME)).findAny();

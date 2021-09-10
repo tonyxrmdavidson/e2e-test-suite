@@ -16,6 +16,7 @@ import io.managed.services.test.client.exception.ApiUnknownException;
 
 public class KafkaInstanceApi extends BaseApi<ApiException> {
 
+    @SuppressWarnings({"FieldCanBeLocal", "unused"})
     private final AclsApi aclsApi;
     private final GroupsApi groupsApi;
     private final TopicsApi topicsApi;

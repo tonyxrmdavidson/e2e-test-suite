@@ -99,7 +99,7 @@ make PROFILE=ci test
 
 ## List of Tags
 
-| Name | Description | Required Envs |
+| Name | Description | Required ENVs |
 |------|-------------|---------------|
 | service-api               | run all tests targeting the service-api | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD |
 | service-api-permissions   | run all service api permissions tests   | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD, SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD |

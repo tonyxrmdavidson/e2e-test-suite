@@ -163,7 +163,7 @@ public class KafkaOperatorTest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void teardown(ITestContext context) throws Throwable {
+    public void teardown(ITestContext context) {
         assumeTeardown();
 
         try {

@@ -1,20 +1,22 @@
 package io.managed.services.test.operator;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ServiceBindingSpec {
-    public ServiceBindingApplication application;
-    public boolean bindAsFiles;
-    public List<Service> services;
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Service {
-        public String group;
-        public String version;
-        public String kind;
-        public String name;
-    }
+    private ServiceBindingApplication application;
+    private boolean bindAsFiles;
+    private List<ServiceBindingSpecService> services;
 }

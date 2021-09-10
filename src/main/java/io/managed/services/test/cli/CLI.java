@@ -70,17 +70,13 @@ public class CLI {
         }
     }
 
-    private AsyncProcess execAsync(String... command) {
-        return execAsync(List.of(command));
-    }
-
     @SneakyThrows
     private AsyncProcess execAsync(List<String> command) {
         return new AsyncProcess(builder(command).start());
     }
 
     /**
-     * This method only starts the CLI login, use CLIUtils.login instead of this method
+     * This method only starts the CLI login, use CLIUtils.login() instead of this method
      * to login using username and password
      */
     public AsyncProcess login(String apiGateway, String authURL, String masAuthURL) {
@@ -105,13 +101,9 @@ public class CLI {
         return execAsync(cmd);
     }
 
-    public AsyncProcess login() {
-        return login(null, null, null);
-    }
-
     @SneakyThrows
-    public Process logout() {
-        return exec("logout");
+    public void logout() {
+        exec("logout");
     }
 
     @SneakyThrows

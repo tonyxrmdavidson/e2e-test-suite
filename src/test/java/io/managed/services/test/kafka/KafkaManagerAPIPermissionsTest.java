@@ -1,5 +1,7 @@
 package io.managed.services.test.kafka;
 
+import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
@@ -8,9 +10,8 @@ import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
-import io.managed.services.test.client.exception.HTTPUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafkaadminapi.KafkaAdminAPIUtils;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.framework.TestTag;
@@ -168,7 +169,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
         var topicName = "test-topic";
 
         LOGGER.info("create kafka topic '{}'", topicName);
-        assertThrows(SaslAuthenticationException.class, () -> bwait(admin.createTopic(topicName)));
+        assertThrows(SaslAuthenticationException.class, () -> admin.createTopic(topicName));
 
         admin.close();
     }
@@ -178,16 +179,15 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
     public void testAlienUserCanNotCreateTopicOnTheKafkaInstance() {
 
         LOGGER.info("initialize kafka admin api for kafka instance: {}", kafka.getBootstrapServerHost());
-        var admin = bwait(KafkaAdminAPIUtils.kafkaAdminAPI(
-            vertx,
-            kafka.getBootstrapServerHost(),
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
             Environment.SSO_ALIEN_USERNAME,
             Environment.SSO_ALIEN_PASSWORD));
 
-        var topicName = "api-alien-test-topic";
-
-        LOGGER.info("create kafka topic: {}", topicName);
-        assertThrows(HTTPUnauthorizedException.class, () -> bwait(KafkaAdminAPIUtils.createDefaultTopic(admin, topicName)));
+        var topicPayload = new NewTopicInput()
+            .name("api-alien-test-topic")
+            .settings(new TopicSettings().numPartitions(1));
+        LOGGER.info("create kafka topic: {}", topicPayload.getName());
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.createTopic(topicPayload));
     }
 
     /**
@@ -209,14 +209,14 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
         var clientID = serviceAccountOrg2.getClientId();
         var clientSecret = serviceAccountOrg2.getClientSecret();
 
-        // Create Kafka topic in Org 1 from Org 2 and it should fail
+        // Create Kafka topic in Org 1 from Org 2, and it should fail
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
         var topicName = "alien-test-topic";
 
         LOGGER.info("create kafka topic: {}", topicName);
-        assertThrows(SaslAuthenticationException.class, () -> bwait(admin.createTopic(topicName)));
+        assertThrows(SaslAuthenticationException.class, () -> admin.createTopic(topicName));
 
         admin.close();
     }

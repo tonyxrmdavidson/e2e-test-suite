@@ -12,6 +12,7 @@ import java.util.ArrayList;
 
 public class DNSUtils {
 
+    @SuppressWarnings("unused")
     public static String dnsInfo(String hostname) {
 
         var apiKey = Environment.WHOISXMLAPI_KEY;

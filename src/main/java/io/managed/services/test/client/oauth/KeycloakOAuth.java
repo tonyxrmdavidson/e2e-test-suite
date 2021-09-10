@@ -6,13 +6,11 @@ import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.auth.oauth2.OAuth2FlowType;
 import io.vertx.ext.auth.oauth2.OAuth2Options;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
@@ -141,10 +139,6 @@ public class KeycloakOAuth {
     }
 
     private Future<VertxHttpResponse> login(String authURI, String redirectURI) {
-
-        // follow redirects until the new location doesn't match the redirect URI
-        Function<HttpResponse<Buffer>, Boolean> stopRedirect = r -> !r.getHeader("Location").contains(redirectURI);
-
         return retry(() -> startLogin(session, authURI)
             .compose(r -> followAuthenticationRedirects(session, r, redirectURI))
             .compose(r -> VertxWebClientSession.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP)));

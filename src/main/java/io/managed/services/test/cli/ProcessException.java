@@ -23,6 +23,17 @@ public class ProcessException extends Exception {
         this.stderr = stderr;
     }
 
+    @SuppressWarnings("unused")
+    public String getCommandLine() {
+        return commandLine;
+    }
+
+    @SuppressWarnings("unused")
+    public int getExitCode() {
+        return exitCode;
+    }
+
+    @SuppressWarnings("unused")
     public String getStdout() {
         return stdout;
     }

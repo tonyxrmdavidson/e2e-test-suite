@@ -73,7 +73,6 @@ public class Environment {
     private static final String CLI_ARCH_ENV = "CLI_ARCH";
 
     private static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
-    private static final String WAIT_READY_MS_ENV = "WAIT_READY_MS";
 
     private static final String RETRY_CALL_THRESHOLD_ENV = "RETRY_CALL_THRESHOLD";
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";

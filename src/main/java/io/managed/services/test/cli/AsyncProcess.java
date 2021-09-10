@@ -47,6 +47,7 @@ class AsyncProcess {
         return buffer(process.getInputStream());
     }
 
+    @SuppressWarnings("unused")
     public BufferedReader stderr() {
         return buffer(process.getErrorStream());
     }

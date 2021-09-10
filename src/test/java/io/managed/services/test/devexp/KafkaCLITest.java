@@ -10,11 +10,11 @@ import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.cli.CliGenericException;
 import io.managed.services.test.cli.CliNotFoundException;
+import io.managed.services.test.cli.ServiceAccountSecret;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
-import io.managed.services.test.client.serviceapi.ServiceAccountSecret;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
@@ -37,11 +37,11 @@ import static org.testng.Assert.assertTrue;
 /**
  * Test the application services CLI[1] kafka commands.
  * <p>
- * The tests download the CLI from github to the local machine where the test suite is running
+ * The tests download the CLI from GitHub to the local machine where the test suite is running
  * and perform all operations using the CLI.
  * <p>
  * By default the latest version of the CLI is downloaded otherwise a specific version can be set using
- * the CLI_VERSION env. The CLI platform (linux, mac, win) and arch (amd64, arm) is automatically detected
+ * the CLI_VERSION env. The CLI platform (linux, mac, win) and arch (amd64, arm) is automatically detected,
  * or it can be enforced using the CLI_PLATFORM and CLI_ARCH env.
  * <p>
  * The SSO_USERNAME and SSO_PASSWORD will be used to login to the service through the CLI.
@@ -154,6 +154,16 @@ public class KafkaCLITest extends TestBase {
         serviceAccount = sa.get();
     }
 
+    @Test(dependsOnMethods = "testCreateServiceAccount", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testDescribeServiceAccount() {
+
+        var sa = cli.describeServiceAccount(serviceAccount.getId());
+        LOGGER.debug(sa);
+
+        assertEquals(sa.getName(), SERVICE_ACCOUNT_NAME);
+    }
+
     @Test(dependsOnMethods = "testLogin", timeOut = 15 * MINUTES)
     @SneakyThrows
     public void testCreateKafkaInstance() {
@@ -180,6 +190,31 @@ public class KafkaCLITest extends TestBase {
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
+    public void testListKafkaInstances() {
+
+        var list = cli.listKafka();
+        LOGGER.debug(list);
+
+        var exists = list.getItems().stream()
+            .filter(k -> KAFKA_INSTANCE_NAME.equals(k.getName()))
+            .findAny();
+        assertTrue(exists.isPresent());
+    }
+
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testSearchKafkaByName() {
+
+        var list = cli.searchKafkaByName(KAFKA_INSTANCE_NAME);
+        LOGGER.debug(list);
+
+        var exists = list.getItems().stream().findAny();
+        assertTrue(exists.isPresent());
+        assertEquals(exists.get().getName(), KAFKA_INSTANCE_NAME);
+    }
+
+    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
     public void testCreateTopic() {
 
         LOGGER.info("create kafka topic with name {}", KAFKA_INSTANCE_NAME);
@@ -189,6 +224,20 @@ public class KafkaCLITest extends TestBase {
         assertEquals(topic.getName(), TOPIC_NAME);
         assertEquals(Objects.requireNonNull(topic.getPartitions()).size(), DEFAULT_PARTITIONS);
     }
+
+    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testListTopics() {
+
+        var list = cli.listTopics();
+        LOGGER.debug(list);
+
+        var exists = Objects.requireNonNull(list.getItems()).stream()
+            .filter(t -> TOPIC_NAME.equals(t.getName()))
+            .findAny();
+        assertTrue(exists.isPresent());
+    }
+
 
     @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows

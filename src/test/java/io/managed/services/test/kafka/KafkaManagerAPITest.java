@@ -1,5 +1,7 @@
 package io.managed.services.test.kafka;
 
+import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
@@ -10,10 +12,9 @@ import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
-import io.managed.services.test.client.kafkainstance.DefaultTopicInput;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
@@ -61,7 +62,7 @@ public class KafkaManagerAPITest extends TestBase {
     // TODO: Test create existing Service Account
 
     @BeforeClass
-    public void bootstrap() throws Throwable {
+    public void bootstrap() {
         var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
         var apps = ApplicationServicesApi.applicationServicesApi(auth, Environment.SERVICE_API_URI);
 
@@ -70,7 +71,7 @@ public class KafkaManagerAPITest extends TestBase {
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
-    public void teardown() throws Throwable {
+    public void teardown() {
 
         // delete kafka instance
         try {
@@ -127,10 +128,16 @@ public class KafkaManagerAPITest extends TestBase {
             Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
 
         log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
-        kafkaInstanceApi.createTopic(new DefaultTopicInput(TOPIC_NAME).build());
+        var topicPayload = new NewTopicInput()
+            .name(TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        kafkaInstanceApi.createTopic(topicPayload);
 
         log.info("create topic '{}' on the instance '{}'", METRIC_TOPIC_NAME, kafka.getName());
-        kafkaInstanceApi.createTopic(new DefaultTopicInput(METRIC_TOPIC_NAME).build());
+        var metricTopicPayload = new NewTopicInput()
+            .name(METRIC_TOPIC_NAME)
+            .settings(new TopicSettings().numPartitions(1));
+        kafkaInstanceApi.createTopic(metricTopicPayload);
     }
 
     @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)

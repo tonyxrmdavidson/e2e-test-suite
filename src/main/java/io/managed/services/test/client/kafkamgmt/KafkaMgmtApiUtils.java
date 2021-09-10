@@ -33,10 +33,6 @@ import static java.time.Duration.ofSeconds;
 public class KafkaMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtApiUtils.class);
 
-    public static KafkaMgmtApi kafkaMgmtApi(User user) {
-        return kafkaMgmtApi(Environment.SERVICE_API_URI, user);
-    }
-
     public static KafkaMgmtApi kafkaMgmtApi(String uri, User user) {
         var token = KeycloakOAuth.getToken(user);
         return new KafkaMgmtApi(new KasApiClient().basePath(uri).bearerToken(token).getApiClient());

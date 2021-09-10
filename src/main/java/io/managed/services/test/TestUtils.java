@@ -20,9 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,12 +35,7 @@ import static lombok.Lombok.sneakyThrow;
 public class TestUtils {
     private static final Logger LOGGER = LogManager.getLogger(TestUtils.class);
 
-    private static final long MINUTES = 60 * 1000;
-    private static final long DEFAULT_TIMEOUT = 3 * MINUTES;
-
     private static final MessageFactory2 MESSAGE_FACTORY = new ParameterizedMessageFactory();
-
-    private static final List<Throwable> RETRIES = new LinkedList<>();
 
     public static final String FAKE_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUI" +
         "iwia2lkIiA6ICItNGVsY19WZE5fV3NPVVlmMkc0UXhyOEdjd0l4X0t0WFVDaXRhd" +
@@ -189,29 +181,6 @@ public class TestUtils {
     }
 
     /**
-     * Convert a Java CompletionStage or CompletableFuture to a Vertx Future
-     *
-     * @param completion CompletionStage | CompletableFuture
-     * @param <T>        Type
-     * @return Vertx Future
-     */
-    public static <T> Future<T> toVertxFuture(CompletionStage<T> completion) {
-        Promise<T> promise = Promise.promise();
-        completion.whenComplete((r, t) -> {
-            if (t == null) {
-                promise.complete(r);
-            } else {
-                promise.fail(t);
-            }
-        });
-        return promise.future();
-    }
-
-    public static <T> Future<Void> forEach(Iterable<T> iterable, Function<T, Future<Void>> action) {
-        return forEach(iterable.iterator(), action);
-    }
-
-    /**
      * Similar to Iterable.forEach but it will wait for the Future returned by the action to complete before processing
      * the next item and return on the first Error.
      *
@@ -251,13 +220,6 @@ public class TestUtils {
         return p.future();
     }
 
-
-    public static <T> Future<T> retry(Vertx x, Supplier<Future<T>> call) {
-
-        // retry in case of any error
-        return retry(x, call, __ -> true, Environment.RETRY_CALL_THRESHOLD);
-    }
-
     public static <T> Future<T> retry(
         Vertx x,
         Supplier<Future<T>> call,
@@ -284,8 +246,6 @@ public class TestUtils {
         int attempts) {
 
         Function<Throwable, Future<T>> retry = t -> {
-            // add the error to the list of retries
-            RETRIES.add(t);
 
             LOGGER.error("skip error: ", t);
 
@@ -303,6 +263,7 @@ public class TestUtils {
         });
     }
 
+    @SuppressWarnings("RedundantThrows")
     public static <T, E extends Throwable> T retry(
         ThrowableSupplier<T, E> call, Function<Throwable, Boolean> condition, int attempts)
         throws E {
@@ -329,9 +290,6 @@ public class TestUtils {
         }
     }
 
-    public static List<Throwable> getRetries() {
-        return RETRIES;
-    }
 
     /**
      * Format the message like log4j
@@ -358,12 +316,6 @@ public class TestUtils {
         return path;
     }
 
-    public static void logWithSeparator(String pattern, String text) {
-        LOGGER.info("=======================================================================");
-        LOGGER.info(pattern, text);
-        LOGGER.info("=======================================================================");
-    }
-
     public static <T> T asJson(Class<T> c, String s) {
         LOGGER.debug(s);
         return BodyCodecImpl.jsonDecoder(c).apply(Buffer.buffer(s));
@@ -374,7 +326,7 @@ public class TestUtils {
     }
 
     /**
-     * Block the Thread and wait for for the Future result and in case of Future failure throw the Future error
+     * Block the Thread and wait for the Future result and in case of Future failure throw the Future error
      */
     public static <T> T bwait(Future<T> future) throws Throwable {
         if (Vertx.currentContext() != null) {
