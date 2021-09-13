@@ -204,6 +204,9 @@ public class KafkaAdminAPITest extends TestBase {
         var group = KafkaInstanceApiUtils.waitForConsumerGroup(kafkaInstanceApi, TEST_GROUP_NAME);
         LOGGER.debug(group);
 
+        group = KafkaInstanceApiUtils.waitForConsumersInConsumerGroup(kafkaInstanceApi, group.getGroupId());
+        LOGGER.debug(group);
+
         assertEquals(group.getGroupId(), TEST_GROUP_NAME);
         assertTrue(group.getConsumers().size() > 0);
     }
