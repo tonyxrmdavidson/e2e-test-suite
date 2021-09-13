@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 public class SecurityMgmtAPIUtils {
@@ -50,6 +51,7 @@ public class SecurityMgmtAPIUtils {
      * @param api  SecurityMgmtApi
      * @param name Service Account name
      */
+    @SuppressWarnings("unused")
     public static void deleteServiceAccountByNameIfExists(SecurityMgmtApi api, String name)
         throws ApiGenericException {
 
@@ -88,5 +90,27 @@ public class SecurityMgmtAPIUtils {
             serviceAccount = api.createServiceAccount(new ServiceAccountRequest().name(name));
         }
         return serviceAccount;
+    }
+
+    /**
+     * Because at the time I wrote this the service account name is not unique we need to delete
+     * all service accounts with the same name.
+     *
+     * @param api  {@link SecurityMgmtApi}
+     * @param name Name of the service account to delete
+     */
+    public static void cleanServiceAccount(SecurityMgmtApi api, String name) throws ApiGenericException {
+
+        var accounts = api.getServiceAccounts().getItems()
+            .stream().filter(a -> name.equals(a.getName()))
+            .collect(Collectors.toList());
+
+        for (var a : accounts) {
+            try {
+                api.deleteServiceAccountById(a.getId());
+            } catch (ApiGenericException e) {
+                LOGGER.error("failed to delete service account with id '{}':", a.getId(), e);
+            }
+        }
     }
 }

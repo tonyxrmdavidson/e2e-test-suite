@@ -198,7 +198,7 @@ public class KafkaOperatorTest extends TestBase {
 
         // force clean the service account if it hasn't done it yet
         try {
-            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("cleanServiceAccount error: ", t);
         }

@@ -84,7 +84,7 @@ public class KafkaCLITest extends TestBase {
         }
 
         try {
-            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(apis.securityMgmt(), SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(apis.securityMgmt(), SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("delete service account error: ", t);
         }

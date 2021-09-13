@@ -6,12 +6,12 @@
             <class name="io.managed.services.test.SSOAuthTest"/>
         </classes>
     </test>
-    <test name="KafkaControlManagerAPITest">
+    <test name="KafkaManagerAPITest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaManagerAPITest"/>
         </classes>
     </test>
-    <test name="KafkaControlManagerAPIPermissionsTest">
+    <test name="KafkaManagerAPIPermissionsTest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaManagerAPIPermissionsTest"/>
         </classes>
