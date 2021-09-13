@@ -97,6 +97,18 @@ public class KafkaAdminAPITest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("failed to clean service account: ", t);
         }
+
+        try {
+            bwait(kafkaConsumer.close());
+        } catch (Throwable t) {
+            LOGGER.error("failed to close consumer: ", t);
+        }
+
+        try {
+            bwait(vertx.close());
+        } catch (Throwable t) {
+            LOGGER.error("failed to close vertx: ", t);
+        }
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
