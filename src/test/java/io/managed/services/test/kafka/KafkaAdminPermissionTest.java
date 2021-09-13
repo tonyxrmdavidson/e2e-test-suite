@@ -83,7 +83,7 @@ public class KafkaAdminPermissionTest extends TestBase {
 
         // delete service account
         try {
-            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(securityMgmtApi, SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             log.error("clean service account error: ", t);
         }

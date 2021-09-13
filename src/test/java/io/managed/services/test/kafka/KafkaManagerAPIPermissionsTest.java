@@ -94,13 +94,13 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
         }
 
         try {
-            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean secondary service account error: ", t);
         }
 
         try {
-            SecurityMgmtAPIUtils.deleteServiceAccountByNameIfExists(alienAPI.securityMgmt(), ALIEN_SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(alienAPI.securityMgmt(), ALIEN_SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean alien service account error: ", t);
         }
@@ -199,7 +199,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
 
         // Create Service Account of Org 2
         var serviceAccountPayload = new ServiceAccountRequest()
-            .name(SECONDARY_SERVICE_ACCOUNT_NAME);
+            .name(ALIEN_SERVICE_ACCOUNT_NAME);
 
         LOGGER.info("create service account in alien org: {}", serviceAccountPayload.getName());
         var serviceAccountOrg2 = alienAPI.securityMgmt().createServiceAccount(serviceAccountPayload);
@@ -223,7 +223,7 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
 
     @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testSecondaryUserCanNotDeleteTheKafkaInstance() {
-        // should fail
+        // should failKafkaControlManagerAPIPermissionsTestKafkaControlManagerAPIPermissionsTest
         assertThrows(ApiNotFoundException.class, () -> secondaryAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
     }
 
