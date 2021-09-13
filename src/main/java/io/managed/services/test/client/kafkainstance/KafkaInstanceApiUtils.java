@@ -14,6 +14,7 @@ import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.wait.TReadyFunction;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
@@ -118,9 +119,24 @@ public class KafkaInstanceApiUtils {
         // wait for the consumer group to show at least one consumer
         // because it could take a few seconds for the kafka admin api to
         // report the connected consumer
-        waitFor("consumers in consumer group", ofSeconds(2), ofMinutes(1), ready);
+        waitFor("consumer group", ofSeconds(2), ofMinutes(1), ready);
 
         return groupAtom.get();
+    }
+
+    public static ConsumerGroup waitForConsumersInConsumerGroup(KafkaInstanceApi api, String consumerGroupId)
+        throws ApiGenericException, InterruptedException, TimeoutException {
+
+        TReadyFunction<ConsumerGroup, ApiGenericException> ready = (last, atom) -> {
+            var group = api.getConsumerGroupById(consumerGroupId);
+            atom.set(group);
+            return group.getConsumers().size() > 0;
+        };
+
+        // wait for the consumer group to show at least one consumer
+        // because it could take a few seconds for the kafka admin api to
+        // report the connected consumer
+        return waitFor("consumers in consumer group", ofSeconds(2), ofMinutes(1), ready);
     }
 
     public static Optional<Topic> getTopicByName(KafkaInstanceApi api, String name) throws ApiGenericException {
