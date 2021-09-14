@@ -26,13 +26,12 @@ public class Environment {
     private static final Map<String, String> VALUES = new HashMap<>();
     private static final JsonNode JSON_DATA = loadConfigurationFile();
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm");
-    private static String config;
 
     /*
      * Definition of env vars
      */
     private static final String LOG_DIR_ENV = "LOG_DIR";
-    private static final String CONFIG_FILE_PATH_ENV = "CONFIG_PATH";
+    private static final String CONFIG_FILE_ENV = "CONFIG_PATH";
 
     private static final String SSO_USERNAME_ENV = "SSO_USERNAME";
     private static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
@@ -56,6 +55,7 @@ public class Environment {
 
     private static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
 
+    // TODO: Rename to unique name
     private static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
 
     private static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
@@ -78,7 +78,10 @@ public class Environment {
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
     private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
 
+    @Deprecated
     private static final String WHOISXMLAPI_KEY_ENV = "WHOISXMLAPI_KEY";
+
+    private static final String PROMETHEUS_PUSH_GATEWAY_ENV = "PROMETHEUS_PUSH_GATEWAY";
 
     /*
      * Setup constants from env variables or set default
@@ -142,18 +145,16 @@ public class Environment {
     // Skip only the Kafka instance delete teardown to speed the local development
     public static final boolean SKIP_KAFKA_TEARDOWN = getOrDefault(SKIP_KAFKA_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
+    @Deprecated
     public static final String WHOISXMLAPI_KEY = getOrDefault(WHOISXMLAPI_KEY_ENV, "");
+
+    public static final String PROMETHEUS_PUSH_GATEWAY = getOrDefault(PROMETHEUS_PUSH_GATEWAY_ENV, null);
 
     private Environment() {
     }
 
-    static {
-        String debugFormat = "{}: {}";
-        LOGGER.info("=======================================================================");
-        LOGGER.info("Environment variables:");
-        LOGGER.info(debugFormat, "CONFIG", config);
-        VALUES.forEach((key, value) -> LOGGER.info(debugFormat, key, value));
-        LOGGER.info("=======================================================================");
+    public static Map<String, String> getValues() {
+        return VALUES;
     }
 
     /**
@@ -195,9 +196,11 @@ public class Environment {
      * @return json object with loaded variables
      */
     private static JsonNode loadConfigurationFile() {
-        var config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
+        var config = System.getenv().getOrDefault(CONFIG_FILE_ENV,
             Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
-        Environment.config = config;
+
+        VALUES.put(CONFIG_FILE_ENV, config);
+
         ObjectMapper mapper = new ObjectMapper();
         try {
             File jsonFile = new File(config).getAbsoluteFile();

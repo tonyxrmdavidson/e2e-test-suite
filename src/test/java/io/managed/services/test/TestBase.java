@@ -1,21 +1,26 @@
 package io.managed.services.test;
 
+import io.managed.services.test.framework.PrometheusSuiteListener;
+import io.managed.services.test.framework.PrometheusTestListener;
 import io.managed.services.test.framework.TestListener;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.testng.annotations.Listeners;
 
-@Listeners(TestListener.class)
+@Log4j2
+@Listeners({
+    TestListener.class,
+    PrometheusTestListener.class,
+    PrometheusSuiteListener.class})
 public abstract class TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(TestBase.class);
 
     protected static final long MINUTES = 60 * 1000;
     protected static final long DEFAULT_TIMEOUT = 3 * MINUTES;
 
     static {
-        LOGGER.info("=======================================================================");
-        LOGGER.info("System properties:");
-        System.getProperties().forEach((key, value) -> LOGGER.info("{}: {}", key, value));
-        LOGGER.info("=======================================================================");
+        log.info("### Environment variables:");
+        Environment.getValues().forEach((key, value) -> log.info("{}: {}", key, value));
+
+        log.info("### System properties:");
+        System.getProperties().forEach((key, value) -> log.info("{}: {}", key, value));
     }
 }

@@ -44,11 +44,11 @@ public class TestListener implements ITestListener {
 
     @Override
     public void onStart(ITestContext context) {
-        LOGGER.info("== Start suite: {}", context.getName());
+        LOGGER.info("== Start class: {}", context.getName());
     }
 
     @Override
     public void onFinish(ITestContext context) {
-        LOGGER.info("== Suite finished: {}", context.getName());
+        LOGGER.info("== Class finished: {}", context.getName());
     }
 }
