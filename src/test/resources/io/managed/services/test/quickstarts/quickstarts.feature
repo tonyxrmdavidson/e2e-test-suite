@@ -103,10 +103,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     And you can verify the Kafka version on the command line
 
     # 2. Configuring Kafka scripts to connect to a Kafka instance
-    Given you have connection values for your Kafka instance
-    * Client ID for the service account
-    * Client Secret for the service account
-    * SASL connection mechanism
+    Given you have client ID and Secret for the service account, and a SASL connection mechanism
     When you create an `app-services.properties` file in the local `/config` directory of the Kafka binaries
     Then it contains the connection values
 
