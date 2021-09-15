@@ -56,6 +56,47 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     When you navigate to the `code-examples/quarkus-kafka-quickstart` of the Quarkus example application and run the applications
     Then the application is running and the `Last price` is updated at http://localhost:8080/prices.html
 
+  Scenario: Using Node.js applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
+    Given you have a Red Hat account
+    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in the Ready state
+    * Git is installed
+    * You have an IDE such as IntelliJ IDEA, Eclipse, or VSCode
+    * Node.js 14 is installed
+
+    # 1. Importing the Node.js sample code
+    When you clone the `reactive-example` repository from GitHub
+    Then the `reactive-example` repository is available locally
+
+    # 2. Configuring the Node.js example application to connect to a Kafka instance
+    Given you have the bootstrap server endpoint and the service account credentials for the Kafka instance
+    * You created a file called `.env` at the root level of the cloned `reactive-example` repository
+    When you set the Kafka instance bootstrap server endpoint and service account credentials as environment variables in the `.env` file
+    And you set the value of the `KAFKA_SASL_MECHANISM` environment variable to `plain` in the `.env` file
+    Then the `reactive-example/.env` file of the Node.js example application contains all configurations required to authenticate the Kafka instance
+
+    # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
+    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in the Ready state
+    When you create a Kafka topic called `countries`
+    Then the `countries` Kafka topic is listed in the topics table
+
+    #4. Running the Node.js example application
+    Given you've configured the Node.js example application to connect to the Kafka instance
+    * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
+    * You've created the `countries` topic
+    When you navigate to the `reactive-example/consumer-backend` directory of the cloned repository
+    And you install the dependencies for the consumer component
+    When you run the consumer component
+    Then the consumer component is running but doesn't display country names on the command line
+    Given you've opened a second command-line window or tab
+    When you navigate to the `reactive-example/producer-backend` directory of the cloned repository
+    And you install the dependencies for the producer component
+    When you run the producer component
+    Then the producer is running and displays country names
+    And the consumer component displays the same country names as the producer on the first command line
+
   Scenario: Using Kafkacat with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
     * You have a running Kafka instance in OpenShift Streams for Apache Kafka
