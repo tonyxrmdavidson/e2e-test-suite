@@ -59,7 +59,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
   Scenario: Using Node.js applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
     * You have a running Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in the Ready state
+    * The Kafka instance is in Ready state
     * Git is installed
     * You have an IDE such as IntelliJ IDEA, Eclipse, or VSCode
     * Node.js 14 is installed
@@ -77,7 +77,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
     # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
     Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in the Ready state
+    * The Kafka instance is in Ready state
     When you create a Kafka topic called `countries`
     Then the `countries` Kafka topic is listed in the topics table
 
@@ -88,12 +88,12 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * You've created the `countries` topic
     When you navigate to the `reactive-example/consumer-backend` directory of the cloned repository
     And you install the dependencies for the consumer component
-    When you run the consumer component
+    And you run the consumer component
     Then the consumer component is running but doesn't display country names on the command line
     Given you've opened a second command-line window or tab
     When you navigate to the `reactive-example/producer-backend` directory of the cloned repository
     And you install the dependencies for the producer component
-    When you run the producer component
+    And you run the producer component
     Then the producer is running and displays country names
     And the consumer component displays the same country names as the producer on the first command line
 
