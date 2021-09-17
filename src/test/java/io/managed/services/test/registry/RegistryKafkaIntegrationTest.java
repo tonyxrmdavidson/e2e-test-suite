@@ -184,7 +184,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         var m = (Utf8) records.get(0).record().value().get("Message");
         assertEquals(m.toString(), "Hello World");
 
-        bwait(consumer.close());
-        bwait(producer.close());
+        bwait(consumer.asyncClose());
+        bwait(producer.asyncClose());
     }
 }

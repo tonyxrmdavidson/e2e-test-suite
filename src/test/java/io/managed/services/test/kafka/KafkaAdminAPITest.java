@@ -11,6 +11,7 @@ import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.exception.ApiLockedException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
+import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
@@ -21,7 +22,6 @@ import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,7 +61,7 @@ public class KafkaAdminAPITest extends TestBase {
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
     private KafkaRequest kafka;
-    private KafkaConsumer<String, String> kafkaConsumer;
+    private KafkaConsumerClient<String, String> kafkaConsumer;
 
     // TODO: Test update topic with random values
 
@@ -99,7 +99,7 @@ public class KafkaAdminAPITest extends TestBase {
         }
 
         try {
-            bwait(kafkaConsumer.close());
+            bwait(kafkaConsumer.asyncClose());
         } catch (Throwable t) {
             LOGGER.error("failed to close consumer: ", t);
         }
@@ -261,7 +261,7 @@ public class KafkaAdminAPITest extends TestBase {
     @Test(dependsOnMethods = "testConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
     public void testDeleteConsumerGroup() throws Throwable {
         LOGGER.info("close kafka consumer");
-        bwait(kafkaConsumer.close());
+        bwait(kafkaConsumer.asyncClose());
 
         LOGGER.info("delete consumer group '{}'", TEST_GROUP_NAME);
         kafkaInstanceApi.deleteConsumerGroupById(TEST_GROUP_NAME);

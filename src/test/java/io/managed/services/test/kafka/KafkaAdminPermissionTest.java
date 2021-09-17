@@ -11,7 +11,6 @@ import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.clients.admin.AlterConfigOp;
@@ -53,8 +52,6 @@ public class KafkaAdminPermissionTest extends TestBase {
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
     private KafkaAdmin admin;
-    private KafkaConsumer<String, String> consumer;
-
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     @SneakyThrows
@@ -73,13 +70,6 @@ public class KafkaAdminPermissionTest extends TestBase {
         }
 
         assumeTeardown();
-
-        // close the consumer
-        try {
-            bwait(consumer.close());
-        } catch (Throwable t) {
-            log.error("failed to close the consumer: ", t);
-        }
 
         // delete service account
         try {
@@ -123,7 +113,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         admin.createTopic(TOPIC_NAME_FOR_GROUPS);
 
         // set up a consumer to create the group
-        consumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
+        var consumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
             TEST_GROUP_ID,
             TOPIC_NAME_FOR_GROUPS,
             kafka.getBootstrapServerHost(),
@@ -131,7 +121,7 @@ public class KafkaAdminPermissionTest extends TestBase {
             serviceAccount.getClientSecret()));
 
         log.info("close the consumer to release the consumer consumer group");
-        bwait(consumer.close());
+        bwait(consumer.asyncClose());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)

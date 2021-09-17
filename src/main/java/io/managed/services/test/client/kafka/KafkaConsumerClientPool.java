@@ -18,7 +18,7 @@ import java.util.stream.IntStream;
 import static io.managed.services.test.TestUtils.forEach;
 import static io.managed.services.test.client.kafka.KafkaConsumerClient.resetToEnd;
 
-public class KafkaConsumerClientPool<K, V> implements KafkaAsyncConsumer<K, V> {
+public class KafkaConsumerClientPool<K, V> extends KafkaAsyncConsumer<K, V> {
     private static final Logger LOGGER = LogManager.getLogger(KafkaConsumerClientPool.class);
 
     private final List<KafkaConsumer<K, V>> consumers;
@@ -116,7 +116,7 @@ public class KafkaConsumerClientPool<K, V> implements KafkaAsyncConsumer<K, V> {
     }
 
     @Override
-    public Future<Void> close() {
+    public Future<Void> asyncClose() {
         return closeAll();
     }
 }
