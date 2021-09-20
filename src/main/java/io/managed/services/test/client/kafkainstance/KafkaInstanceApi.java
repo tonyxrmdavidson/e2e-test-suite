@@ -42,19 +42,19 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
     }
 
     public TopicsList getTopics(Integer size, Integer page, String filter, String order, String orderKey) throws ApiGenericException {
-        return handle(() -> topicsApi.getTopics(null, null, size, filter, page, order, orderKey));
+        return retry(() -> topicsApi.getTopics(null, null, size, filter, page, order, orderKey));
     }
 
     public Topic getTopic(String topicName) throws ApiGenericException {
-        return handle(() -> topicsApi.getTopic(topicName));
+        return retry(() -> topicsApi.getTopic(topicName));
     }
 
     public Topic createTopic(NewTopicInput newTopicInput) throws ApiGenericException {
-        return handle(() -> topicsApi.createTopic(newTopicInput));
+        return retry(() -> topicsApi.createTopic(newTopicInput));
     }
 
     public void deleteTopic(String topicName) throws ApiGenericException {
-        vhandle(() -> topicsApi.deleteTopic(topicName));
+        retry(() -> topicsApi.deleteTopic(topicName));
     }
 
     public ConsumerGroupList getConsumerGroups() throws ApiGenericException {
@@ -62,7 +62,7 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
     }
 
     public ConsumerGroupList getConsumerGroups(Integer size, Integer page, String topic, String groupIdFilter, String order, String orderKey) throws ApiGenericException {
-        return handle(() -> groupsApi.getConsumerGroups(null, null, size, page, topic, groupIdFilter, order, orderKey));
+        return retry(() -> groupsApi.getConsumerGroups(null, null, size, page, topic, groupIdFilter, order, orderKey));
     }
 
     public ConsumerGroup getConsumerGroupById(String consumerGroupId) throws ApiGenericException {
@@ -70,10 +70,10 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
     }
 
     public ConsumerGroup getConsumerGroupById(String consumerGroupId, String order, String orderKey, Integer partitionFilter, String topic) throws ApiGenericException {
-        return handle(() -> groupsApi.getConsumerGroupById(consumerGroupId, order, orderKey, partitionFilter, topic));
+        return retry(() -> groupsApi.getConsumerGroupById(consumerGroupId, order, orderKey, partitionFilter, topic));
     }
 
     public void deleteConsumerGroupById(String consumerGroupId) throws ApiGenericException {
-        vhandle(() -> groupsApi.deleteConsumerGroupById(consumerGroupId));
+        retry(() -> groupsApi.deleteConsumerGroupById(consumerGroupId));
     }
 }

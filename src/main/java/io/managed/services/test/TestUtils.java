@@ -24,10 +24,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static java.time.Duration.ofSeconds;
-import static lombok.Lombok.sneakyThrow;
 
 /**
  * Test utils contains static help methods
@@ -132,7 +128,7 @@ public class TestUtils {
         throws T, TimeoutException, InterruptedException {
 
         var atom = new AtomicReference<A>();
-        ThrowableFunction<Boolean, Boolean, T> ready = l -> isReady.apply(l, atom);
+        ThrowingFunction<Boolean, Boolean, T> ready = l -> isReady.apply(l, atom);
         waitFor(description, interval, timeout, ready);
         return atom.get();
     }
@@ -144,7 +140,7 @@ public class TestUtils {
         String description,
         Duration interval,
         Duration timeout,
-        ThrowableFunction<Boolean, Boolean, T> isReady)
+        ThrowingFunction<Boolean, Boolean, T> isReady)
         throws T, TimeoutException, InterruptedException {
 
         // generate the exception earlier to print a cleaner stacktrace in case of timeout
@@ -161,7 +157,7 @@ public class TestUtils {
         Duration interval,
         Instant deadline,
         TimeoutException timeout,
-        ThrowableFunction<Boolean, Boolean, T> isReady)
+        ThrowingFunction<Boolean, Boolean, T> isReady)
         throws T, TimeoutException, InterruptedException {
 
         boolean last = Instant.now().isAfter(deadline);
@@ -219,80 +215,6 @@ public class TestUtils {
         x.setTimer(d.toMillis(), l -> p.complete());
         return p.future();
     }
-
-    @Deprecated
-    public static <T> Future<T> retry(
-        Vertx x,
-        Supplier<Future<T>> call,
-        Function<Throwable, Boolean> condition) {
-
-        return retry(x, call, condition, Environment.RETRY_CALL_THRESHOLD);
-    }
-
-    /**
-     * Retry the call supplier if the supplier returns a failed future and
-     * the condition returns true.
-     *
-     * @param x         Vertx
-     * @param call      The supplier to call the first time and retry in case of failure
-     * @param condition The condition to retry the call supplier
-     * @param attempts  The max number of attempts before returning the last failure
-     * @param <T>       T
-     * @return Future
-     */
-    @Deprecated
-    public static <T> Future<T> retry(
-        Vertx x,
-        Supplier<Future<T>> call,
-        Function<Throwable, Boolean> condition,
-        int attempts) {
-
-        Function<Throwable, Future<T>> retry = t -> {
-
-            LOGGER.error("skip error: ", t);
-
-            // retry the API call
-            return sleep(x, ofSeconds(1))
-                .compose(r -> retry(x, call, condition, attempts - 1));
-        };
-
-        return call.get().recover(t -> {
-            if (attempts > 0 && condition.apply(t)) {
-                // retry the call if there are available attempts and if the condition returns true
-                return retry.apply(t);
-            }
-            return Future.failedFuture(t);
-        });
-    }
-
-    @SuppressWarnings("RedundantThrows")
-    @Deprecated
-    public static <T, E extends Throwable> T retry(
-        ThrowableSupplier<T, E> call, Function<Throwable, Boolean> condition, int attempts)
-        throws E {
-
-        try {
-            return call.get();
-
-        } catch (Throwable t) {
-
-            if (attempts > 0 && condition.apply(t)) {
-                // retry the call if there are available attempts and if the condition returns true
-                LOGGER.error("skip error: ", t);
-
-                // retry the API call
-                try {
-                    Thread.sleep(ofSeconds(1).toMillis());
-                } catch (InterruptedException e) {
-                    throw sneakyThrow(e);
-                }
-
-                return retry(call, condition, attempts - 1);
-            }
-            throw sneakyThrow(t);
-        }
-    }
-
 
     /**
      * Format the message like log4j

@@ -6,12 +6,16 @@ import java.util.regex.Pattern;
 
 public class CliGenericException extends Exception {
 
-    public CliGenericException(ProcessException e) {
+    private final int code;
+
+    public CliGenericException(ProcessException e, int code) {
         super(e);
+        this.code = code;
     }
 
     public static CliGenericException exception(ProcessException e) {
-        switch (parseCode(e.getStderr())) {
+        var code = parseCode(e.getStderr());
+        switch (code) {
             case HttpURLConnection.HTTP_NOT_FOUND:
                 return new CliNotFoundException(e);
             case HttpURLConnection.HTTP_UNAUTHORIZED:
@@ -20,12 +24,12 @@ public class CliGenericException extends Exception {
             case HttpURLConnection.HTTP_CONFLICT:
             case 423:
             default:
-                return new CliGenericException(e);
+                return new CliGenericException(e, code);
         }
     }
 
     /**
-     * Try to parse for the stderr the last HTTP error code
+     * Try to parse from the stderr the last HTTP error code
      *
      * @param stderr Process stderr
      * @return Last HTTP error code
@@ -41,5 +45,9 @@ public class CliGenericException extends Exception {
             }
         }
         return 0;
+    }
+
+    public int getCode() {
+        return code;
     }
 }

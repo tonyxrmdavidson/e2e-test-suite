@@ -32,23 +32,23 @@ public class KafkaMgmtApi extends BaseApi<ApiException> {
     }
 
     public KafkaRequest getKafkaById(String id) throws ApiGenericException {
-        return handle(() -> api.getKafkaById(id));
+        return retry(() -> api.getKafkaById(id));
     }
 
     public KafkaRequestList getKafkas(String page, String size, String orderBy, String search) throws ApiGenericException {
-        return handle(() -> api.getKafkas(page, size, orderBy, search));
+        return retry(() -> api.getKafkas(page, size, orderBy, search));
     }
 
     public KafkaRequest createKafka(Boolean async, KafkaRequestPayload kafkaRequestPayload) throws ApiGenericException {
-        return handle(() -> api.createKafka(async, kafkaRequestPayload));
+        return retry(() -> api.createKafka(async, kafkaRequestPayload));
     }
 
     public void deleteKafkaById(String id, Boolean async) throws ApiGenericException {
         // TODO: why does it return Error
-        handle(() -> api.deleteKafkaById(id, async));
+        retry(() -> api.deleteKafkaById(id, async));
     }
 
     public MetricsInstantQueryList getMetricsByInstantQuery(String id, List<String> filters) throws ApiGenericException {
-        return handle(() -> api.getMetricsByInstantQuery(id, filters));
+        return retry(() -> api.getMetricsByInstantQuery(id, filters));
     }
 }

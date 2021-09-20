@@ -3,7 +3,7 @@ package io.managed.services.test.client.kafkamgmt;
 import com.openshift.cloud.api.kas.models.InstantQuery;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
-import io.managed.services.test.ThrowableFunction;
+import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
@@ -73,7 +73,7 @@ public class KafkaMgmtMetricsUtils {
 
         // wait for the metric to be updated or fail with timeout
         var finalInMessagesAtom = new AtomicReference<Double>();
-        ThrowableFunction<Boolean, Boolean, ApiGenericException> isMetricUpdated = last -> {
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> isMetricUpdated = last -> {
 
             var m = api.getMetricsByInstantQuery(kafka.getId(), null);
             var i = collectTopicMetric(m.getItems(), topicName, IN_MESSAGES_METRIC);

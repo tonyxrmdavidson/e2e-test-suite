@@ -6,8 +6,8 @@ import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.IsReady;
-import io.managed.services.test.ThrowableFunction;
-import io.managed.services.test.ThrowableSupplier;
+import io.managed.services.test.ThrowingFunction;
+import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.KasAuthApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
@@ -105,11 +105,11 @@ public class KafkaInstanceApiUtils {
     }
 
     public static <T extends Throwable> ConsumerGroup waitForConsumerGroup(
-        ThrowableSupplier<Optional<ConsumerGroup>, T> supplier)
+        ThrowingSupplier<Optional<ConsumerGroup>, T> supplier)
         throws T, InterruptedException, TimeoutException {
 
         var groupAtom = new AtomicReference<ConsumerGroup>();
-        ThrowableFunction<Boolean, Boolean, T> ready = last -> {
+        ThrowingFunction<Boolean, Boolean, T> ready = last -> {
             var exists = supplier.get();
             if (exists.isPresent()) {
                 groupAtom.set(exists.get());
