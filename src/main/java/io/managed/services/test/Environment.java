@@ -121,6 +121,7 @@ public class Environment {
     // TODO: Rename to OPENSHIFT_API_URI
     public static final String SERVICE_API_URI = getOrDefault(SERVICE_API_URI_ENV, "https://api.stage.openshift.com");
 
+    // TODO: Rename to LAUNCH and make REPORTPORTAL_LAUNCH to fall back to LAUNCH
     public static final String KAFKA_POSTFIX_NAME = getOrDefault(KAFKA_POSTFIX_NAME_ENV, "change-me");
 
     public static final String DEV_CLUSTER_SERVER = getOrDefault(DEV_CLUSTER_SERVER_ENV, null);

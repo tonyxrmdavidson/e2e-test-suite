@@ -19,7 +19,7 @@ public class RetryUtils {
 
     private static final Counter ERRORS = Counter.build()
         .name("test_skipped_errors")
-        .labelNames("key", "class", "method", "exception", "message")
+        .labelNames("launch", "class", "method", "exception", "message")
         .help("Test retry errors counter.").register();
 
     public static <T> Future<T> retry(

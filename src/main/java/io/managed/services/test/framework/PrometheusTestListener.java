@@ -14,7 +14,7 @@ public class PrometheusTestListener implements ITestListener {
 
     static final Counter RESULTS = Counter.build()
         .name("test_results")
-        .labelNames("key", "suite", "test", "class", "method", "result")
+        .labelNames("launch", "suite", "test", "class", "method", "result")
         .help("Test results counter.")
         .register();
 
