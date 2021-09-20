@@ -63,11 +63,6 @@ public class KafkaManagerAPITest extends TestBase {
 
     @BeforeClass
     public void bootstrap() {
-
-        log.error("Just testing multiple errors");
-        log.error("Just testing error logs\nwith multiple\nlines");
-        log.error(" Just testing error logs \n with multiple\nlines \nand empty space ");
-
         var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
         var apps = ApplicationServicesApi.applicationServicesApi(auth, Environment.SERVICE_API_URI);
 
@@ -77,8 +72,6 @@ public class KafkaManagerAPITest extends TestBase {
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     public void teardown() {
-
-        log.error("Testing it in the bootstrap too");
 
         // delete kafka instance
         try {
@@ -104,8 +97,6 @@ public class KafkaManagerAPITest extends TestBase {
     @Test(timeOut = 15 * MINUTES)
     @SneakyThrows
     public void testCreateKafkaInstance() {
-
-        log.error("Testing it in a normal method");
 
         // Create Kafka Instance
         var payload = new KafkaRequestPayload()
