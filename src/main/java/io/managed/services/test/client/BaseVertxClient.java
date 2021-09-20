@@ -69,6 +69,7 @@ public abstract class BaseVertxClient {
         return false;
     }
 
+    @Deprecated
     public <T> Future<T> retry(Supplier<Future<T>> call) {
 
         Function<Throwable, Boolean> condition = t -> {

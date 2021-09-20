@@ -220,6 +220,7 @@ public class TestUtils {
         return p.future();
     }
 
+    @Deprecated
     public static <T> Future<T> retry(
         Vertx x,
         Supplier<Future<T>> call,
@@ -239,6 +240,7 @@ public class TestUtils {
      * @param <T>       T
      * @return Future
      */
+    @Deprecated
     public static <T> Future<T> retry(
         Vertx x,
         Supplier<Future<T>> call,
@@ -264,6 +266,7 @@ public class TestUtils {
     }
 
     @SuppressWarnings("RedundantThrows")
+    @Deprecated
     public static <T, E extends Throwable> T retry(
         ThrowableSupplier<T, E> call, Function<Throwable, Boolean> condition, int attempts)
         throws E {

@@ -89,6 +89,7 @@ public class Environment {
     public static final String SUITE_ROOT = System.getProperty("user.dir");
     public static final Path LOG_DIR = getOrDefault(LOG_DIR_ENV, Paths::get, Paths.get(SUITE_ROOT, "target", "logs")).resolve("test-run-" + DATE_FORMAT.format(LocalDateTime.now()));
 
+    // TODO: Remove SSO prefix and rename first user to MAIN_USERNAME
     // main sso.redhat.com user
     public static final String SSO_USERNAME = getOrDefault(SSO_USERNAME_ENV, null);
     public static final String SSO_PASSWORD = getOrDefault(SSO_PASSWORD_ENV, null);
@@ -101,12 +102,14 @@ public class Environment {
     public static final String SSO_ALIEN_PASSWORD = getOrDefault(SSO_ALIEN_PASSWORD_ENV, null);
 
     // sso.redhat.com OAuth ENVs
+    // TODO: Rename to SSO_REDHAT_URI
     public static final String SSO_REDHAT_KEYCLOAK_URI = getOrDefault(SSO_REDHAT_KEYCLOAK_URI_ENV, "https://sso.redhat.com");
     public static final String SSO_REDHAT_REALM = getOrDefault(SSO_REDHAT_REALM_ENV, "redhat-external");
     public static final String SSO_REDHAT_CLIENT_ID = getOrDefault(SSO_REDHAT_CLIENT_ID_ENV, "cloud-services");
     public static final String SSO_REDHAT_REDIRECT_URI = getOrDefault(SSO_REDHAT_REDIRECT_URI_ENV, "https://cloud.redhat.com");
 
     // identity.api.openshift.com OAuth ENVs
+    // TODO: Rename to IDENTITY_OPENSHIFT_URI
     public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://identity.api.stage.openshift.com");
     public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "rhoas");
     public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
@@ -134,9 +137,11 @@ public class Environment {
     public static final String CLI_PLATFORM = getOrDefault(CLI_PLATFORM_ENV, Platform.getArch().toString());
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
 
+    @Deprecated
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
 //    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
+    @Deprecated
     public static final int RETRY_CALL_THRESHOLD = getOrDefault(RETRY_CALL_THRESHOLD_ENV, Integer::parseInt, 2);
 
     // Skip the whole teardown in some tests, although some of them will need top re-enable it to succeed
