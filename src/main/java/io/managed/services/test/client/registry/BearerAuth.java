@@ -1,6 +1,6 @@
 package io.managed.services.test.client.registry;
 
-import io.apicurio.registry.auth.Auth;
+import io.apicurio.rest.client.auth.Auth;
 
 import java.util.Map;
 

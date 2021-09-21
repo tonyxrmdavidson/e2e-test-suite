@@ -4,7 +4,9 @@ package io.managed.services.test.registry;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.srs.models.RegistryRest;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.types.RoleType;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ApplicationServicesApi;
@@ -39,6 +41,8 @@ import java.util.List;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils.kafkaInstanceApiUri;
+import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 
@@ -98,9 +102,21 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         // topic
         LOGGER.info("create topic: {}", TOPIC_NAME);
-        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(oauth, kafka));
+        var user = bwait(oauth.loginToOpenshiftIdentity());
+        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafkaInstanceApiUri(kafka), user);
         var topic = KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME);
         LOGGER.debug(topic);
+
+        // grant access to the service account to the registry
+        LOGGER.info("grant access to service account: {}", serviceAccount.getClientId());
+        var registryClient = registryClient(registry.getRegistryUrl(), user);
+        var role = new RoleMapping();
+        // We expect the service account to be always created with the same name
+        // if that will not be the case in the feature we will have to retrieve the
+        // service account name separately
+        role.setPrincipalId("service-account-" + serviceAccount.getClientId());
+        role.setRole(RoleType.DEVELOPER);
+        registryClient.createRoleMapping(role);
     }
 
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
