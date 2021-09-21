@@ -97,37 +97,34 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Then the producer is running and displays country names
     And the consumer component displays the same country names as the producer on the first command line
 
-  Scenario: Using Kafkacat with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
+  Scenario: Using Kcat with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
     * You have a running Kafka instance in OpenShift Streams for Apache Kafka
     * JDK 11 or later is installed
     * For Windows, the latest version of Oracle JDK is installed
+    * You have downloaded and verified the latest supported version of the Kcat for your operating system
 
-    # 1. Installing and verifying Kafkacat
-    When you install Kafkacat and check the version on the command line
-    Then the expected Kafkacat version is installed and displayed
-
-    # 2. Configuring Kafkacat to connect to a Kafka instance
+    # 1. Configuring Kcat to connect to a Kafka instance
     Given you have the bootstrap server endpoint and the service account credentials for the Kafka instance
     When you set the Kafka instance bootstrap server endpoint and service account credentials as environment variables
-    Then Kafkacat can access all required configurations to authenticate the Kafka instance
+    Then Kcat can access all required configurations to authenticate the Kafka instance
 
-    # 3. Producing messages in Kafkacat
-    Given Kafkacat is installed
+    # 2. Producing messages in Kcat
+    Given Kcat is installed
     * You have a running Kafka instance in OpenShift Streams for Apache Kafka
     * The Kafka instance is in Ready state
     * You’ve set the Kafka bootstrap server endpoint and your service account credentials as environment variables
-    When you start Kafkacat in producer mode
-    And you enter messages into Kafkacat that you want to produce
+    When you start Kcat in producer mode
+    And you enter messages into Kcat that you want to produce
     Then messages are produced to the specified topic in the configured Kafka instance
 
-    #4. Consuming messages in Kafkacat
-    Given Kafkacat is installed
+    #3. Consuming messages in Kcat
+    Given Kcat is installed
     * You have a running Kafka instance in OpenShift Streams for Apache Kafka
     * The instance is in Ready state
     * You’ve set the Kafka bootstrap server endpoint and your service account credentials as environment variables
     * You used a producer to produce example messages to a topic
-    When you start Kafkacat in consumer mode
+    When you start Kcat in consumer mode
     Then messages from the producer are consumed and displayed on the command line
 
   Scenario: Using Kafka scripts to connect with Red Hat OpenShift Streams for Apache Kafka
@@ -137,18 +134,14 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * You created a service account for the Kafka instance
     * JDK 11 or later is installed
     * For Windows, the latest version of Oracle JDK is installed
+    * You have downloaded and verified the latest supported binary version of the Apache Kafka distribution
 
-    # 1. Downloading Kafka binaries
-    When you download the latest Kafka binaries from `https://kafka.apache.org/downloads`
-    Then the Kafka scripts are available locally
-    And you can verify the Kafka version on the command line
-
-    # 2. Configuring Kafka scripts to connect to a Kafka instance
+    # 1. Configuring Kafka scripts to connect to a Kafka instance
     Given you have client ID and Secret for the service account, and a SASL connection mechanism
     When you create an `app-services.properties` file in the local `/config` directory of the Kafka binaries
     Then it contains the connection values
 
-    # 3. Producing messages using kafka scripts
+    # 2. Producing messages using kafka scripts
     Given you are set up to produce messages to Kafka topics
     * The Kafka topic creation script `kafka-topics.sh` is available in the `/bin` directory of the Kafka binaries
     * The Kafka producer creation script `kafka-console-producer.sh` is available in the `/bin` directory of the Kafka binaries
@@ -164,7 +157,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     And use the `app-services.properties` file as a parameter
     Then messages are produced to the topic in the Kafka instance
 
-    # 4. Consuming messages using kafka scripts
+    # 3. Consuming messages using kafka scripts
     Given you are set up to consume messages
     * The Kafka consumer creation script `kafka-console-consumer.sh` is available in the `/bin` directory of the Kafka binaries
     * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
