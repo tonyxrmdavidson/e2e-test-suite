@@ -36,7 +36,6 @@ function usage() {
   echo "Options:"
   echo "  -p, --profile string       the test profile (default: ${PROFILE_DEFAULT}) (env: PROFILE)"
   echo "  -t, --test string          the class name of the test to run (example: ${SCRIPT} -t ServiceAPITest) (default: all) (env: TESTCASE)"
-  echo " --report                    enable ReportPortal (env: REPORTPORTAL_ENABLE)"
 }
 
 # Utils
