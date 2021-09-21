@@ -318,7 +318,7 @@ public class KafkaMgmtAPITest extends TestBase {
         bwait(producer.asyncClose());
     }
 
-    @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 2, timeOut = 10 * DEFAULT_TIMEOUT)
     @SneakyThrows
     public void testDeleteProvisioningKafkaInstance() {
 
