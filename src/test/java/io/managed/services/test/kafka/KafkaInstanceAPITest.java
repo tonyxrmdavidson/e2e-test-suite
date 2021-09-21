@@ -73,8 +73,8 @@ public class KafkaInstanceAPITest extends TestBase {
     @BeforeClass(timeOut = 10 * MINUTES)
     @SneakyThrows
     public void bootstrap() {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the SSO_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the SSO_PASSWORD env is null");
+        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
 
         var auth = new KeycloakOAuth(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         var apps = ApplicationServicesApi.applicationServicesApi(auth);
