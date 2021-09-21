@@ -36,7 +36,6 @@ public class CLIDownloader {
 
     public CLIDownloader(
         Vertx vertx,
-        String token,
         String organization,
         String repository,
         String version,
@@ -44,7 +43,7 @@ public class CLIDownloader {
         String arch) {
 
         this.vertx = vertx;
-        this.github = new GitHub(vertx, token);
+        this.github = new GitHub(vertx);
         this.organization = organization;
         this.repository = repository;
         this.version = version;
@@ -56,7 +55,6 @@ public class CLIDownloader {
     public static CLIDownloader defaultDownloader(Vertx vertx) {
         return new CLIDownloader(
             vertx,
-            Environment.BF2_GITHUB_TOKEN,
             Environment.CLI_DOWNLOAD_ORG,
             Environment.CLI_DOWNLOAD_REPO,
             Environment.CLI_VERSION,

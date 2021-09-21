@@ -16,10 +16,8 @@ import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
@@ -39,17 +37,27 @@ import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
 
-@Test(groups = TestTag.SERVICE_API)
+/**
+ * Test Kafka Mgmt API
+ *
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ * </ul>
+ */
 @Log4j2
-public class KafkaManagerAPITest extends TestBase {
+public class KafkaMgmtAPITest extends TestBase {
 
-    static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.KAFKA_POSTFIX_NAME;
-    static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.LAUNCH_KEY;
+    static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.LAUNCH_KEY;
+    static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.LAUNCH_KEY;
     static final String TOPIC_NAME = "test-topic";
     static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
@@ -63,8 +71,12 @@ public class KafkaManagerAPITest extends TestBase {
 
     @BeforeClass
     public void bootstrap() {
-        var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-        var apps = ApplicationServicesApi.applicationServicesApi(auth, Environment.SERVICE_API_URI);
+        assertNotNull(Environment.PRIMARY_USERNAME, "the SSO_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the SSO_PASSWORD env is null");
+
+        var apps = ApplicationServicesApi.applicationServicesApi(
+            Environment.PRIMARY_USERNAME,
+            Environment.PRIMARY_PASSWORD);
 
         securityMgmtApi = apps.securityMgmt();
         kafkaMgmtApi = apps.kafkaMgmt();
@@ -125,7 +137,7 @@ public class KafkaManagerAPITest extends TestBase {
     public void testCreateTopics() {
 
         var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
 
         log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
         var topicPayload = new NewTopicInput()

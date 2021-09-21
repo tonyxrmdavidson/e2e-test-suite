@@ -1,5 +1,6 @@
 package io.managed.services.test.client;
 
+import io.managed.services.test.Environment;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
@@ -32,6 +33,13 @@ public class ApplicationServicesApi {
         this.registryMgmtApi = new RegistryMgmtApi(srsApiClient.getApiClient());
     }
 
+    public static ApplicationServicesApi applicationServicesApi(String username, String password) {
+        return applicationServicesApi(Environment.OPENSHIFT_API_URI, username, password);
+    }
+
+    public static ApplicationServicesApi applicationServicesApi(KeycloakOAuth auth) {
+        return applicationServicesApi(auth, Environment.OPENSHIFT_API_URI);
+    }
 
     public static ApplicationServicesApi applicationServicesApi(String basePath, String username, String password) {
         return applicationServicesApi(new KeycloakOAuth(username, password), basePath);
@@ -41,7 +49,7 @@ public class ApplicationServicesApi {
     public static ApplicationServicesApi applicationServicesApi(KeycloakOAuth auth, String basePath) {
 
         log.info("authenticate user '{}' against RH SSO", auth.getUsername());
-        var user = bwait(auth.loginToRHSSO());
+        var user = bwait(auth.loginToRedHatSSO());
         return new ApplicationServicesApi(basePath, user);
     }
 

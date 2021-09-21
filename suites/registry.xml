@@ -3,12 +3,12 @@
 <suite name="ServiceRegistry">
     <test name="RegistryManagerAPITest">
         <classes>
-            <class name="io.managed.services.test.registry.RegistryManagerAPITest"/>
+            <class name="io.managed.services.test.registry.RegistryMgmtAPITest"/>
         </classes>
     </test>
     <test name="RegistryManagerAPIPermissionsTest">
         <classes>
-            <class name="io.managed.services.test.registry.RegistryManagerAPIPermissionsTest"/>
+            <class name="io.managed.services.test.registry.RegistryMgmtAPIPermissionsTest"/>
         </classes>
     </test>
     <test name="RegistryKafkaIntegrationTest">

@@ -2,7 +2,6 @@ package io.managed.services.test;
 
 import io.managed.services.test.cli.CliGenericException;
 import io.managed.services.test.client.kafka.KafkaMessagingUtils;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
@@ -17,13 +16,8 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 
-@Test(groups = TestTag.SMOKE)
 public class SmokeTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(SmokeTest.class);
-
-    public void smokeTest() {
-        assertTrue(true);
-    }
 
     @Test
     public void random() {

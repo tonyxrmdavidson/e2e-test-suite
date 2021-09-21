@@ -9,7 +9,6 @@ import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
@@ -28,6 +27,7 @@ import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 
 /**
@@ -35,13 +35,18 @@ import static org.testng.Assert.assertThrows;
  * by the kafka bin scripts.
  * <p>
  * 1. https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/admin/Admin.java
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ * </ul>
  */
-@Test(groups = TestTag.KAFKA_ADMIN_PERMISSIONS)
 @Log4j2
 public class KafkaAdminPermissionTest extends TestBase {
 
-    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-pe-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-pe-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-pe-" + Environment.LAUNCH_KEY;
+    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-pe-sa-" + Environment.LAUNCH_KEY;
     private static final String TOPIC_NAME = "test-topic-1";
 
     private static final String TEST_GROUP_ID = "temporary-group-id";
@@ -91,9 +96,12 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     @BeforeClass(timeOut = 15 * MINUTES)
     public void bootstrap() throws Throwable {
+        assertNotNull(Environment.PRIMARY_USERNAME, "the SSO_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the SSO_PASSWORD env is null");
 
         var apps = ApplicationServicesApi.applicationServicesApi(
-            Environment.SERVICE_API_URI, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+            Environment.PRIMARY_USERNAME,
+            Environment.PRIMARY_PASSWORD);
 
         kafkaMgmtApi = apps.kafkaMgmt();
         securityMgmtApi = apps.securityMgmt();

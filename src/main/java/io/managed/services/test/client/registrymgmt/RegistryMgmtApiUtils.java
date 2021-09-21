@@ -33,11 +33,11 @@ public class RegistryMgmtApiUtils {
 
     public static Future<RegistryMgmtApi> registryMgmtApi(KeycloakOAuth auth) {
         LOGGER.info("authenticate user: {} against RH SSO", auth.getUsername());
-        return auth.loginToRHSSO().map(u -> registryMgmtApi(u));
+        return auth.loginToRedHatSSO().map(u -> registryMgmtApi(u));
     }
 
     public static RegistryMgmtApi registryMgmtApi(User user) {
-        return registryMgmtApi(Environment.SERVICE_API_URI, user);
+        return registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
     }
 
     public static RegistryMgmtApi registryMgmtApi(String uri, User user) {

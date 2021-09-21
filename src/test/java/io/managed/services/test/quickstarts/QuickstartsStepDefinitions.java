@@ -14,11 +14,11 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
-import io.managed.services.test.kafka.KafkaManagerAPITest;
+import io.managed.services.test.kafka.KafkaMgmtAPITest;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,10 +31,10 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
 public class QuickstartsStepDefinitions {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaManagerAPITest.class);
+    private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtAPITest.class);
 
-    private static final String KAFKA_INSTANCE_NAME = "cucumber-qs-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SERVICE_ACCOUNT_NAME = "cucumber-sa-qs-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "cucumber-qs-" + Environment.LAUNCH_KEY;
+    private static final String SERVICE_ACCOUNT_NAME = "cucumber-sa-qs-" + Environment.LAUNCH_KEY;
     private static final String TOPIC_NAME = "test-topic";
 
     private KafkaMgmtApi kafkaMgmtApi;
@@ -46,8 +46,9 @@ public class QuickstartsStepDefinitions {
 
     @Given("I am authenticated to Red Hat SSO")
     public void i_am_authenticated_to_red_hat_sso() {
-        var apis = ApplicationServicesApi.applicationServicesApi(Environment.SERVICE_API_URI,
-            Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var apis = ApplicationServicesApi.applicationServicesApi(
+            Environment.PRIMARY_USERNAME,
+            Environment.PRIMARY_PASSWORD);
 
         kafkaMgmtApi = apis.kafkaMgmt();
         securityMgmtApi = apis.securityMgmt();
@@ -125,7 +126,7 @@ public class QuickstartsStepDefinitions {
     @When("I create a Kafka topic with a unique name")
     public void i_create_a_kafka_topic_with_a_unique_name() throws Throwable {
         kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafkaInstance,
-            Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
 
         var payload = new NewTopicInput()
             .name(TOPIC_NAME)

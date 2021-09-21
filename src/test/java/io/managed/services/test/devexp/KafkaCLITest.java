@@ -15,13 +15,13 @@ import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -30,6 +30,7 @@ import java.util.Objects;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -44,18 +45,20 @@ import static org.testng.Assert.assertTrue;
  * the CLI_VERSION env. The CLI platform (linux, mac, win) and arch (amd64, arm) is automatically detected,
  * or it can be enforced using the CLI_PLATFORM and CLI_ARCH env.
  * <p>
- * The SSO_USERNAME and SSO_PASSWORD will be used to login to the service through the CLI.
- * <p>
- * The tested environment is given by the SERVICE_API_URI and MAS_SSO_REDHAT_KEYCLOAK_URI env.
- * <p>
  * 1. https://github.com/redhat-developer/app-services-cli
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ * </ul>
  */
-@Test(groups = TestTag.CLI)
+@Test
 public class KafkaCLITest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaCLITest.class);
 
-    private static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.LAUNCH_KEY;
+    private static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.LAUNCH_KEY;
     private static final String TOPIC_NAME = "cli-e2e-test-topic";
     private static final int DEFAULT_PARTITIONS = 1;
     private static final String CONSUMER_GROUP_NAME = "consumer-group-1";
@@ -64,18 +67,24 @@ public class KafkaCLITest extends TestBase {
 
     private CLI cli;
 
-
     private KafkaRequest kafka;
     private ServiceAccountSecret serviceAccountSecret;
     private ServiceAccountListItem serviceAccount;
     private Topic topic;
 
+    @BeforeClass
+    public void bootstrap() {
+        assertNotNull(Environment.PRIMARY_USERNAME, "the SSO_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the SSO_PASSWORD env is null");
+    }
+
     @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
     @SneakyThrows
     public void clean() {
 
-        var apis = ApplicationServicesApi.applicationServicesApi(Environment.SERVICE_API_URI,
-            Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var apis = ApplicationServicesApi.applicationServicesApi(
+            Environment.PRIMARY_USERNAME,
+            Environment.PRIMARY_PASSWORD);
 
         try {
             KafkaMgmtApiUtils.deleteKafkaByNameIfExists(apis.kafkaMgmt(), KAFKA_INSTANCE_NAME);
@@ -130,7 +139,7 @@ public class KafkaCLITest extends TestBase {
         assertThrows(CliGenericException.class, () -> cli.listKafka());
 
         LOGGER.info("login the CLI");
-        CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD).get();
+        CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
 
         LOGGER.info("verify that we are logged-in");
         cli.listKafka();

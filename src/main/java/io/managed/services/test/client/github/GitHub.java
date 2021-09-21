@@ -6,7 +6,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.streams.WriteStream;
-import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 
@@ -21,11 +20,8 @@ public class GitHub extends BaseVertxClient {
 
     final static String GITHUB_URL = "https://api.github.com";
 
-    final TokenCredentials token;
-
-    public GitHub(Vertx vertx, String token) {
+    public GitHub(Vertx vertx) {
         super(vertx, options());
-        this.token = new TokenCredentials(token);
     }
 
     static WebClientOptions options() {
@@ -37,7 +33,6 @@ public class GitHub extends BaseVertxClient {
         String path = String.format("/repos/%s/%s/releases", org, repo);
 
         return client.get(path)
-            .authentication(token)
             .send()
             .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
             .map(r -> r.bodyAsJson(Release[].class))
@@ -60,7 +55,6 @@ public class GitHub extends BaseVertxClient {
 
         var path = String.format("/repos/%s/%s/releases/tags/%s", org, repo, name);
         return client.get(path)
-            .authentication(token)
             .send()
             .compose(r -> assertResponse(r, HttpURLConnection.HTTP_OK))
             .map(r -> r.bodyAsJson(Release.class));
@@ -68,7 +62,6 @@ public class GitHub extends BaseVertxClient {
 
     public Future<Void> downloadAsset(String org, String repo, String id, WriteStream<Buffer> stream) {
         return client.get(String.format("/repos/%s/%s/releases/assets/%s", org, repo, id))
-            .authentication(token)
             .putHeader("Accept", "application/octet-stream")
             .send()
             .compose(r -> assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP))

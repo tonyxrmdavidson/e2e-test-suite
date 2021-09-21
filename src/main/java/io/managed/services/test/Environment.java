@@ -3,8 +3,7 @@ package io.managed.services.test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.managed.services.test.cli.Platform;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,9 +19,9 @@ import java.util.function.Function;
 /**
  * Class which holds environment variables for system tests.
  */
+@Log4j2
 public class Environment {
 
-    private static final Logger LOGGER = LogManager.getLogger(Environment.class);
     private static final Map<String, String> VALUES = new HashMap<>();
     private static final JsonNode JSON_DATA = loadConfigurationFile();
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm");
@@ -30,33 +29,29 @@ public class Environment {
     /*
      * Definition of env vars
      */
+    private static final String CONFIG_FILE_ENV = "CONFIG_FILE";
+
     private static final String LOG_DIR_ENV = "LOG_DIR";
-    private static final String CONFIG_FILE_ENV = "CONFIG_PATH";
 
-    private static final String SSO_USERNAME_ENV = "SSO_USERNAME";
-    private static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
-    private static final String SSO_SECONDARY_USERNAME_ENV = "SSO_SECONDARY_USERNAME";
-    private static final String SSO_SECONDARY_PASSWORD_ENV = "SSO_SECONDARY_PASSWORD";
-    private static final String SSO_ALIEN_USERNAME_ENV = "SSO_ALIEN_USERNAME";
-    private static final String SSO_ALIEN_PASSWORD_ENV = "SSO_ALIEN_PASSWORD";
+    private static final String PRIMARY_USERNAME_ENV = "PRIMARY_USERNAME";
+    private static final String PRIMARY_PASSWORD_ENV = "PRIMARY_PASSWORD";
+    private static final String SECONDARY_USERNAME_ENV = "SECONDARY_USERNAME";
+    private static final String SECONDARY_PASSWORD_ENV = "SECONDARY_PASSWORD";
+    private static final String ALIEN_USERNAME_ENV = "ALIEN_USERNAME";
+    private static final String ALIEN_PASSWORD_ENV = "ALIEN_PASSWORD";
 
-    private static final String SSO_REDHAT_KEYCLOAK_URI_ENV = "SSO_REDHAT_KEYCLOAK_URI";
-    private static final String SSO_REDHAT_REALM_ENV = "SSO_REDHAT_REALM";
-    private static final String SSO_REDHAT_CLIENT_ID_ENV = "SSO_REDHAT_CLIENT_ID";
-    private static final String SSO_REDHAT_REDIRECT_URI_ENV = "SSO_REDHAT_REDIRECT_URI";
+    private static final String OPENSHIFT_API_URI_ENV = "OPENSHIFT_API_URI";
 
-    private static final String KAFKA_ADMIN_API_SERVER_PREFIX_ENV = "KAFKA_ADMIN_API_SERVER_PREFIX";
+    private static final String REDHAT_SSO_URI_ENV = "REDHAT_SSO_URI";
+    private static final String REDHAT_SSO_REALM_ENV = "REDHAT_SSO_REALM";
+    private static final String REDHAT_SSO_CLIENT_ID_ENV = "REDHAT_SSO_CLIENT_ID";
+    private static final String REDHAT_SSO_REDIRECT_URI_ENV = "REDHAT_SSO_REDIRECT_URI";
 
+    private static final String OPENSHIFT_IDENTITY_URI_ENV = "OPENSHIFT_IDENTITY_URI";
+    private static final String OPENSHIFT_IDENTITY_REALM_ENV = "OPENSHIFT_IDENTITY_REALM_ENV";
+    private static final String OPENSHIFT_IDENTITY_CLIENT_ID_ENV = "OPENSHIFT_IDENTITY_CLIENT_ID_ENV";
+    private static final String OPENSHIFT_IDENTITY_REDIRECT_URI_ENV = "OPENSHIFT_IDENTITY_REDIRECT_URI_ENV";
 
-    private static final String MAS_SSO_REDHAT_KEYCLOAK_URI_ENV = "MAS_SSO_REDHAT_KEYCLOAK_URI";
-    private static final String MAS_SSO_REDHAT_REALM_ENV = "MAS_SSO_REDHAT_REALM_ENV";
-    private static final String MAS_SSO_REDHAT_CLIENT_ID_ENV = "MAS_SSO_REDHAT_CLIENT_ID_ENV";
-    private static final String MAS_SSO_REDHAT_REDIRECT_URI_ENV = "MAS_SSO_REDHAT_REDIRECT_URI_ENV";
-
-    private static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
-
-    // TODO: Rename to unique name
-    private static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
 
     private static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
     private static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
@@ -64,22 +59,17 @@ public class Environment {
 
     private static final String RHOAS_OPERATOR_NAMESPACE_ENV = "RHOAS_OPERATOR_NAMESPACE";
 
-    private static final String BF2_GITHUB_TOKEN_ENV = "BF2_GITHUB_TOKEN";
-
     private static final String CLI_DOWNLOAD_ORG_ENV = "CLI_DOWNLOAD_ORG";
     private static final String CLI_DOWNLOAD_REPO_ENV = "CLI_DOWNLOAD_REPO";
     private static final String CLI_VERSION_ENV = "CLI_VERSION";
     private static final String CLI_PLATFORM_ENV = "CLI_PLATFORM";
     private static final String CLI_ARCH_ENV = "CLI_ARCH";
 
-    private static final String API_TIMEOUT_MS_ENV = "API_TIMEOUT_MS";
+    private static final String LAUNCH_KEY_ENV = "LAUNCH_KEY";
 
-    private static final String RETRY_CALL_THRESHOLD_ENV = "RETRY_CALL_THRESHOLD";
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
-    private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
 
-    @Deprecated
-    private static final String WHOISXMLAPI_KEY_ENV = "WHOISXMLAPI_KEY";
+    private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
 
     private static final String PROMETHEUS_PUSH_GATEWAY_ENV = "PROMETHEUS_PUSH_GATEWAY";
 
@@ -89,48 +79,40 @@ public class Environment {
     public static final String SUITE_ROOT = System.getProperty("user.dir");
     public static final Path LOG_DIR = getOrDefault(LOG_DIR_ENV, Paths::get, Paths.get(SUITE_ROOT, "target", "logs")).resolve("test-run-" + DATE_FORMAT.format(LocalDateTime.now()));
 
-    // TODO: Remove SSO prefix and rename first user to MAIN_USERNAME
-    // main sso.redhat.com user
-    public static final String SSO_USERNAME = getOrDefault(SSO_USERNAME_ENV, null);
-    public static final String SSO_PASSWORD = getOrDefault(SSO_PASSWORD_ENV, null);
+    // sso.redhat.com primary user (See README.md)
+    public static final String PRIMARY_USERNAME = getOrDefault(PRIMARY_USERNAME_ENV, null);
+    public static final String PRIMARY_PASSWORD = getOrDefault(PRIMARY_PASSWORD_ENV, null);
 
-    // test sso.redhat.com secondary user
-    public static final String SSO_SECONDARY_USERNAME = getOrDefault(SSO_SECONDARY_USERNAME_ENV, null);
-    public static final String SSO_SECONDARY_PASSWORD = getOrDefault(SSO_SECONDARY_PASSWORD_ENV, null);
+    // sso.redhat.com secondary user (See README.md)
+    public static final String SECONDARY_USERNAME = getOrDefault(SECONDARY_USERNAME_ENV, null);
+    public static final String SECONDARY_PASSWORD = getOrDefault(SECONDARY_PASSWORD_ENV, null);
 
-    public static final String SSO_ALIEN_USERNAME = getOrDefault(SSO_ALIEN_USERNAME_ENV, null);
-    public static final String SSO_ALIEN_PASSWORD = getOrDefault(SSO_ALIEN_PASSWORD_ENV, null);
+    // sso.redhat.com alien user (See README.md)
+    public static final String ALIEN_USERNAME = getOrDefault(ALIEN_USERNAME_ENV, null);
+    public static final String ALIEN_PASSWORD = getOrDefault(ALIEN_PASSWORD_ENV, null);
+
+    // app-services APIs base URI
+    public static final String OPENSHIFT_API_URI = getOrDefault(OPENSHIFT_API_URI_ENV, "https://api.stage.openshift.com");
 
     // sso.redhat.com OAuth ENVs
-    // TODO: Rename to SSO_REDHAT_URI
-    public static final String SSO_REDHAT_KEYCLOAK_URI = getOrDefault(SSO_REDHAT_KEYCLOAK_URI_ENV, "https://sso.redhat.com");
-    public static final String SSO_REDHAT_REALM = getOrDefault(SSO_REDHAT_REALM_ENV, "redhat-external");
-    public static final String SSO_REDHAT_CLIENT_ID = getOrDefault(SSO_REDHAT_CLIENT_ID_ENV, "cloud-services");
-    public static final String SSO_REDHAT_REDIRECT_URI = getOrDefault(SSO_REDHAT_REDIRECT_URI_ENV, "https://cloud.redhat.com");
+    public static final String REDHAT_SSO_URI = getOrDefault(REDHAT_SSO_URI_ENV, "https://sso.redhat.com");
+    public static final String REDHAT_SSO_REALM = getOrDefault(REDHAT_SSO_REALM_ENV, "redhat-external");
+    public static final String REDHAT_SSO_CLIENT_ID = getOrDefault(REDHAT_SSO_CLIENT_ID_ENV, "cloud-services");
+    public static final String REDHAT_SSO_REDIRECT_URI = getOrDefault(REDHAT_SSO_REDIRECT_URI_ENV, "https://cloud.redhat.com");
 
     // identity.api.openshift.com OAuth ENVs
-    // TODO: Rename to IDENTITY_OPENSHIFT_URI
-    public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://identity.api.stage.openshift.com");
-    public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "rhoas");
-    public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
-    public static final String MAS_SSO_REDHAT_REDIRECT_URI = getOrDefault(MAS_SSO_REDHAT_REDIRECT_URI_ENV, "https://cloud.redhat.com/beta/application-services");
-
-    @Deprecated
-    public static final String KAFKA_ADMIN_API_SERVER_PREFIX = getOrDefault(KAFKA_ADMIN_API_SERVER_PREFIX_ENV, "https://admin-server-");
-
-    // TODO: Rename to OPENSHIFT_API_URI
-    public static final String SERVICE_API_URI = getOrDefault(SERVICE_API_URI_ENV, "https://api.stage.openshift.com");
-
-    // TODO: Rename to LAUNCH and make REPORTPORTAL_LAUNCH to fall back to LAUNCH
-    public static final String KAFKA_POSTFIX_NAME = getOrDefault(KAFKA_POSTFIX_NAME_ENV, "change-me");
+    public static final String OPENSHIFT_IDENTITY_URI = getOrDefault(OPENSHIFT_IDENTITY_URI_ENV, "https://identity.api.stage.openshift.com");
+    public static final String OPENSHIFT_IDENTITY_REALM = getOrDefault(OPENSHIFT_IDENTITY_REALM_ENV, "rhoas");
+    public static final String OPENSHIFT_IDENTITY_CLIENT_ID = getOrDefault(OPENSHIFT_IDENTITY_CLIENT_ID_ENV, "strimzi-ui");
+    public static final String OPENSHIFT_IDENTITY_REDIRECT_URI = getOrDefault(OPENSHIFT_IDENTITY_REDIRECT_URI_ENV, "https://cloud.redhat.com/beta/application-services");
 
     public static final String DEV_CLUSTER_SERVER = getOrDefault(DEV_CLUSTER_SERVER_ENV, null);
     public static final String DEV_CLUSTER_NAMESPACE = getOrDefault(DEV_CLUSTER_NAMESPACE_ENV, "mk-e2e-tests");
     public static final String DEV_CLUSTER_TOKEN = getOrDefault(DEV_CLUSTER_TOKEN_ENV, null);
 
+    // used to retrieve the RHOAS operator logs, and it needs to be changed in case the operator is installed in a
+    // different namespace
     public static final String RHOAS_OPERATOR_NAMESPACE = getOrDefault(RHOAS_OPERATOR_NAMESPACE_ENV, "openshift-operators");
-
-    public static final String BF2_GITHUB_TOKEN = getOrDefault(BF2_GITHUB_TOKEN_ENV, null);
 
     public static final String CLI_DOWNLOAD_ORG = getOrDefault(CLI_DOWNLOAD_ORG_ENV, "redhat-developer");
     public static final String CLI_DOWNLOAD_REPO = getOrDefault(CLI_DOWNLOAD_REPO_ENV, "app-services-cli");
@@ -138,21 +120,13 @@ public class Environment {
     public static final String CLI_PLATFORM = getOrDefault(CLI_PLATFORM_ENV, Platform.getArch().toString());
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
 
-    @Deprecated
-    public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
-//    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
-
-    @Deprecated
-    public static final int RETRY_CALL_THRESHOLD = getOrDefault(RETRY_CALL_THRESHOLD_ENV, Integer::parseInt, 2);
+    public static final String LAUNCH_KEY = getOrDefault(LAUNCH_KEY_ENV, "change-me");
 
     // Skip the whole teardown in some tests, although some of them will need top re-enable it to succeed
     public static final boolean SKIP_TEARDOWN = getOrDefault(SKIP_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
     // Skip only the Kafka instance delete teardown to speed the local development
     public static final boolean SKIP_KAFKA_TEARDOWN = getOrDefault(SKIP_KAFKA_TEARDOWN_ENV, Boolean::parseBoolean, false);
-
-    @Deprecated
-    public static final String WHOISXMLAPI_KEY = getOrDefault(WHOISXMLAPI_KEY_ENV, "");
 
     public static final String PROMETHEUS_PUSH_GATEWAY = getOrDefault(PROMETHEUS_PUSH_GATEWAY_ENV, null);
 
@@ -183,7 +157,7 @@ public class Environment {
      * @return value of variable fin defined data type
      */
     private static <T> T getOrDefault(String var, Function<String, T> converter, T defaultValue) {
-        String value = System.getenv(var) != null ?
+        var value = System.getenv(var) != null ?
             System.getenv(var) :
             (Objects.requireNonNull(JSON_DATA).get(var) != null ?
                 JSON_DATA.get(var).asText() :
@@ -207,12 +181,12 @@ public class Environment {
 
         VALUES.put(CONFIG_FILE_ENV, config);
 
-        ObjectMapper mapper = new ObjectMapper();
+        var mapper = new ObjectMapper();
         try {
-            File jsonFile = new File(config).getAbsoluteFile();
+            var jsonFile = new File(config).getAbsoluteFile();
             return mapper.readTree(jsonFile);
         } catch (IOException ex) {
-            LOGGER.info("Json configuration not provider or not exists");
+            log.info("the json config file didn't exists or wasn't provided");
             return mapper.createObjectNode();
         }
     }

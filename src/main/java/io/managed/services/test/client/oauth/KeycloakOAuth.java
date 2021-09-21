@@ -105,20 +105,20 @@ public class KeycloakOAuth {
             });
     }
 
-    public Future<User> loginToRHSSO() {
+    public Future<User> loginToRedHatSSO() {
         return login(
-            Environment.SSO_REDHAT_KEYCLOAK_URI,
-            Environment.SSO_REDHAT_REDIRECT_URI,
-            Environment.SSO_REDHAT_REALM,
-            Environment.SSO_REDHAT_CLIENT_ID);
+            Environment.REDHAT_SSO_URI,
+            Environment.REDHAT_SSO_REDIRECT_URI,
+            Environment.REDHAT_SSO_REALM,
+            Environment.REDHAT_SSO_CLIENT_ID);
     }
 
-    public Future<User> loginToMASSSO() {
+    public Future<User> loginToOpenshiftIdentity() {
         return login(
-            Environment.MAS_SSO_REDHAT_KEYCLOAK_URI,
-            Environment.MAS_SSO_REDHAT_REDIRECT_URI,
-            Environment.MAS_SSO_REDHAT_REALM,
-            Environment.MAS_SSO_REDHAT_CLIENT_ID);
+            Environment.OPENSHIFT_IDENTITY_URI,
+            Environment.OPENSHIFT_IDENTITY_REDIRECT_URI,
+            Environment.OPENSHIFT_IDENTITY_REALM,
+            Environment.OPENSHIFT_IDENTITY_CLIENT_ID);
     }
 
     /**

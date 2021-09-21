@@ -21,7 +21,6 @@ import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -41,14 +40,23 @@ import java.util.List;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
-@Test(groups = TestTag.REGISTRY)
+/**
+ * Test integration between Kafka and Service Registry
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ * </ul>
+ */
 public class RegistryKafkaIntegrationTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(RegistryKafkaIntegrationTest.class);
 
-    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ki-rki-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SERVICE_REGISTRY_NAME = "mk-e2e-sr-rki-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-rki-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ki-rki-" + Environment.LAUNCH_KEY;
+    private static final String SERVICE_REGISTRY_NAME = "mk-e2e-sr-rki-" + Environment.LAUNCH_KEY;
+    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-rki-" + Environment.LAUNCH_KEY;
     private static final String TOPIC_NAME = "test-topic";
     private static final String ARTIFACT_SCHEMA = "{\"type\":\"record\",\"name\":\"Greeting\",\"fields\":[{\"name\":\"Message\",\"type\":\"string\"},{\"name\":\"Time\",\"type\":\"long\"}]}";
 
@@ -63,12 +71,14 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
     @BeforeClass(timeOut = 20 * MINUTES)
     public void bootstrap() throws Throwable {
+        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
 
-        var oauth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var oauth = new KeycloakOAuth(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         // registry api
         LOGGER.info("initialize registry, kafka security services apis");
-        var apis = ApplicationServicesApi.applicationServicesApi(oauth, Environment.SERVICE_API_URI);
+        var apis = ApplicationServicesApi.applicationServicesApi(oauth);
         registryMgmtApi = apis.registryMgmt();
         kafkaMgmtApi = apis.kafkaMgmt();
         securityMgmtApi = apis.securityMgmt();

@@ -1,6 +1,6 @@
-# MK E2E Test Suite
+# E2E Test Suite
 
-Junit5 based java test suite focused on e2e testing managed services running on kubernetes.
+TestNG based Java test suite focused on e2e testing application services running in the cloud.
 
 ## Requirements
 
@@ -9,60 +9,28 @@ Junit5 based java test suite focused on e2e testing managed services running on 
 
 ## Build and check checkstyle
 
-maven
-
 ```
 mvn install -DskipTests
-```
-
-make
-
-```
-make build
 ```
 
 ## Executing tests
 
 ### Running full test suite
 
-maven
-
 ```
 mvn test
 ```
 
-make
+### Running single test
 
 ```
-make test
-```
-
-### Running single test or subset of tests
-
-maven
-
-```
-mvn verify -Dit.test=ClassName#testName
-```
-
-make
-
-```
-make TESTCASE=ClassName#testName test
+mvn verify -Dit.test=ClassName
 ```
 
 ### Running subset tests defined by maven profile
 
-maven
-
 ```
-mvn verify -Pci
-```
-
-make
-
-```
-make PROFILE=ci test
+mvn verify -Psmoke
 ```
 
 ## Writing tests
@@ -73,40 +41,89 @@ make PROFILE=ci test
 * Every new and variable used in testsuite must be added to table or env variables
 * The test class must be included in one of the TestNG suites in `suites/`
 
-## List of environment variables
+## Environment Variables
+
+This environment variables are used to configure tests behaviour, the ENVs marked with the double asterisk (**) are
+required to run all tests. But not all tests require all ENVs, if you want to run a single test you can check ahead the
+required variables in the test sourcecode javadoc.
+
+Environment variables can also be configured in the [config.json](#config-file) file.
 
 | Name        | Description   |  Default value |
-|-------------|:-------------:|---------------:|
-| LOG_DIR                     | path where test suite stores logs from failed tests etc...                    | $(pwd)/target/logs |
-| CONFIG_PATH                 | path where is stored config.json with env variables and values                | $(pwd)/config.json |
-| SERVICE_API_URI             | the service-api URI to tests                                                  | https://api.stage.openshift.com |
-| SSO_REDHAT_KEYCLOAK_URI     | the SSO URI to retrieve the service-api token                                 | https://sso.redhat.com |
-| MAS_SSO_REDHAT_KEYCLOAK_URI | the SSO URI to retrieve the mas-sso token                                     | https://identity.api.stage.openshift.com |
-| SSO_USERNAME                | main user for SSO                                                             |  |
-| SSO_PASSWORD                | main user password                                                            |  |
-| SSO_SECONDARY_USERNAME      | a second user in the same org as the main user                                |  |
-| SSO_SECONDARY_PASSWORD      | the secondary user password                                                   |  |
-| SSO_ALIEN_USERNAME          | a third user that is part of a different org respect the main user            |  |
-| SSO_ALIEN_PASSWORD          | the alien user password                                                       |  |
-| DEV_CLUSTER_SERVER          | the api server url of a openshift cluster with the binding operator installed |  |
-| DEV_CLUSTER_NAMESPACE       | the namespace to use to install the binding operator CRs                      | mk-e2e-tests |
-| DEV_CLUSTER_TOKEN           | the cluster user token (this can also be a service account token)             |  |
-| BF2_GITHUB_TOKEN            | a github token to download artifacts from the bf2 org                         |  |
-| CLI_VERSION                 | the CLI version to download from bf2/cli                                      | latest |
-| CLI_PLATFORM                | windows/macOS/linux                                                           | auto-detect |
-| CLI_ARCH                    | the CLI arch and os to download from bf2/cli                                  | amd64 |
-| KAFKA_POSTFIX_NAME          | A postfix added to kafka and service account names to avoid conflict          |  |
+|-------------|---------------|----------------|
+| CONFIG_FILE                 | relative or absolute path to the [config.json](#config-file)                                                                               | $(pwd)/config.json |
+| LOG_DIR                     | path where the test suite will store additional collected logs and artifacts                                                               | $(pwd)/target/logs |
+| PRIMARY_USERNAME            | ** https://sso.redhat.com username with quota to provision the tested service (See [Create test users](#create-test-users) if you don't have one)  |  |
+| PRIMARY_PASSWORD            | ** primary user password                                                                                                                   |  |
+| SECONDARY_USERNAME          | ** https://sso.redhat.com username in the same organization as the primary user                                                            |  |
+| SECONDARY_PASSWORD          | ** secondary user password                                                                                                                 |  |
+| ALIEN_USERNAME              | ** https://sso.redhat.com username in a different organization respect the primary user                                                    |  |
+| ALIEN_PASSWORD              | ** alien user password                                                                                                                     |  |
+| OPENSHIFT_API_URI           | the base URI for the application services mgmt APIs (See [Test Environments](#test-environments))                                          | https://api.stage.openshift.com |
+| REDHAT_SSO_URI              | users authentication endpoint for application services mgmt APIs                                                                           | https://sso.redhat.com |
+| OPENSHIFT_IDENTITY_URI      | users authentication endpoint for application services instances APIs (See [Test Environments](#test-environments))                        | https://identity.api.stage.openshift.com |
+| DEV_CLUSTER_SERVER          | ** the API server URI of a OpenShift cluster with the binding operator installed                                                           |  |
+| DEV_CLUSTER_TOKEN           | ** the cluster user or service account token                                                                                               |  |
+| DEV_CLUSTER_NAMESPACE       | the namespace where to create test resources (See [Create test namespace on the dev cluster](#create-test-namespace-on-the-dev-cluster))   | mk-e2e-tests |
+| CLI_VERSION                 | the CLI version to download from the app-services-cli repo                                                                                 | latest |
+| CLI_PLATFORM                | windows/macOS/linux                                                                                                                        | auto-detect |
+| CLI_ARCH                    | the CLI arch and os to download from the app-services-cli repo                                                                             | amd64 |
+| LAUNCH_KEY                  | A string key used to identify the current configuration and owner which is used to generate unique name and identify the launch            | change-me |
+| SKIP_TEARDOWN               | Skip the whole test teardown in most tests, although some of them will need top re-enable it to succeed                                    | false |
+| SKIP_KAFKA_TEARDOWN         | Skip only the Kafka instance cleanup teardown in the tests that don't require a new instance for each run to speed the local development   | false |
 
-## List of Tags
+## Config File
 
-| Name | Description | Required ENVs |
-|------|-------------|---------------|
-| service-api               | run all tests targeting the service-api | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD |
-| service-api-permissions   | run all service api permissions tests   | SSO_USERNAME, SSO_PASSWORD, SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD, SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD |
-| kafka-admin-permissions   | run all kafka admin permissions tests   | SSO_USERNAME, SSO_PASSWORD |
-| kafka-admin-api           | run the kafka admin api tests           | SSO_USERNAME, SSO_PASSWORD |
-| binding-operator          | run all tests for the binding-operator  | SSO_USERNAME, SSO_PASSWORD, DEV_CLUSTER_SERVER, DEV_CLUSTER_TOKEN |
-| cli                       | run all tests for the CLI               | SSO_USERNAME, SSO_PASSWORD, BF2_GITHUB_TOKEN |
+All [Environment variables](#environment-variables) can also be configured in a JSON file, by default they are loaded
+from the `config.json` file located in the project root, but an alternative JSON file can be configured used the the
+`CONFIG_FILE` env.
+
+Config file example:
+
+```json
+{
+  "PRIMARY_USERNAME": "my-primary-user",
+  "PRIMARY_PASSWORD": "password",
+  "SECONDARY_USERNAME": "my-secondary-user",
+  "SECONDARY_PASSWORD": "password",
+  "ALIEN_USERNAME": "my-alien-user",
+  "ALIEN_PASSWORD": "password",
+  "DEV_CLUSTER_SERVER": "https://api.my.cluster:6443",
+  "DEV_CLUSTER_TOKEN": "token",
+  "DEV_CLUSTER_NAMESPACE": "a-custom-namespace-if-local",
+  "LAUNCH_KEY": "my-username-if-local"
+}
+```
+
+You can create multiple local `*.config.json` file that will be ignored by git (ex: `prod.config.json`) and you can
+easily switch between them in IntelliJ using the [EnvFile](https://plugins.jetbrains.com/plugin/7861-envfile) plugin and
+setting the `CONFIG_FILE` env in the `.env` file in the project root.
+
+## Test Environments
+
+The default targeted environment is the application services stage env.
+
+#### Stage
+
+| Env | Value |
+|-----|-------|
+| OPENSHIFT_API_URI        | https://api.stage.openshift.com |
+| OPENSHIFT_IDENTITY_URI   | https://identity.api.stage.openshift.com |
+
+#### Production
+
+| Env | Value |
+|-----|-------|
+| OPENSHIFT_API_URI        | https://api.openshift.com |
+| OPENSHIFT_IDENTITY_URI   | https://identity.api.openshift.com |
+
+## Profiles
+
+| Name | Description |
+|------|-------------|
+| default       | run kafka, registry, devexp and quickstarts test suites |
+| sandbox       | run the sandbox test suite to test the openshift sandbox cluster |
+| quickstarts   | run the cucumber quickstarts test suite  |
 
 ## Report to ReportPortal
 
@@ -115,15 +132,60 @@ the `./hack/testrunner.sh` script and the following ENVs:
 
 | Name | Description | Default value |
 |------|-------------|---------------|
-| REPORTPORTAL_ENDPOINT | ReportPortal URL                            | https://reportportal-cloud-services.apps.ocp4.prod.psi.redhat.com |
+| REPORTPORTAL_ENDPOINT | ReportPortal URL                            | https://example.com |
 | REPORTPORTAL_UUID     | The Access Token                            |  |
 | REPORTPORTAL_LAUNCH   | The launch name to user                     | mk-e2e-test-suite |
 | REPORTPORTAL_PROJECT  | The project where to report the result      | rhosak |
-| REPORTPORTAL_ENABLE   | Must be set to true to enable ReportPortal  | false |
+
+## Report to Prometheus
+
+Tests can report metrics to Prometheus to analyze or monitor behaviours, like the number and frequency of failed API
+requests that are retried automatically. A push gateway is required to send the metrics to prometheus, and it is
+configured with the following ENVs:
+
+| Name | Description | Default value |
+|------|-------------|---------------|
+| PROMETHEUS_PUSH_GATEWAY | Prometheus Push Gateway URL               | https://example.com |
 
 ## Short guides
 
-#### Recreate the mk-e2e-tests namespace in the dev cluster
+### Create test users
+
+The test users needs to be manually created before running the test suites, but not all users are required for all
+tests.
+
+#### Organization
+
+1. Go to https://cloud.redhat.com/ and click on **Create an account**
+2. You can choose _Personal_ or _Corporate_
+3. Fill all the required data and create the account
+
+> This will automatically create a new Organization where the user is the organization owner.
+
+#### Primary user
+
+1. Go to https://www.redhat.com/wapps/ugc/protected/usermgt/userList.html and login with the organization owner.
+2. Click on **Add New User** and fill all the required data for the primary user
+
+> By default, the account will be able to create evaluation instances which will be enough to run single tests
+
+#### Secondary user
+
+2. Go to https://www.redhat.com/wapps/ugc/protected/usermgt/userList.html and login with the organization owner.
+3. Click on **Add New User** and fill all the required data for the secondary user
+
+> The secondary user is exactly like the primary user, but by default it wouldn't have access to instances created by
+> the primary user
+
+#### Alien user
+
+1. Go to https://cloud.redhat.com/ and click on **Create an account**
+2. You can choose _Personal_ or _Corporate_
+3. Fill all the required data for the alien user and create the account
+
+> This will create the Alien user in a new organization
+
+### Create test namespace on the dev cluster
 
 1. Login to the dev cluster as kubeadmin
     ```
@@ -133,10 +195,11 @@ the `./hack/testrunner.sh` script and the following ENVs:
     ```
    ./hack/bootstrap-mk-e2e-tests-namespace.sh
     ```
-3. Update the [staging Vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/staging)
+3. Update
+   the [staging Vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/staging)
    with the new dev cluster token
 
-#### Recreate the service account for the sandbox cluster
+### Recreate the service account for the sandbox cluster
 
 1. Login to the sandbox cluster with the sandbox user
     ```
@@ -146,10 +209,11 @@ the `./hack/testrunner.sh` script and the following ENVs:
     ```
    SANDBOX=true NAMESPACE=THE_SANDBOX_NAMESPACE ./hack/bootstrap-mk-e2e-tests-namespace.sh
     ```
-3. Update the [sandbox Vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/sandbox)
+3. Update
+   the [sandbox Vault](https://vault.devshift.net/ui/vault/secrets/managed-services-ci/show/mk-e2e-test-suite/sandbox)
    with the new dev cluster token
 
-#### Update the rhoas-model dependency
+### Update the rhoas-model dependency
 
 1. Clone the operator the bf2/operator from here:https://github.com/bf2fc6cc711aee1a0c2a/operator
     ```

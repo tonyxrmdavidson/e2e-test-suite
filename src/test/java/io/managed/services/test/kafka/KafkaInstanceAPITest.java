@@ -19,7 +19,6 @@ import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
 import lombok.SneakyThrows;
@@ -34,6 +33,7 @@ import java.util.Objects;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -42,13 +42,18 @@ import static org.testng.Assert.assertTrue;
  * and used to administer the Kafka Instance itself.
  * <p>
  * 1. https://github.com/bf2fc6cc711aee1a0c2a/kafka-admin-api
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ * </ul>
  */
-@Test(groups = TestTag.KAFKA_ADMIN_API)
-public class KafkaAdminAPITest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaAdminAPITest.class);
+public class KafkaInstanceAPITest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(KafkaInstanceAPITest.class);
 
-    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-kaa-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-kaa-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-kaa-" + Environment.LAUNCH_KEY;
+    private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-kaa-sa-" + Environment.LAUNCH_KEY;
     private static final String TEST_TOPIC_NAME = "test-api-topic-1";
     private static final String TEST_NOT_EXISTING_TOPIC_NAME = "test-api-topic-not-exist";
 
@@ -68,8 +73,11 @@ public class KafkaAdminAPITest extends TestBase {
     @BeforeClass(timeOut = 10 * MINUTES)
     @SneakyThrows
     public void bootstrap() {
-        var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
-        var apps = ApplicationServicesApi.applicationServicesApi(auth, Environment.SERVICE_API_URI);
+        assertNotNull(Environment.PRIMARY_USERNAME, "the SSO_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the SSO_PASSWORD env is null");
+
+        var auth = new KeycloakOAuth(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var apps = ApplicationServicesApi.applicationServicesApi(auth);
         kafkaMgmtApi = apps.kafkaMgmt();
         securityMgmtApi = apps.securityMgmt();
         LOGGER.info("kafka and security mgmt api initialized");
@@ -116,7 +124,7 @@ public class KafkaAdminAPITest extends TestBase {
     public void testFailToCallAPIIfUserBelongsToADifferentOrganization() {
 
         var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
-            new KeycloakOAuth(Environment.SSO_ALIEN_USERNAME, Environment.SSO_ALIEN_PASSWORD), kafka));
+            new KeycloakOAuth(Environment.ALIEN_USERNAME, Environment.ALIEN_PASSWORD), kafka));
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
@@ -125,7 +133,7 @@ public class KafkaAdminAPITest extends TestBase {
     public void testFailToCallAPIIfUserDoesNotOwnTheKafkaInstance() {
 
         var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
-            new KeycloakOAuth(Environment.SSO_SECONDARY_USERNAME, Environment.SSO_SECONDARY_PASSWORD), kafka));
+            new KeycloakOAuth(Environment.SECONDARY_USERNAME, Environment.SECONDARY_PASSWORD), kafka));
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 

@@ -18,7 +18,6 @@ import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -38,6 +37,7 @@ import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithMultipleConsumers;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -46,13 +46,18 @@ import static org.testng.Assert.fail;
  * Test a Long Live Kafka Instance that will be deleted only before it expires, but otherwise it will continue to run
  * also after the tests are concluded. This is a very basic test to ensure that an update doesn't break
  * an existing Kafka Instance.
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ * </ul>
  */
-@Test(groups = TestTag.SERVICE_API)
 public class LongLiveKafkaInstanceTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(LongLiveKafkaInstanceTest.class);
 
-    public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.KAFKA_POSTFIX_NAME;
-    public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.LAUNCH_KEY;
+    public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.LAUNCH_KEY;
 
     private static final String TEST_TOPIC_NAME = "test-topic";
     private static final String MULTI_PARTITION_TOPIC_NAME = "multi-partitions-topic";
@@ -70,8 +75,12 @@ public class LongLiveKafkaInstanceTest extends TestBase {
 
     @BeforeClass
     public void bootstrap() {
-        var apps = ApplicationServicesApi.applicationServicesApi(Environment.SERVICE_API_URI,
-            Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+
+        var apps = ApplicationServicesApi.applicationServicesApi(
+            Environment.PRIMARY_USERNAME,
+            Environment.PRIMARY_PASSWORD);
 
         this.kafkaMgmtApi = apps.kafkaMgmt();
         this.securityMgmtApi = apps.securityMgmt();
@@ -101,7 +110,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
 
         LOGGER.info("initialize kafka instance api");
         kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.SSO_USERNAME, Environment.SSO_PASSWORD));
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)

@@ -72,7 +72,7 @@ public class OperatorUtils {
             .stream().filter(c -> c.getName().equals("rhoas-operator")).findAny().orElseThrow()
             .getEnv()
             .stream().filter(c -> c.getName().equals("CLOUD_SERVICES_API")).findAny().orElseThrow()
-            .setValue(Environment.SERVICE_API_URI);
+            .setValue(Environment.OPENSHIFT_API_URI);
 
         client.operatorHub()
             .clusterServiceVersions()

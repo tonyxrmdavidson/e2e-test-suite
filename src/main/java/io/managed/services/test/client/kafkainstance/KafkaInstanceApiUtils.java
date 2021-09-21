@@ -47,7 +47,7 @@ public class KafkaInstanceApiUtils {
 
     public static Future<KafkaInstanceApi> kafkaInstanceApi(KeycloakOAuth auth, KafkaRequest kafka) {
         log.info("authenticate user '{}' against MAS SSO", auth.getUsername());
-        return auth.loginToMASSSO().map(u -> kafkaInstanceApi(kafkaInstanceApiUri(kafka), u));
+        return auth.loginToOpenshiftIdentity().map(u -> kafkaInstanceApi(kafkaInstanceApiUri(kafka), u));
     }
 
     public static KafkaInstanceApi kafkaInstanceApi(String uri, User user) {

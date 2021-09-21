@@ -14,7 +14,6 @@ import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
-import io.managed.services.test.framework.TestTag;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
@@ -26,30 +25,29 @@ import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
 /**
- * Test the User authn and authz for the control manager api.
+ * Test the User authn and authz for the Kafka Mgmt API.
  * <p>
- * This tests uses 4 users:
+ * <b>Requires:</b>
  * <ul>
- *  <li>main user:      SSO_USERNAME, SSO_PASSWORD</li>
- *  <li>secondary user: SSO_SECONDARY_USERNAME, SSO_SECONDARY_PASSWORD</li>
- *  <li>alien user:     SSO_ALIEN_USERNAME, SSO_ALIEN_PASSWORD</li>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ *     <li> SECONDARY_USERNAME
+ *     <li> SECONDARY_PASSWORD
+ *     <li> ALIEN_USERNAME
+ *     <li> ALIEN_PASSWORD
  * </ul>
- * <p>
- * Conditions:
- * - The main user and secondary user should be part of the same organization
- * - The alien user should be part of a different organization as the main user
  */
-@Test(groups = TestTag.SERVICE_API_PERMISSIONS)
-public class KafkaManagerAPIPermissionsTest extends TestBase {
-    private static final Logger LOGGER = LogManager.getLogger(KafkaManagerAPIPermissionsTest.class);
+public class KafkaMgmtAPIPermissionsTest extends TestBase {
+    private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtAPIPermissionsTest.class);
 
-    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-up-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String SECONDARY_SERVICE_ACCOUNT_NAME = "mk-e2e-up-secondary-sa-" + Environment.KAFKA_POSTFIX_NAME;
-    private static final String ALIEN_SERVICE_ACCOUNT_NAME = "mk-e2e-up-alien-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-up-" + Environment.LAUNCH_KEY;
+    private static final String SECONDARY_SERVICE_ACCOUNT_NAME = "mk-e2e-up-secondary-sa-" + Environment.LAUNCH_KEY;
+    private static final String ALIEN_SERVICE_ACCOUNT_NAME = "mk-e2e-up-alien-sa-" + Environment.LAUNCH_KEY;
 
     private final Vertx vertx = Vertx.vertx();
 
@@ -62,21 +60,24 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
     @BeforeClass(timeOut = 15 * MINUTES)
     @SneakyThrows
     public void bootstrap() {
+        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+        assertNotNull(Environment.SECONDARY_USERNAME, "the SECONDARY_USERNAME env is null");
+        assertNotNull(Environment.SECONDARY_PASSWORD, "the SECONDARY_PASSWORD env is null");
+        assertNotNull(Environment.ALIEN_USERNAME, "the ALIEN_USERNAME env is null");
+        assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
 
         mainAPI = ApplicationServicesApi.applicationServicesApi(
-            Environment.SERVICE_API_URI,
-            Environment.SSO_USERNAME,
-            Environment.SSO_PASSWORD);
+            Environment.PRIMARY_USERNAME,
+            Environment.PRIMARY_PASSWORD);
 
         secondaryAPI = ApplicationServicesApi.applicationServicesApi(
-            Environment.SERVICE_API_URI,
-            Environment.SSO_SECONDARY_USERNAME,
-            Environment.SSO_SECONDARY_PASSWORD);
+            Environment.SECONDARY_USERNAME,
+            Environment.SECONDARY_PASSWORD);
 
         alienAPI = ApplicationServicesApi.applicationServicesApi(
-            Environment.SERVICE_API_URI,
-            Environment.SSO_ALIEN_USERNAME,
-            Environment.SSO_ALIEN_PASSWORD);
+            Environment.ALIEN_USERNAME,
+            Environment.ALIEN_PASSWORD);
 
         LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
         kafka = KafkaMgmtApiUtils.applyKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
@@ -180,8 +181,8 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
 
         LOGGER.info("initialize kafka admin api for kafka instance: {}", kafka.getBootstrapServerHost());
         var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.SSO_ALIEN_USERNAME,
-            Environment.SSO_ALIEN_PASSWORD));
+            Environment.ALIEN_USERNAME,
+            Environment.ALIEN_PASSWORD));
 
         var topicPayload = new NewTopicInput()
             .name("api-alien-test-topic")
@@ -235,13 +236,13 @@ public class KafkaManagerAPIPermissionsTest extends TestBase {
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithFakeToken() {
-        var api = new ApplicationServicesApi(Environment.SERVICE_API_URI, TestUtils.FAKE_TOKEN);
+        var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, TestUtils.FAKE_TOKEN);
         assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
     public void testUnauthenticatedUserWithoutToken() {
-        var api = new ApplicationServicesApi(Environment.SERVICE_API_URI, "");
+        var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, "");
         assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
 }

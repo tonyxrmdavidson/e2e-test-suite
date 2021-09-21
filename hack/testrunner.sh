@@ -12,18 +12,19 @@ SCRIPT=$0
 # ---
 
 PROFILE_DEFAULT="default"
+REPORTPORTAL_ENABLE=false
 
 # Variables
 # ---
 
+ENABLE_TEST=${ENABLE_TEST:-"true"}
 PROFILE=${PROFILE:-${PROFILE_DEFAULT}}
 TESTCASE=${TESTCASE:-}
-REPORTPORTAL_ENABLE=${REPORTPORTAL_ENABLE:-"false"}
-REPORTPORTAL_ENDPOINT=${REPORTPORTAL_ENDPOINT:-"https://reportportal-cloud-services.apps.ocp4.prod.psi.redhat.com"}
-REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-""}
-REPORTPORTAL_LAUNCH=${REPORTPORTAL_LAUNCH:-"mk-e2e-test-suite"}
+REPORTPORTAL_ENDPOINT=${REPORTPORTAL_ENDPOINT:-}
+REPORTPORTAL_UUID=${REPORTPORTAL_UUID:-}
+REPORTPORTAL_LAUNCH=${REPORTPORTAL_LAUNCH:-}
 REPORTPORTAL_PROJECT=${REPORTPORTAL_PROJECT:-"rhosak"}
-ENABLE_TEST=${ENABLE_TEST:-"true"}
+BUILD_URL=${BUILD_URL:-"null"}
 
 # Help
 # ---
@@ -69,10 +70,6 @@ while [[ $# -gt 0 ]]; do
     shift
     shift
     ;;
-  --report)
-    REPORTPORTAL_ENABLE=true
-    shift
-    ;;
   --* | -*)
     usage
     echo
@@ -96,6 +93,10 @@ if [[ ${ENABLE_TEST} == "false" ]]; then
   exit 0
 fi
 
+if [[ -n "${REPORTPORTAL_UUID}" ]]; then
+  REPORTPORTAL_ENABLE=true
+fi
+
 OPTIONS=()
 if [[ -n "${PROFILE}" ]]; then
   OPTIONS+=("-P${PROFILE}")
@@ -116,4 +117,4 @@ exec mvn verify \
   "-Drp.api.key=${REPORTPORTAL_UUID}" \
   "-Drp.launch=${REPORTPORTAL_LAUNCH}" \
   "-Drp.project=${REPORTPORTAL_PROJECT}" \
-  "-Drp.description=Build: ${BUILD_URL:-"null"}"
+  "-Drp.description=Build: ${BUILD_URL}"
