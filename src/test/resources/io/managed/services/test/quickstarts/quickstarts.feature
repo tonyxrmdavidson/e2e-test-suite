@@ -102,7 +102,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * You have a running Kafka instance in OpenShift Streams for Apache Kafka
     * JDK 11 or later is installed
     * For Windows, the latest version of Oracle JDK is installed
-    * You have downloaded and verified the latest supported version of the Kcat for your operating system
+    * You have downloaded and verified the latest supported version of Kcat for your operating system
 
     # 1. Configuring Kcat to connect to a Kafka instance
     Given you have the bootstrap server endpoint and the service account credentials for the Kafka instance
@@ -141,7 +141,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     When you create an `app-services.properties` file in the local `/config` directory of the Kafka binaries
     Then it contains the connection values
 
-    # 2. Producing messages using kafka scripts
+    # 2. Producing messages using Kafka scripts
     Given you are set up to produce messages to Kafka topics
     * The Kafka topic creation script `kafka-topics.sh` is available in the `/bin` directory of the Kafka binaries
     * The Kafka producer creation script `kafka-console-producer.sh` is available in the `/bin` directory of the Kafka binaries
@@ -157,7 +157,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     And use the `app-services.properties` file as a parameter
     Then messages are produced to the topic in the Kafka instance
 
-    # 3. Consuming messages using kafka scripts
+    # 3. Consuming messages using Kafka scripts
     Given you are set up to consume messages
     * The Kafka consumer creation script `kafka-console-consumer.sh` is available in the `/bin` directory of the Kafka binaries
     * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
