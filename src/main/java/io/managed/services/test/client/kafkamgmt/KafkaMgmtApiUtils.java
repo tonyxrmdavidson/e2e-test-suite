@@ -5,8 +5,8 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
 import io.managed.services.test.DNSUtils;
 import io.managed.services.test.Environment;
-import io.managed.services.test.ThrowableFunction;
-import io.managed.services.test.ThrowableSupplier;
+import io.managed.services.test.ThrowingFunction;
+import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.KasApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
@@ -112,7 +112,7 @@ public class KafkaMgmtApiUtils {
 
         var kafkaAtom = new AtomicReference<KafkaRequest>();
         var exceptionAtom = new AtomicReference<ApiToManyRequestsException>();
-        ThrowableFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
             try {
                 kafkaAtom.set(api.createKafka(true, payload));
             } catch (ApiToManyRequestsException e) {
@@ -186,11 +186,11 @@ public class KafkaMgmtApiUtils {
      * @param supplier Returns the kafka instance to wait for
      * @return KafkaRequest
      */
-    public static <T extends Throwable> KafkaRequest waitUntilKafkaIsReady(ThrowableSupplier<KafkaRequest, T> supplier)
+    public static <T extends Throwable> KafkaRequest waitUntilKafkaIsReady(ThrowingSupplier<KafkaRequest, T> supplier)
         throws T, InterruptedException, KafkaUnknownHostsException, KafkaNotReadyException {
 
         var kafkaAtom = new AtomicReference<KafkaRequest>();
-        ThrowableFunction<Boolean, Boolean, T> ready = last -> {
+        ThrowingFunction<Boolean, Boolean, T> ready = last -> {
             var kafka = supplier.get();
             kafkaAtom.set(kafka);
 
@@ -226,7 +226,7 @@ public class KafkaMgmtApiUtils {
         var admin = "admin-server-" + bootstrap;
         var hosts = new ArrayList<>(List.of(bootstrap, admin, broker0, broker1, broker2));
 
-        ThrowableFunction<Boolean, Boolean, Error> ready = last -> {
+        ThrowingFunction<Boolean, Boolean, Error> ready = last -> {
 
             for (var i = 0; i < hosts.size(); i++) {
                 try {
@@ -280,11 +280,11 @@ public class KafkaMgmtApiUtils {
      * @param supplier Return true if the instance doesn't exist anymore
      */
     public static <T extends Throwable> void waitUntilKafkaIsDeleted(
-        ThrowableSupplier<Optional<KafkaRequest>, T> supplier)
+        ThrowingSupplier<Optional<KafkaRequest>, T> supplier)
         throws T, InterruptedException, KafkaNotDeletedException {
 
         var kafkaAtom = new AtomicReference<KafkaRequest>();
-        ThrowableFunction<Boolean, Boolean, T> ready = l -> {
+        ThrowingFunction<Boolean, Boolean, T> ready = l -> {
             var exists = supplier.get();
             if (exists.isEmpty()) {
                 return true;

@@ -334,7 +334,7 @@ public class KafkaCLITest extends TestBase {
             kafka.getBootstrapServerHost(),
             serviceAccountSecret.getClientID(),
             serviceAccountSecret.getClientSecret()));
-        bwait(consumer.close());
+        bwait(consumer.asyncClose());
 
         var group = CLIUtils.waitForConsumerGroup(cli, CONSUMER_GROUP_NAME);
         LOGGER.debug(group);

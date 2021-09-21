@@ -8,9 +8,8 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestList;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountList;
-import io.managed.services.test.Environment;
-import io.managed.services.test.TestUtils;
-import io.managed.services.test.ThrowableSupplier;
+import io.managed.services.test.RetryUtils;
+import io.managed.services.test.ThrowingSupplier;
 import lombok.SneakyThrows;
 
 import java.io.File;
@@ -19,7 +18,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 
 import static io.managed.services.test.cli.ProcessUtils.stdout;
 import static io.managed.services.test.cli.ProcessUtils.stdoutAsJson;
@@ -203,19 +201,14 @@ public class CLI {
         retry(() -> exec("cluster", "connect", "--token", token, "--kubeconfig", kubeconfig, "-y"));
     }
 
-    public <T, E extends Throwable> T retry(ThrowableSupplier<T, E> call) throws E {
+    private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {
+        return RetryUtils.retry(1, call, CLI::retryCondition);
+    }
 
-        Function<Throwable, Boolean> condition = t -> {
-            if (t instanceof ProcessException) {
-                return t.getMessage().contains("504")
-                    || t.getMessage().contains("500")
-                    || t.getMessage().contains("503")
-                    || t.getMessage().contains("internal");
-            }
-
-            return false;
-        };
-
-        return TestUtils.retry(call, condition, Environment.RETRY_CALL_THRESHOLD);
+    private static boolean retryCondition(Throwable t) {
+        if (t instanceof CliGenericException) {
+            return ((CliGenericException) t).getCode() >= 500 && ((CliGenericException) t).getCode() < 600;
+        }
+        return false;
     }
 }

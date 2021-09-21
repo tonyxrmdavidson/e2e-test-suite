@@ -1,6 +1,6 @@
 package io.managed.services.test.client.oauth;
 
-import io.managed.services.test.TestUtils;
+import io.managed.services.test.RetryUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -118,7 +118,7 @@ public class KeycloakOAuthUtils {
             return false;
         };
 
-        return TestUtils.retry(vertx, call, condition);
+        return RetryUtils.retry(vertx, 1, call, condition);
     }
 
 

@@ -1,13 +1,13 @@
 package io.managed.services.test.client.kafka;
 
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import io.vertx.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,13 +15,13 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.forEach;
 
-public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
+public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
     private static final Logger LOGGER = LogManager.getLogger(KafkaConsumerClient.class);
-    private final Vertx vertx;
     private final KafkaConsumer<K, V> consumer;
 
     public KafkaConsumerClient(
@@ -80,8 +80,6 @@ public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
         Class<? extends Deserializer<K>> keyDeserializer,
         Class<? extends Deserializer<V>> valueDeserializer,
         Map<String, String> additionalConfig) {
-
-        this.vertx = vertx;
 
         LOGGER.info("initialize kafka consumer; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         consumer = createConsumer(vertx,
@@ -163,62 +161,23 @@ public class KafkaConsumerClient<K, V> implements KafkaAsyncConsumer<K, V> {
         return promise.future();
     }
 
-    public static KafkaConsumer<String, String> createConsumer(
-        Vertx vertx,
-        String bootstrapHost,
-        String clientID,
-        String clientSecret,
-        KafkaAuthMethod authMethod,
-        String groupID,
-        String offset) {
-
-        return createConsumer(
-            vertx,
-            bootstrapHost,
-            clientID,
-            clientSecret,
-            authMethod,
-            groupID,
-            offset,
-            StringDeserializer.class,
-            StringDeserializer.class,
-            new HashMap<>());
+    @SuppressWarnings("UnusedReturnValue")
+    public Future<Void> subscribe(String topic) {
+        return consumer.subscribe(topic);
     }
 
+    public void handler(Handler<KafkaConsumerRecord<K, V>> handler) {
+        consumer.handler(handler);
+    }
 
-    public static <K, V> KafkaConsumer<K, V> createConsumer(
-        Vertx vertx,
-        String bootstrapHost,
-        String clientID,
-        String clientSecret,
-        KafkaAuthMethod authMethod,
-        String groupID,
-        String offset,
-        Class<? extends Deserializer<K>> keyDeserializer,
-        Class<? extends Deserializer<V>> valueDeserializer,
-        Map<String, String> additionalConfig) {
-
-        var config = authMethod.configs(bootstrapHost, clientID, clientSecret);
-
-        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer.getName());
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer.getName());
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupID);
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offset);
-        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-
-        // add the additional configs
-        config.putAll(additionalConfig);
-
-        return KafkaConsumer.create(vertx, config);
+    public Future<Set<TopicPartition>> assignment() {
+        return consumer.assignment();
     }
 
     @Override
-    public Future<Void> close() {
-        if (vertx != null && consumer != null) {
-            return consumer.close()
-                .onSuccess(v -> LOGGER.info("KafkaConsumerClient closed"))
-                .onFailure(c -> LOGGER.error("failed to close KafkaConsumerClient", c));
-        }
-        return Future.succeededFuture(null);
+    public Future<Void> asyncClose() {
+        return consumer.close()
+            .onSuccess(v -> LOGGER.info("KafkaConsumerClient closed"))
+            .onFailure(c -> LOGGER.error("failed to close KafkaConsumerClient", c));
     }
 }

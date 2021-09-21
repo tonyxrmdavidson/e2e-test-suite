@@ -6,8 +6,8 @@ import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.IsReady;
-import io.managed.services.test.ThrowableFunction;
-import io.managed.services.test.ThrowableSupplier;
+import io.managed.services.test.ThrowingFunction;
+import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.KasAuthApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
@@ -18,8 +18,8 @@ import io.managed.services.test.wait.TReadyFunction;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.User;
-import io.vertx.kafka.client.consumer.KafkaConsumer;
 import lombok.extern.log4j.Log4j2;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.javatuples.Pair;
 
 import java.util.Optional;
@@ -55,7 +55,7 @@ public class KafkaInstanceApiUtils {
         return new KafkaInstanceApi(new KasAuthApiClient().basePath(uri).bearerToken(token).getApiClient());
     }
 
-    public static Future<KafkaConsumer<String, String>> startConsumerGroup(
+    public static Future<KafkaConsumerClient<String, String>> startConsumerGroup(
         Vertx vertx,
         String consumerGroup,
         String topicName,
@@ -64,13 +64,15 @@ public class KafkaInstanceApiUtils {
         String clientSecret) {
 
         log.info("start kafka consumer with group id '{}'", consumerGroup);
-        var consumer = KafkaConsumerClient.createConsumer(vertx,
+        var consumer = new KafkaConsumerClient<>(vertx,
             bootstrapServerHost,
             clientId,
             clientSecret,
             KafkaAuthMethod.OAUTH,
             consumerGroup,
-            "latest");
+            "latest",
+            StringDeserializer.class,
+            StringDeserializer.class);
 
         log.info("subscribe to topic '{}'", topicName);
         consumer.subscribe(topicName);
@@ -103,11 +105,11 @@ public class KafkaInstanceApiUtils {
     }
 
     public static <T extends Throwable> ConsumerGroup waitForConsumerGroup(
-        ThrowableSupplier<Optional<ConsumerGroup>, T> supplier)
+        ThrowingSupplier<Optional<ConsumerGroup>, T> supplier)
         throws T, InterruptedException, TimeoutException {
 
         var groupAtom = new AtomicReference<ConsumerGroup>();
-        ThrowableFunction<Boolean, Boolean, T> ready = last -> {
+        ThrowingFunction<Boolean, Boolean, T> ready = last -> {
             var exists = supplier.get();
             if (exists.isPresent()) {
                 groupAtom.set(exists.get());

@@ -16,9 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class KafkaProducerClient<K, V> {
+public class KafkaProducerClient<K, V> implements AutoCloseable {
     private static final Logger LOGGER = LogManager.getLogger(KafkaProducerClient.class);
-    private final Vertx vertx;
     private final KafkaProducer<K, V> producer;
 
     public KafkaProducerClient(
@@ -50,8 +49,6 @@ public class KafkaProducerClient<K, V> {
         Class<? extends Serializer<V>> valueSerializer,
         Map<String, String> additionalConfig) {
 
-        this.vertx = vertx;
-
         LOGGER.info("initialize kafka producer; host: {}; clientID: {}; clientSecret: ***", bootstrapHost, clientID);
         producer = createProducer(
             vertx,
@@ -75,7 +72,7 @@ public class KafkaProducerClient<K, V> {
             .map(c -> c.list());
     }
 
-    public static <K, V> KafkaProducer<K, V> createProducer(
+    private static <K, V> KafkaProducer<K, V> createProducer(
         Vertx vertx,
         String bootstrapHost,
         String clientID,
@@ -98,12 +95,19 @@ public class KafkaProducerClient<K, V> {
         return KafkaProducer.create(vertx, config);
     }
 
-    public Future<Void> close() {
-        if (vertx != null && producer != null) {
-            return producer.close()
-                .onSuccess(v -> LOGGER.info("KafkaProducerClient closed"))
-                .onFailure(c -> LOGGER.error("failed to close KafkaProducerClient", c));
-        }
-        return Future.succeededFuture(null);
+    public Future<RecordMetadata> send(KafkaProducerRecord<K, V> record) {
+        return producer.send(record);
+    }
+
+    public Future<Void> asyncClose() {
+        return producer.close()
+            .onSuccess(v -> LOGGER.info("KafkaProducerClient closed"))
+            .onFailure(c -> LOGGER.error("failed to close KafkaProducerClient", c));
+    }
+
+    @Override
+    public void close() throws Exception {
+        LOGGER.warn("force closing KafkaConsumerClient");
+        asyncClose().toCompletionStage().toCompletableFuture().get();
     }
 }

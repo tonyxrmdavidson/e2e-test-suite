@@ -1,7 +1,7 @@
 package io.managed.services.test.client;
 
 import io.managed.services.test.Environment;
-import io.managed.services.test.TestUtils;
+import io.managed.services.test.RetryUtils;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -69,6 +69,7 @@ public abstract class BaseVertxClient {
         return false;
     }
 
+    @Deprecated
     public <T> Future<T> retry(Supplier<Future<T>> call) {
 
         Function<Throwable, Boolean> condition = t -> {
@@ -91,7 +92,7 @@ public abstract class BaseVertxClient {
             return false;
         };
 
-        return TestUtils.retry(vertx, call, condition);
+        return RetryUtils.retry(vertx, 1, call, condition);
     }
 
     public static <T> Future<HttpResponse<T>> assertResponse(HttpResponse<T> response, Integer statusCode) {

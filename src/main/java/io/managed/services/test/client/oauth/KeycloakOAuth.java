@@ -1,7 +1,7 @@
 package io.managed.services.test.client.oauth;
 
 import io.managed.services.test.Environment;
-import io.managed.services.test.TestUtils;
+import io.managed.services.test.RetryUtils;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
@@ -205,7 +205,7 @@ public class KeycloakOAuth {
             return false;
         };
 
-        return TestUtils.retry(vertx, call, condition);
+        return RetryUtils.retry(vertx, 1, call, condition);
     }
 
     public String getUsername() {

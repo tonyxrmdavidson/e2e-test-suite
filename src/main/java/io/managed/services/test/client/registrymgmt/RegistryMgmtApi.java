@@ -29,18 +29,18 @@ public class RegistryMgmtApi extends BaseApi<ApiException> {
     }
 
     public RegistryRest createRegistry(RegistryCreateRest registryCreateRest) throws ApiGenericException {
-        return handle(() -> registriesApi.createRegistry(registryCreateRest));
+        return retry(() -> registriesApi.createRegistry(registryCreateRest));
     }
 
     public RegistryRest getRegistry(String id) throws ApiGenericException {
-        return handle(() -> registriesApi.getRegistry(id));
+        return retry(() -> registriesApi.getRegistry(id));
     }
 
     public RegistryListRest getRegistries(Integer page, Integer size, String orderBy, String search) throws ApiGenericException {
-        return handle(() -> registriesApi.getRegistries(page, size, orderBy, search));
+        return retry(() -> registriesApi.getRegistries(page, size, orderBy, search));
     }
 
     public void deleteRegistry(String id) throws ApiGenericException {
-        vhandle(() -> registriesApi.deleteRegistry(id));
+        retry(() -> registriesApi.deleteRegistry(id));
     }
 }

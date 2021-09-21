@@ -42,14 +42,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-// TODO: Switch from vert.x Future to KafkaFuture
 public class KafkaAdmin {
 
     public final Admin admin;
-
-    // TODO: This parameters shouldn't be passed top down from the test
-    // TODO: We shouldn't relay on the `__strimzi_canary`
-
 
     public KafkaAdmin(String bootstrapHost, String clientID, String clientSecret) {
         Map<String, Object> conf = KafkaAuthMethod.oAuthConfigs(bootstrapHost, clientID, clientSecret)

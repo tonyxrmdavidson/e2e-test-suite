@@ -9,6 +9,6 @@ public class KafkaNotReadyException extends Exception {
     }
 
     public KafkaNotReadyException(KafkaRequest k, Exception cause) {
-        super("kafka instance is not ready\n" + k.toString(), cause);
+        super("reason: " + k.getFailedReason() + "\n" + k, cause);
     }
 }

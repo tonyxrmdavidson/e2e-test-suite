@@ -221,7 +221,7 @@ public class KafkaMessagingUtils {
             .eventually(__ -> {
                 // close the producer and consumer in any case
                 LOGGER.info("close the consumer and the producer for topic {}", topicName);
-                return CompositeFuture.join(producer.close(), consumer.close());
+                return CompositeFuture.join(producer.asyncClose(), consumer.asyncClose());
             });
     }
 

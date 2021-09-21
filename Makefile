@@ -37,6 +37,7 @@ KAFKA_POSTFIX_NAME ?=
 SKIP_TEARDOWN ?=
 BUILD_URL ?=
 WHOISXMLAPI_KEY ?=
+PROMETHEUS_PUSH_GATEWAY ?=
 
 # if set to false the tests will not be executed
 # this is a workaround because the app-interface jenkins doesn't support a easy
@@ -103,6 +104,7 @@ container/test:
 		-e REPORTPORTAL_UUID=${REPORTPORTAL_UUID} \
 		-e REPORTPORTAL_LAUNCH=${REPORTPORTAL_LAUNCH} \
 		-e WHOISXMLAPI_KEY=${WHOISXMLAPI_KEY} \
+		-e PROMETHEUS_PUSH_GATEWAY=${PROMETHEUS_PUSH_GATEWAY} \
 		-e KAFKA_POSTFIX_NAME=${KAFKA_POSTFIX_NAME} \
 		-e SKIP_TEARDOWN=${SKIP_TEARDOWN} \
 		-e BUILD_URL=${BUILD_URL} \

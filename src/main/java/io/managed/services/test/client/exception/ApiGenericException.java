@@ -3,8 +3,16 @@ package io.managed.services.test.client.exception;
 import java.net.HttpURLConnection;
 
 public class ApiGenericException extends Exception {
+
+    private final int code;
+
     public ApiGenericException(ApiUnknownException e) {
         super(e.getFullMessage(), e);
+        this.code = e.getCode();
+    }
+
+    public int getCode() {
+        return code;
     }
 
     public static ApiGenericException apiException(ApiUnknownException e) {

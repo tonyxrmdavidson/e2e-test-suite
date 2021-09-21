@@ -30,23 +30,23 @@ public class SecurityMgmtApi extends BaseApi<ApiException> {
 
     @SuppressWarnings("unused")
     public ServiceAccount getServiceAccountById(String id) throws ApiGenericException {
-        return handle(() -> api.getServiceAccountById(id));
+        return retry(() -> api.getServiceAccountById(id));
     }
 
     public ServiceAccountList getServiceAccounts() throws ApiGenericException {
-        return handle(() -> api.getServiceAccounts());
+        return retry(() -> api.getServiceAccounts());
     }
 
     public ServiceAccount createServiceAccount(ServiceAccountRequest serviceAccountRequest) throws ApiGenericException {
-        return handle(() -> api.createServiceAccount(serviceAccountRequest));
+        return retry(() -> api.createServiceAccount(serviceAccountRequest));
     }
 
     public void deleteServiceAccountById(String id) throws ApiGenericException {
         // TODO: why does it return Error
-        handle(() -> api.deleteServiceAccountById(id));
+        retry(() -> api.deleteServiceAccountById(id));
     }
 
     public ServiceAccount resetServiceAccountCreds(String id) throws ApiGenericException {
-        return handle(() -> api.resetServiceAccountCreds(id));
+        return retry(() -> api.resetServiceAccountCreds(id));
     }
 }

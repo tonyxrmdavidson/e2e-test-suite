@@ -5,7 +5,7 @@ import com.openshift.cloud.api.srs.models.RegistryListRest;
 import com.openshift.cloud.api.srs.models.RegistryRest;
 import com.openshift.cloud.api.srs.models.RegistryStatusValueRest;
 import io.managed.services.test.Environment;
-import io.managed.services.test.ThrowableFunction;
+import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.SrsApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
@@ -99,7 +99,7 @@ public class RegistryMgmtApiUtils {
         // save the last ready registry in the atomic reference
         var registryReference = new AtomicReference<RegistryRest>();
 
-        ThrowableFunction<Boolean, Boolean, ApiGenericException> isReady
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> isReady
             = last -> isRegistryReady(api.getRegistry(registryID), registryReference, last);
 
         waitFor("registry to be ready", ofSeconds(3), ofMinutes(1), isReady);
@@ -143,7 +143,7 @@ public class RegistryMgmtApiUtils {
     public static void waitUntilRegistryIsDeleted(RegistryMgmtApi api, String registryId)
         throws InterruptedException, ApiGenericException, TimeoutException {
 
-        ThrowableFunction<Boolean, Boolean, ApiGenericException> isReady = last -> {
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> isReady = last -> {
             try {
                 var registry = api.getRegistry(registryId);
                 LOGGER.debug(registry);

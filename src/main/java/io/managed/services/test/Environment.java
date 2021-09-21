@@ -26,13 +26,12 @@ public class Environment {
     private static final Map<String, String> VALUES = new HashMap<>();
     private static final JsonNode JSON_DATA = loadConfigurationFile();
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm");
-    private static String config;
 
     /*
      * Definition of env vars
      */
     private static final String LOG_DIR_ENV = "LOG_DIR";
-    private static final String CONFIG_FILE_PATH_ENV = "CONFIG_PATH";
+    private static final String CONFIG_FILE_ENV = "CONFIG_PATH";
 
     private static final String SSO_USERNAME_ENV = "SSO_USERNAME";
     private static final String SSO_PASSWORD_ENV = "SSO_PASSWORD";
@@ -56,6 +55,7 @@ public class Environment {
 
     private static final String SERVICE_API_URI_ENV = "SERVICE_API_URI";
 
+    // TODO: Rename to unique name
     private static final String KAFKA_POSTFIX_NAME_ENV = "KAFKA_POSTFIX_NAME";
 
     private static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
@@ -78,7 +78,10 @@ public class Environment {
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
     private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
 
+    @Deprecated
     private static final String WHOISXMLAPI_KEY_ENV = "WHOISXMLAPI_KEY";
+
+    private static final String PROMETHEUS_PUSH_GATEWAY_ENV = "PROMETHEUS_PUSH_GATEWAY";
 
     /*
      * Setup constants from env variables or set default
@@ -86,6 +89,7 @@ public class Environment {
     public static final String SUITE_ROOT = System.getProperty("user.dir");
     public static final Path LOG_DIR = getOrDefault(LOG_DIR_ENV, Paths::get, Paths.get(SUITE_ROOT, "target", "logs")).resolve("test-run-" + DATE_FORMAT.format(LocalDateTime.now()));
 
+    // TODO: Remove SSO prefix and rename first user to MAIN_USERNAME
     // main sso.redhat.com user
     public static final String SSO_USERNAME = getOrDefault(SSO_USERNAME_ENV, null);
     public static final String SSO_PASSWORD = getOrDefault(SSO_PASSWORD_ENV, null);
@@ -98,12 +102,14 @@ public class Environment {
     public static final String SSO_ALIEN_PASSWORD = getOrDefault(SSO_ALIEN_PASSWORD_ENV, null);
 
     // sso.redhat.com OAuth ENVs
+    // TODO: Rename to SSO_REDHAT_URI
     public static final String SSO_REDHAT_KEYCLOAK_URI = getOrDefault(SSO_REDHAT_KEYCLOAK_URI_ENV, "https://sso.redhat.com");
     public static final String SSO_REDHAT_REALM = getOrDefault(SSO_REDHAT_REALM_ENV, "redhat-external");
     public static final String SSO_REDHAT_CLIENT_ID = getOrDefault(SSO_REDHAT_CLIENT_ID_ENV, "cloud-services");
     public static final String SSO_REDHAT_REDIRECT_URI = getOrDefault(SSO_REDHAT_REDIRECT_URI_ENV, "https://cloud.redhat.com");
 
     // identity.api.openshift.com OAuth ENVs
+    // TODO: Rename to IDENTITY_OPENSHIFT_URI
     public static final String MAS_SSO_REDHAT_KEYCLOAK_URI = getOrDefault(MAS_SSO_REDHAT_KEYCLOAK_URI_ENV, "https://identity.api.stage.openshift.com");
     public static final String MAS_SSO_REDHAT_REALM = getOrDefault(MAS_SSO_REDHAT_REALM_ENV, "rhoas");
     public static final String MAS_SSO_REDHAT_CLIENT_ID = getOrDefault(MAS_SSO_REDHAT_CLIENT_ID_ENV, "strimzi-ui");
@@ -115,6 +121,7 @@ public class Environment {
     // TODO: Rename to OPENSHIFT_API_URI
     public static final String SERVICE_API_URI = getOrDefault(SERVICE_API_URI_ENV, "https://api.stage.openshift.com");
 
+    // TODO: Rename to LAUNCH and make REPORTPORTAL_LAUNCH to fall back to LAUNCH
     public static final String KAFKA_POSTFIX_NAME = getOrDefault(KAFKA_POSTFIX_NAME_ENV, "change-me");
 
     public static final String DEV_CLUSTER_SERVER = getOrDefault(DEV_CLUSTER_SERVER_ENV, null);
@@ -131,9 +138,11 @@ public class Environment {
     public static final String CLI_PLATFORM = getOrDefault(CLI_PLATFORM_ENV, Platform.getArch().toString());
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
 
+    @Deprecated
     public static final long API_TIMEOUT_MS = getOrDefault(API_TIMEOUT_MS_ENV, Long::parseLong, 120_000L);
 //    public static final long WAIT_READY_MS = getOrDefault(WAIT_READY_MS_ENV, Long::parseLong, 500_000L);
 
+    @Deprecated
     public static final int RETRY_CALL_THRESHOLD = getOrDefault(RETRY_CALL_THRESHOLD_ENV, Integer::parseInt, 2);
 
     // Skip the whole teardown in some tests, although some of them will need top re-enable it to succeed
@@ -142,18 +151,16 @@ public class Environment {
     // Skip only the Kafka instance delete teardown to speed the local development
     public static final boolean SKIP_KAFKA_TEARDOWN = getOrDefault(SKIP_KAFKA_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
+    @Deprecated
     public static final String WHOISXMLAPI_KEY = getOrDefault(WHOISXMLAPI_KEY_ENV, "");
+
+    public static final String PROMETHEUS_PUSH_GATEWAY = getOrDefault(PROMETHEUS_PUSH_GATEWAY_ENV, null);
 
     private Environment() {
     }
 
-    static {
-        String debugFormat = "{}: {}";
-        LOGGER.info("=======================================================================");
-        LOGGER.info("Environment variables:");
-        LOGGER.info(debugFormat, "CONFIG", config);
-        VALUES.forEach((key, value) -> LOGGER.info(debugFormat, key, value));
-        LOGGER.info("=======================================================================");
+    public static Map<String, String> getValues() {
+        return VALUES;
     }
 
     /**
@@ -195,9 +202,11 @@ public class Environment {
      * @return json object with loaded variables
      */
     private static JsonNode loadConfigurationFile() {
-        var config = System.getenv().getOrDefault(CONFIG_FILE_PATH_ENV,
+        var config = System.getenv().getOrDefault(CONFIG_FILE_ENV,
             Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
-        Environment.config = config;
+
+        VALUES.put(CONFIG_FILE_ENV, config);
+
         ObjectMapper mapper = new ObjectMapper();
         try {
             File jsonFile = new File(config).getAbsoluteFile();

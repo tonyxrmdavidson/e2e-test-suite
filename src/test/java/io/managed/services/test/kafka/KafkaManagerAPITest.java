@@ -279,7 +279,7 @@ public class KafkaManagerAPITest extends TestBase {
 
         // Connect the Kafka producer
         log.info("initialize kafka producer");
-        var producer = KafkaProducerClient.createProducer(
+        var producer = new KafkaProducerClient<>(
             Vertx.vertx(),
             bootstrapHost,
             clientID,
@@ -303,7 +303,7 @@ public class KafkaManagerAPITest extends TestBase {
                     t -> Future.succeededFuture(Pair.with(true, null))));
 
         log.info("close kafka producer and consumer");
-        bwait(producer.close());
+        bwait(producer.asyncClose());
     }
 
     @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
