@@ -269,9 +269,9 @@ public class LongLiveKafkaInstanceTest extends TestBase {
             clientSecret,
             MULTI_PARTITION_TOPIC_NAME,
             Duration.ofMinutes(1),
-            1000,
-            99,
-            100,
+            1024 * 2,
+            1024,
+            1024 * 4,
             3));
     }
 
