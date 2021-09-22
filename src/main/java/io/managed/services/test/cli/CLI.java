@@ -31,9 +31,9 @@ public class CLI {
     private final String workdir;
     private final String cmd;
 
-    public CLI(String workdir, String name) {
-        this.workdir = workdir;
-        this.cmd = String.format("./%s", name);
+    public CLI(Path binary) {
+        this.workdir = binary.getParent().toString();
+        this.cmd = String.format("./%s", binary.getFileName().toString());
     }
 
     public String getWorkdir() {

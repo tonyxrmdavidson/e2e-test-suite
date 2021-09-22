@@ -126,13 +126,13 @@ public class QuarkusApplicationTest extends TestBase {
         oc = new DefaultOpenShiftClient(config);
 
         // CLI
-        var downloader = CLIDownloader.defaultDownloader(vertx);
+        var downloader = CLIDownloader.defaultDownloader();
         LOGGER.info("download cli");
-        var cliBinary = bwait(downloader.downloadCLIInTempDir());
-        LOGGER.info("cli downloaded successfully to: {}", cliBinary.directory);
+        var cliBinary = downloader.downloadCLIInTempDir();
+        LOGGER.info("cli downloaded successfully to: {}", cliBinary);
 
         LOGGER.info("login the cli");
-        cli = new CLI(cliBinary.directory, cliBinary.name);
+        cli = new CLI(cliBinary);
         CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
 
         // User
