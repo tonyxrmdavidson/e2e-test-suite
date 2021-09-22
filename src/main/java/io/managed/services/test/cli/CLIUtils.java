@@ -83,21 +83,21 @@ public class CLIUtils {
 
     public static CompletableFuture<Void> login(Vertx vertx, CLI cli, String username, String password) {
 
-        var authURL = String.format("%s/auth/realms/%s", Environment.SSO_REDHAT_KEYCLOAK_URI, Environment.SSO_REDHAT_REALM);
-        var masAuthURL = String.format("%s/auth/realms/%s", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI, Environment.MAS_SSO_REDHAT_REALM);
+        var authURL = String.format("%s/auth/realms/%s", Environment.REDHAT_SSO_URI, Environment.REDHAT_SSO_REALM);
+        var masAuthURL = String.format("%s/auth/realms/%s", Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
 
         LOGGER.info("start CLI login with username: {}", username);
-        var process = cli.login(Environment.SERVICE_API_URI, authURL, masAuthURL);
+        var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL);
 
         var oauth2 = new KeycloakOAuth(vertx, username, password);
 
         LOGGER.info("start oauth login against CLI");
-        var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.SSO_REDHAT_KEYCLOAK_URI))
+        var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI))
             .compose(l -> oauth2.login(l))
             .onSuccess(__ -> LOGGER.info("first oauth login completed"))
             .toCompletionStage().toCompletableFuture();
 
-        var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.MAS_SSO_REDHAT_KEYCLOAK_URI))
+        var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.OPENSHIFT_IDENTITY_URI))
             .compose(l -> oauth2.login(l))
             .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"))
             .toCompletionStage().toCompletableFuture();

@@ -15,13 +15,12 @@ import io.fabric8.openshift.client.OpenShiftClient;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.LogCollector;
-import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.wait.ReadyFunction;
 import io.vertx.core.json.Json;
@@ -57,12 +56,16 @@ import static org.testng.Assert.assertNotNull;
  * The DEV_CLUSTER_NAMESPACE can and the DEV_CLUSTER_TOKEN should be created using
  * the ./hack/bootstrap-mk-e2e-tests-namespace.sh script.
  * <p>
- * The operator must be configured to target the desired environment by manually setting the CLOUD_SERVICES_API
- * on the operator installed ClusterServiceVersion.
- * <p>
  * 1. https://github.com/redhat-developer/app-services-operator
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ *     <li> DEV_CLUSTER_SERVER
+ *     <li> DEV_CLUSTER_TOKEN
+ * </ul>
  */
-@Test(groups = TestTag.BINDING_OPERATOR)
 public class KafkaOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 
@@ -73,34 +76,30 @@ public class KafkaOperatorTest extends TestBase {
 
     private CloudServicesRequest cloudServicesRequest;
 
-    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ko-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ko-" + Environment.LAUNCH_KEY;
     private final static String ACCESS_TOKEN_SECRET_NAME = "mk-e2e-api-accesstoken";
     private final static String CLOUD_SERVICE_ACCOUNT_REQUEST_NAME = "mk-e2e-service-account-request";
-    private final static String SERVICE_ACCOUNT_NAME = "mk-e2e-bo-sa-" + Environment.KAFKA_POSTFIX_NAME;
+    private final static String SERVICE_ACCOUNT_NAME = "mk-e2e-bo-sa-" + Environment.LAUNCH_KEY;
     private final static String SERVICE_ACCOUNT_SECRET_NAME = "mk-e2e-service-account-secret";
     private final static String CLOUD_SERVICES_REQUEST_NAME = "mk-e2e-kafka-request";
     private final static String KAFKA_CONNECTION_NAME = "mk-e2e-kafka-connection";
 
-    private void assertENVs() {
-        assertNotNull(Environment.SSO_USERNAME, "the SSO_USERNAME env is null");
-        assertNotNull(Environment.SSO_PASSWORD, "the SSO_PASSWORD env is null");
-        assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
-        assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
-    }
-
     @BeforeClass(timeOut = 10 * MINUTES)
     @SneakyThrows
     public void bootstrap() {
-        assertENVs();
+        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+        assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
+        assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
 
-        var auth = new KeycloakOAuth(Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var auth = new KeycloakOAuth(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
-        user = bwait(auth.loginToRHSSO());
+        user = bwait(auth.loginToRedHatSSO());
 
         LOGGER.info("initialize kafka and security apis");
-        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.SERVICE_API_URI, user);
-        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.SERVICE_API_URI, user);
+        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.OPENSHIFT_API_URI, user);
 
 
         LOGGER.info("initialize openshift client");

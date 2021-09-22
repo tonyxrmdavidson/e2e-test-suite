@@ -152,7 +152,7 @@ public class RetryUtils {
 
     private static void logSkip(StackWalker.StackFrame caller, Throwable t) {
         log.error("{}.{}(): skip error: ", caller.getClassName(), caller.getMethodName(), t);
-        ERRORS.labels(Environment.KAFKA_POSTFIX_NAME, caller.getClassName(), caller.getMethodName(), t.getClass().getName(), t.getMessage()).inc();
+        ERRORS.labels(Environment.LAUNCH_KEY, caller.getClassName(), caller.getMethodName(), t.getClass().getName(), t.getMessage()).inc();
     }
 
     private static StackWalker.StackFrame caller(int backtrace) {

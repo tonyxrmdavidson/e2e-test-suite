@@ -41,7 +41,7 @@ public class PrometheusTestListener implements ITestListener {
         var test = result.getTestContext().getName();
         var clasz = result.getTestClass().getName();
         var method = result.getMethod().getMethodName();
-        RESULTS.labels(Environment.KAFKA_POSTFIX_NAME, suite, test, clasz, method, res).inc();
+        RESULTS.labels(Environment.LAUNCH_KEY, suite, test, clasz, method, res).inc();
     }
 
 

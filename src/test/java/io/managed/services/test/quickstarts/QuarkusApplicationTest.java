@@ -26,7 +26,6 @@ import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.LogCollector;
-import io.managed.services.test.framework.TestTag;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.operator.ServiceBinding;
 import io.managed.services.test.operator.ServiceBindingApplication;
@@ -68,14 +67,21 @@ import static org.testng.Assert.assertNotNull;
  * the Quarkus Application on Openshift and use the RHOAS Operator to bind the Instance to the App.
  * <p>
  * 1. https://github.com/redhat-developer/app-services-guides/tree/main/service-discovery
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ *     <li> DEV_CLUSTER_SERVER
+ *     <li> DEV_CLUSTER_TOKEN
+ * </ul>
  */
-@Test(groups = TestTag.BINDING_OPERATOR)
 public class QuarkusApplicationTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(QuarkusApplicationTest.class);
 
     // NOTE: Some names are hard coded because generated from CLI or hard coded in the yaml files
 
-    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-quarkus-" + Environment.KAFKA_POSTFIX_NAME;
+    private static final String KAFKA_INSTANCE_NAME = "mk-e2e-quarkus-" + Environment.LAUNCH_KEY;
     private static final String TOPIC_NAME = "prices";
 
     // this name is decided from the cli
@@ -91,14 +97,6 @@ public class QuarkusApplicationTest extends TestBase {
 
     private static final String TEST_LOGS_PATH = Environment.LOG_DIR.resolve("test-logs").toString();
 
-    private void assertENVs() {
-        assertNotNull(Environment.SSO_USERNAME, "the SSO_USERNAME env is null");
-        assertNotNull(Environment.SSO_PASSWORD, "the SSO_PASSWORD env is null");
-        assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
-        assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
-        assertNotNull(Environment.BF2_GITHUB_TOKEN, "the BF2_GITHUB_TOKEN env is null");
-    }
-
     private final Vertx vertx = Vertx.vertx();
 
     private CLI cli;
@@ -112,7 +110,10 @@ public class QuarkusApplicationTest extends TestBase {
     @BeforeClass(timeOut = 15 * MINUTES)
     @SneakyThrows
     public void bootstrap() {
-        assertENVs();
+        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+        assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
+        assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
 
         // OC
         var config = new ConfigBuilder()
@@ -132,16 +133,16 @@ public class QuarkusApplicationTest extends TestBase {
 
         LOGGER.info("login the cli");
         cli = new CLI(cliBinary.directory, cliBinary.name);
-        CLIUtils.login(vertx, cli, Environment.SSO_USERNAME, Environment.SSO_PASSWORD).get();
+        CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
 
         // User
-        var auth = new KeycloakOAuth(vertx, Environment.SSO_USERNAME, Environment.SSO_PASSWORD);
+        var auth = new KeycloakOAuth(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
-        user = bwait(auth.loginToRHSSO());
+        user = bwait(auth.loginToRedHatSSO());
 
         // APIs
         LOGGER.info("initialize kafka and security mgmt apis");
-        var apis = new ApplicationServicesApi(Environment.SERVICE_API_URI, user);
+        var apis = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, user);
         kafkaMgmtApi = apis.kafkaMgmt();
         securityMgmtApi = apis.securityMgmt();
 

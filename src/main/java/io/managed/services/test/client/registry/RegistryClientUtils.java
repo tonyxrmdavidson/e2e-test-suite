@@ -17,7 +17,7 @@ public class RegistryClientUtils {
         var auth = new KeycloakOAuth(vertx, username, password);
 
         LOGGER.info("authenticate user: {} against MAS SSO", username);
-        return auth.loginToMASSSO()
+        return auth.loginToOpenshiftIdentity()
 
             .map(user -> RegistryClientFactory.create(
                 registryUrl,

@@ -1,6 +1,5 @@
 package io.managed.services.test.client;
 
-import io.managed.services.test.Environment;
 import io.managed.services.test.RetryUtils;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
@@ -43,7 +42,7 @@ public abstract class BaseVertxClient {
             .setDefaultHost(uri.getHost())
             .setDefaultPort(getPort(uri))
             .setSsl(isSsl(uri))
-            .setConnectTimeout((int) Environment.API_TIMEOUT_MS)
+            .setConnectTimeout((int) 120_000L)
             .addEnabledSecureTransportProtocol("TLSv1.3");
     }
 
