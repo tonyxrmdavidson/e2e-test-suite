@@ -167,7 +167,7 @@ public class KafkaAdminPermissionTest extends TestBase {
             {"--add--topic", ResourceType.TOPIC},
             {"--add--group", ResourceType.GROUP},
             {"--add--delegation-token", ResourceType.DELEGATION_TOKEN},
-            {"--ad--transactional-id", ResourceType.TRANSACTIONAL_ID},
+            {"--add--transactional-id", ResourceType.TRANSACTIONAL_ID},
         };
     }
 
@@ -183,14 +183,35 @@ public class KafkaAdminPermissionTest extends TestBase {
             {"--list--topic", ResourceType.TOPIC},
             {"--list--cluster", ResourceType.CLUSTER},
             {"--list--group", ResourceType.GROUP},
+            {"--list--transactional-id", ResourceType.TRANSACTIONAL_ID},
+            {"--list--delegation-token", ResourceType.DELEGATION_TOKEN},
             {"--list", ResourceType.ANY},
         };
     }
 
     @Test(dataProvider = "aclListCmdProvider", timeOut = DEFAULT_TIMEOUT)
-    public void testForbiddenToListACLResource(String testName, ResourceType resourceType) {
+    public void testAllowedToListACLResource(String testName, ResourceType resourceType) {
         log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
-        assertThrows(ClusterAuthorizationException.class, () -> admin.listAclResource(resourceType));
+        var r = admin.listAclResource(resourceType);
+        log.info("response size: {}", r.size());
+    }
+
+    @DataProvider
+    public Object[][] aclDeleteCmdProvider() {
+        return new Object[][] {
+            {"--delete--topic", ResourceType.TOPIC},
+            {"--delete--cluster", ResourceType.CLUSTER},
+            {"--delete--group", ResourceType.GROUP},
+            {"--delete--transactional-id", ResourceType.TRANSACTIONAL_ID},
+            {"--delete--delegation-token", ResourceType.DELEGATION_TOKEN},
+            {"--delete", ResourceType.ANY},
+        };
+    }
+
+    @Test(dataProvider = "aclDeleteCmdProvider", timeOut = DEFAULT_TIMEOUT)
+    public void testForbiddenToDeleteACLResource(String testName, ResourceType resourceType) {
+        log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
+        assertThrows(ClusterAuthorizationException.class, () -> admin.deleteAclResource(resourceType));
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)

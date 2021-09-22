@@ -88,11 +88,18 @@ public class KafkaAdmin {
         get(admin.createAcls(listOfAclBindings).all());
     }
 
-    public void listAclResource(ResourceType resourceType) {
+    public Collection<AclBinding> listAclResource(ResourceType resourceType) {
         ResourcePatternFilter myFilter = new ResourcePatternFilter(resourceType, "foo", PatternType.ANY);
         AccessControlEntryFilter myFilter2 = new AccessControlEntryFilter("*", "*", AclOperation.ANY, AclPermissionType.ALLOW);
         AclBindingFilter totalFilter = new AclBindingFilter(myFilter, myFilter2);
-        get(admin.describeAcls(totalFilter).values());
+        return get(admin.describeAcls(totalFilter).values());
+    }
+
+    public void deleteAclResource(ResourceType resourceType) {
+        ResourcePatternFilter myFilter = new ResourcePatternFilter(resourceType, "foo", PatternType.ANY);
+        AccessControlEntryFilter myFilter2 = new AccessControlEntryFilter("*", "*", AclOperation.ANY, AclPermissionType.ALLOW);
+        AclBindingFilter totalFilter = new AclBindingFilter(myFilter, myFilter2);
+        get(admin.deleteAcls(Collections.singleton(totalFilter)).all());
     }
 
     public void getConfigurationBroker(String brokerId) {
