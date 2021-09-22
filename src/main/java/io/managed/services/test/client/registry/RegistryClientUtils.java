@@ -5,6 +5,7 @@ import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,13 +16,18 @@ public class RegistryClientUtils {
 
     public static Future<RegistryClient> registryClient(Vertx vertx, String registryUrl, String username, String password) {
         var auth = new KeycloakOAuth(vertx, username, password);
+        return registryClient(registryUrl, auth);
+    }
 
-        LOGGER.info("authenticate user: {} against MAS SSO", username);
+    public static Future<RegistryClient> registryClient(String registryUrl, KeycloakOAuth auth) {
+        LOGGER.info("authenticate user: {} against MAS SSO", auth.getUsername());
         return auth.loginToOpenshiftIdentity()
+            .map(user -> registryClient(registryUrl, user));
+    }
 
-            .map(user -> RegistryClientFactory.create(
-                registryUrl,
-                new HashMap<>(),
-                new BearerAuth(KeycloakOAuth.getToken(user))));
+
+    public static RegistryClient registryClient(String uri, User user) {
+        var token = KeycloakOAuth.getToken(user);
+        return RegistryClientFactory.create(uri, new HashMap<>(), new BearerAuth(token));
     }
 }

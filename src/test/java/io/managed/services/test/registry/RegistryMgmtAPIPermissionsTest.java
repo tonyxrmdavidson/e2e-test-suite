@@ -1,7 +1,7 @@
 package io.managed.services.test.registry;
 
 import com.openshift.cloud.api.srs.models.RegistryRest;
-import io.apicurio.registry.rest.client.exception.ForbiddenException;
+import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
