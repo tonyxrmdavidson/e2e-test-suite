@@ -70,7 +70,7 @@ public class KafkaInstanceAPITest extends TestBase {
 
     // TODO: Test update topic with random values
 
-    @BeforeClass(timeOut = 10 * MINUTES)
+    @BeforeClass(timeOut = 15 * MINUTES)
     @SneakyThrows
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");

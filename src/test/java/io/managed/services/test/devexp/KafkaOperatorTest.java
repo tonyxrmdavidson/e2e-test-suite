@@ -84,7 +84,7 @@ public class KafkaOperatorTest extends TestBase {
     private final static String CLOUD_SERVICES_REQUEST_NAME = "mk-e2e-kafka-request";
     private final static String KAFKA_CONNECTION_NAME = "mk-e2e-kafka-connection";
 
-    @BeforeClass(timeOut = 10 * MINUTES)
+    @BeforeClass(timeOut = 15 * MINUTES)
     @SneakyThrows
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
