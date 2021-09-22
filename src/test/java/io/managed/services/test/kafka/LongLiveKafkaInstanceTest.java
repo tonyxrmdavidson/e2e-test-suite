@@ -189,7 +189,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     @Test(dependsOnMethods = {
         "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist",
         "testRecreateTheLongLiveServiceAccountIfItDoesNotExist"
-    }, timeOut = DEFAULT_TIMEOUT)
+    }, timeOut = DEFAULT_TIMEOUT, enabled = false)
     void testThatTheCanaryTopicExist() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
@@ -205,7 +205,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testThatTheCanaryTopicExist", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testThatTheCanaryTopicExist", timeOut = DEFAULT_TIMEOUT, enabled = false)
     void testCanaryLiveliness() throws Throwable {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
