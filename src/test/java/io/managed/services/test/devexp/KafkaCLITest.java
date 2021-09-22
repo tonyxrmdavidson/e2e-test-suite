@@ -119,12 +119,12 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void testDownloadCLI() {
 
-        var downloader = CLIDownloader.defaultDownloader(vertx);
+        var downloader = CLIDownloader.defaultDownloader();
 
         // download the cli
-        var binary = bwait(downloader.downloadCLIInTempDir());
+        var binary = downloader.downloadCLIInTempDir();
 
-        this.cli = new CLI(binary.directory, binary.name);
+        this.cli = new CLI(binary);
 
         LOGGER.info("validate cli");
         LOGGER.debug(cli.help());

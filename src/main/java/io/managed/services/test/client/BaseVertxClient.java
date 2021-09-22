@@ -1,19 +1,14 @@
 package io.managed.services.test.client;
 
-import io.managed.services.test.RetryUtils;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class BaseVertxClient {
 
@@ -66,32 +61,6 @@ public abstract class BaseVertxClient {
                 return false;
         }
         return false;
-    }
-
-    @Deprecated
-    public <T> Future<T> retry(Supplier<Future<T>> call) {
-
-        Function<Throwable, Boolean> condition = t -> {
-
-            if (t instanceof ResponseException) {
-                var r = ((ResponseException) t).response;
-                // retry request in case of error 500 or 504
-                if (r.statusCode() == HttpURLConnection.HTTP_INTERNAL_ERROR
-                    || r.statusCode() == HttpURLConnection.HTTP_GATEWAY_TIMEOUT
-                    || r.statusCode() == HttpURLConnection.HTTP_UNAVAILABLE
-                ) {
-                    return true;
-                }
-            }
-
-            if (t instanceof VertxException) {
-                return t.getMessage().equals("Connection was closed");
-            }
-
-            return false;
-        };
-
-        return RetryUtils.retry(vertx, 1, call, condition);
     }
 
     public static <T> Future<HttpResponse<T>> assertResponse(HttpResponse<T> response, Integer statusCode) {

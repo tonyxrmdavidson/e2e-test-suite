@@ -24,15 +24,13 @@ import lombok.SneakyThrows;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,9 +44,9 @@ import static java.time.Duration.ofMinutes;
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
 
-    public static void extractCLI(String archive, String entryMatch, String dest) throws IOException {
+    public static void extractCLI(InputStream archive, String entryMatch, Path dest) throws IOException {
 
-        var bi = new BufferedInputStream(Files.newInputStream(Paths.get(archive)));
+        var bi = new BufferedInputStream(archive);
         var gzi = new GzipCompressorInputStream(bi);
         var tar = new TarArchiveInputStream(gzi);
 
@@ -64,18 +62,15 @@ public class CLIUtils {
                 throw new IOException("can not read entry " + e.getName());
             }
 
-            File f = new File(dest);
             if (e.isDirectory()) {
                 throw new IOException("the entry " + e.getName() + " is a directory");
             } else {
-                File parent = f.getParentFile();
+                var parent = dest.getParent().toFile();
                 if (!parent.isDirectory() && !parent.mkdirs()) {
                     throw new IOException("failed to create directory " + parent);
                 }
-                try (OutputStream o = Files.newOutputStream(f.toPath())) {
-                    IOUtils.copy(tar, o);
-                    return;
-                }
+                Files.copy(tar, dest);
+                return;
             }
         }
         throw new IOException("cli not found");
