@@ -248,7 +248,7 @@ public class KafkaCLITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
     public void testKafkaInstanceTopic() {
 
@@ -314,7 +314,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(retentionValue.get().getValue(), retentionTime);
     }
 
-    @Test(dependsOnMethods = "testUpdateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testUpdateTopic", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
     public void testKafkaInstanceUpdatedTopic() {
 
@@ -333,7 +333,7 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
     public void testDescribeConsumerGroup() {
 
