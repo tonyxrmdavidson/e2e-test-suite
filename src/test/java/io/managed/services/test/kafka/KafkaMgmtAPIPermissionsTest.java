@@ -89,7 +89,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         assumeTeardown();
 
         try {
-            KafkaMgmtApiUtils.deleteKafkaByNameIfExists(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("clan kafka error: ", t);
         }
@@ -142,15 +142,31 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         assertTrue(o.isEmpty());
     }
 
+
+    @Test(timeOut = DEFAULT_TIMEOUT)
+    @SneakyThrows
+    public void testSecondaryUserCanNotCreateTopicOnTheKafkaInstance() {
+
+        LOGGER.info("initialize kafka admin api for kafka instance: {}", kafka.getBootstrapServerHost());
+        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+            Environment.SECONDARY_USERNAME,
+            Environment.SECONDARY_PASSWORD));
+
+        var topicPayload = new NewTopicInput()
+            .name("api-secondary-test-topic")
+            .settings(new TopicSettings().numPartitions(1));
+        LOGGER.info("create kafka topic: {}", topicPayload.getName());
+        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.createTopic(topicPayload));
+    }
+
+
     /**
      * Use the secondary user to create a service account and consume and produce messages on the
      * kafka instance created by the main user
      */
     @Test(timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
-    public void testSecondaryUserCanNotCreateTopicOnTheKafkaInstance() {
-
-        // TODO: Test using Kafka Bin and Kafka Admin
+    public void testSecondaryUserServiceAccountCanNotCreateTopicOnTheKafkaInstance() {
 
         // Create Service Account by another user
         var serviceAccountPayload = new ServiceAccountRequest()
@@ -167,7 +183,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
         var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
 
-        var topicName = "test-topic";
+        var topicName = "secondary-test-topic";
 
         LOGGER.info("create kafka topic '{}'", topicName);
         assertThrows(SaslAuthenticationException.class, () -> admin.createTopic(topicName));
@@ -196,7 +212,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
      */
     @Test(timeOut = DEFAULT_TIMEOUT)
     @SneakyThrows
-    public void testAlienUserCanNotCreateTopicOnTheKafkaInstanceUsingKafkaBin() {
+    public void testAlienUserServiceAccountCanNotCreateTopicOnTheKafkaInstance() {
 
         // Create Service Account of Org 2
         var serviceAccountPayload = new ServiceAccountRequest()
