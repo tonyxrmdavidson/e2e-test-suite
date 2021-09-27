@@ -14,7 +14,6 @@ import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
-import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.logging.log4j.LogManager;
@@ -48,8 +47,6 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-up-" + Environment.LAUNCH_KEY;
     private static final String SECONDARY_SERVICE_ACCOUNT_NAME = "mk-e2e-up-secondary-sa-" + Environment.LAUNCH_KEY;
     private static final String ALIEN_SERVICE_ACCOUNT_NAME = "mk-e2e-up-alien-sa-" + Environment.LAUNCH_KEY;
-
-    private final Vertx vertx = Vertx.vertx();
 
     private ApplicationServicesApi mainAPI;
     private ApplicationServicesApi secondaryAPI;
@@ -105,8 +102,6 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("clean alien service account error: ", t);
         }
-
-        bwait(vertx.close());
     }
 
     @Test(timeOut = DEFAULT_TIMEOUT)
@@ -143,7 +138,8 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     }
 
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    // See: https://issues.redhat.com/browse/MGDSTRM-5635
+    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
     @SneakyThrows
     public void testSecondaryUserCanNotCreateTopicOnTheKafkaInstance() {
 
@@ -164,7 +160,8 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
      * Use the secondary user to create a service account and consume and produce messages on the
      * kafka instance created by the main user
      */
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    // See: https://issues.redhat.com/browse/MGDSTRM-5635
+    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
     @SneakyThrows
     public void testSecondaryUserServiceAccountCanNotCreateTopicOnTheKafkaInstance() {
 

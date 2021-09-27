@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class KafkaAdmin {
+public class KafkaAdmin implements AutoCloseable {
 
     public final Admin admin;
 
@@ -216,6 +216,7 @@ public class KafkaAdmin {
         get(admin.describeDelegationToken().delegationTokens());
     }
 
+    @Override
     public void close() {
         admin.close(Duration.ofSeconds(3));
     }

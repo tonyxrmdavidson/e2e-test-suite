@@ -128,7 +128,8 @@ public class KafkaInstanceAPITest extends TestBase {
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    // See: https://issues.redhat.com/browse/MGDSTRM-5635
+    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
     @SneakyThrows
     public void testFailToCallAPIIfUserDoesNotOwnTheKafkaInstance() {
 
