@@ -58,7 +58,7 @@ public class RegistryMgmtAPITest extends TestBase {
             Environment.PRIMARY_PASSWORD));
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     public void teardown() {
         assumeTeardown();
 
@@ -75,7 +75,7 @@ public class RegistryMgmtAPITest extends TestBase {
         }
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testCreateRegistry() throws Exception {
 
         var registryCreateRest = new RegistryCreateRest()
@@ -93,7 +93,7 @@ public class RegistryMgmtAPITest extends TestBase {
         this.registry = registry;
     }
 
-    @Test(dependsOnMethods = "testCreateRegistry", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateRegistry")
     public void testCreateArtifact() throws Throwable {
         var registryClient = bwait(registryClient(Vertx.vertx(), registry.getRegistryUrl(),
             Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
@@ -104,7 +104,7 @@ public class RegistryMgmtAPITest extends TestBase {
         assertEquals(artifactMetaData.getName(), "Greeting");
     }
 
-    @Test(dependsOnMethods = "testCreateRegistry", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateRegistry")
     public void testListRegistries() throws ApiGenericException {
 
         // List registries
@@ -117,7 +117,7 @@ public class RegistryMgmtAPITest extends TestBase {
         assertTrue(found, message("{} not found in registries list: {}", SERVICE_REGISTRY_NAME, Json.encode(registries)));
     }
 
-    @Test(dependsOnMethods = "testCreateRegistry", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateRegistry")
     public void testSearchRegistry() throws ApiGenericException {
 
         // Search registry by name
@@ -129,7 +129,7 @@ public class RegistryMgmtAPITest extends TestBase {
         assertEquals(registries.getItems().get(0).getName(), SERVICE_REGISTRY_NAME);
     }
 
-    @Test(dependsOnMethods = "testCreateRegistry", timeOut = DEFAULT_TIMEOUT, enabled = false)
+    @Test(dependsOnMethods = "testCreateRegistry", enabled = false)
     public void testFailToCreateRegistryIfItAlreadyExist() {
         // TODO: Enable after https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/75
 
@@ -139,7 +139,7 @@ public class RegistryMgmtAPITest extends TestBase {
         assertThrows(() -> registryMgmtApi.createRegistry(registryCreateRest));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT, priority = 1, dependsOnMethods = "testCreateRegistry")
+    @Test(priority = 1, dependsOnMethods = "testCreateRegistry")
     public void testDeleteRegistry() throws Throwable {
 
         LOGGER.info("delete registry '{}'", registry.getId());
@@ -149,7 +149,7 @@ public class RegistryMgmtAPITest extends TestBase {
         RegistryMgmtApiUtils.waitUntilRegistryIsDeleted(registryMgmtApi, registry.getId());
     }
 
-    @Test(priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 2)
     public void testDeleteProvisioningRegistry() throws Throwable {
 
         var registryCreateRest = new RegistryCreateRest()

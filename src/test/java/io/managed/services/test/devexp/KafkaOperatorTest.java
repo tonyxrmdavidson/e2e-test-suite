@@ -84,7 +84,7 @@ public class KafkaOperatorTest extends TestBase {
     private final static String CLOUD_SERVICES_REQUEST_NAME = "mk-e2e-kafka-request";
     private final static String KAFKA_CONNECTION_NAME = "mk-e2e-kafka-connection";
 
-    @BeforeClass(timeOut = 15 * MINUTES)
+    @BeforeClass
     @SneakyThrows
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
@@ -161,7 +161,7 @@ public class KafkaOperatorTest extends TestBase {
 
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     public void teardown(ITestContext context) {
         assumeTeardown();
 
@@ -209,7 +209,7 @@ public class KafkaOperatorTest extends TestBase {
         }
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testCreateAccessTokenSecret() {
 
         // Create Secret
@@ -220,7 +220,7 @@ public class KafkaOperatorTest extends TestBase {
         oc.secrets().create(OperatorUtils.buildSecret(ACCESS_TOKEN_SECRET_NAME, data));
     }
 
-    @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateAccessTokenSecret")
     public void testCreateCloudServiceAccountRequest() throws Throwable {
 
         var a = new CloudServiceAccountRequest();
@@ -245,7 +245,7 @@ public class KafkaOperatorTest extends TestBase {
         LOGGER.info("CloudServiceAccountRequest is created");
     }
 
-    @Test(dependsOnMethods = "testCreateAccessTokenSecret", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateAccessTokenSecret")
     public void testCreateCloudServicesRequest() throws Throwable {
 
         var k = new CloudServicesRequest();
@@ -274,7 +274,7 @@ public class KafkaOperatorTest extends TestBase {
         LOGGER.info("CloudServicesRequest is completed");
     }
 
-    @Test(dependsOnMethods = {"testCreateCloudServiceAccountRequest", "testCreateCloudServicesRequest"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateCloudServiceAccountRequest", "testCreateCloudServicesRequest"})
     public void testCreateManagedKafkaConnection() throws Throwable {
 
         var userKafka = cloudServicesRequest.getStatus().getUserKafkas().stream()

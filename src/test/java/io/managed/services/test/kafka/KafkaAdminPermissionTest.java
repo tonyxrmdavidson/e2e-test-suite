@@ -58,7 +58,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     private SecurityMgmtApi securityMgmtApi;
     private KafkaAdmin admin;
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     @SneakyThrows
     public void teardown() {
 
@@ -94,7 +94,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         bwait(vertx.close());
     }
 
-    @BeforeClass(timeOut = 15 * MINUTES)
+    @BeforeClass
     public void bootstrap() throws Throwable {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
@@ -132,7 +132,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         bwait(consumer.asyncClose());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAllowedToCreateTopic() {
 
         log.info("kafka-topics.sh --create <Permitted>, script representation test");
@@ -141,7 +141,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("topic successfully created: {}", TOPIC_NAME);
     }
 
-    @Test(dependsOnMethods = "testAllowedToCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testAllowedToCreateTopic")
     public void testAllowedToListTopic() {
 
         log.info("kafka-topics.sh --list <Permitted>, script representation test");
@@ -150,7 +150,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("topics successfully listed, response contains {} topic/s", r.size());
     }
 
-    @Test(dependsOnMethods = "testAllowedToCreateTopic", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testAllowedToCreateTopic", priority = 1)
     public void testAllowedToDeleteTopic() {
 
         log.info("kafka-topics.sh --delete <Permitted>, script representation test");
@@ -171,7 +171,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         };
     }
 
-    @Test(dataProvider = "aclAddCmdProvider", timeOut = DEFAULT_TIMEOUT)
+    @Test(dataProvider = "aclAddCmdProvider")
     public void testForbiddenToAlterACLResource(String testName, ResourceType resourceType) {
         log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> admin.addAclResource(resourceType));
@@ -189,7 +189,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         };
     }
 
-    @Test(dataProvider = "aclListCmdProvider", timeOut = DEFAULT_TIMEOUT)
+    @Test(dataProvider = "aclListCmdProvider")
     public void testAllowedToListACLResource(String testName, ResourceType resourceType) {
         log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
         var r = admin.listAclResource(resourceType);
@@ -208,13 +208,13 @@ public class KafkaAdminPermissionTest extends TestBase {
         };
     }
 
-    @Test(dataProvider = "aclDeleteCmdProvider", timeOut = DEFAULT_TIMEOUT)
+    @Test(dataProvider = "aclDeleteCmdProvider")
     public void testForbiddenToDeleteACLResource(String testName, ResourceType resourceType) {
         log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> admin.deleteAclResource(resourceType));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAllowedToDescribeTopicConfiguration() {
 
         log.info("kafka-configs.sh --describe --entity-type topics <permitted>, script representation test");
@@ -223,7 +223,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("response size: {}", r.size());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @Ignore
     public void testAllowedToDescribeUserConfiguration() {
 
@@ -243,20 +243,20 @@ public class KafkaAdminPermissionTest extends TestBase {
         };
     }
 
-    @Test(dataProvider = "configureBrokerCmdProvider", timeOut = DEFAULT_TIMEOUT)
+    @Test(dataProvider = "configureBrokerCmdProvider")
     public void testForbiddenToAlterBrokerConfig(String testName, ConfigResource.Type resourceType, AlterConfigOp.OpType opType) {
         log.info("kafka-config.sh {} <allowed>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> admin.configureBrokerResource(resourceType, opType, "0"));
     }
 
-    @Test(dependsOnMethods = "testAllowedToCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testAllowedToCreateTopic")
     public void testAllowedToDeleteTopicConfig() {
 
         log.info("kafka-config.sh --alter --entity-type topics --delete-config <allowed>, script representation test");
         admin.configureBrokerResource(ConfigResource.Type.TOPIC, AlterConfigOp.OpType.DELETE, TOPIC_NAME);
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToDescribeBrokerConfig() {
 
         log.info("kafka-configs.sh --describe --entity-type broker <forbidden>, script representation test");
@@ -264,7 +264,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertThrows(ClusterAuthorizationException.class, () -> admin.getConfigurationBroker("0"));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToDescribeBrokerLoggerConfig() {
 
         log.info("kafka-configs.sh --describe --entity-type brokerLogger <forbidden>, script representation test");
@@ -272,7 +272,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertThrows(ClusterAuthorizationException.class, () -> admin.getConfigurationBrokerLogger("0"));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @Ignore
     public void testForbiddenToAlterUserConfig() {
 
@@ -281,7 +281,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertThrows(InvalidRequestException.class, () -> admin.alterConfigurationUser());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAllowedToListConsumerGroups() {
 
         log.info("kafka-consumer-groups.sh --list <permitted>, script representation test");
@@ -290,7 +290,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("list consumer groups: {}", r);
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAllowedToDescribeConsumerGroup() {
 
         log.info("kafka-consumer-groups.sh --group --describe <permitted>, script representation test");
@@ -300,7 +300,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     }
 
     // test is postponed from others due to existence of many test that require presence of to be deleted consumer group
-    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 1)
     public void testDeleteConsumerGroup() {
 
         log.info("kafka-consumer-groups.sh --all-groups --delete  <permitted>, script representation test");
@@ -309,7 +309,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         admin.deleteConsumerGroups(TEST_GROUP_ID);
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAllowedToResetConsumerGroupOffset() {
 
         log.info("kafka-consumer-groups.sh --all-groups --reset-offsets --execute --all-groups --all-topics  <permitted>, script representation test");
@@ -317,7 +317,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("offset successfully reset");
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAllowedToDeleteConsumerGroupOffset() {
 
         log.info("kafka-consumer-groups.sh --delete-offsets  <permitted>, script representation test");
@@ -325,7 +325,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("offset successfully deleted");
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAllowedToDeleteRecords() {
 
         log.info("kafka-delete-records.sh --offset-json-file <permitted>, script representation test");
@@ -333,42 +333,42 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("record successfully deleted");
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToUncleanLeaderElection() {
 
         log.info("kafka-leader-election.sh <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_FOR_GROUPS));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToDescribeLogDirs() {
 
         log.info("kafka-log-dirs.sh --describe <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> admin.logDirs());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToAlterPreferredReplicaElection() {
 
         log.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_FOR_GROUPS));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToReassignPartitions() {
 
         log.info("kafka-reassign-partitions.sh <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> admin.reassignPartitions(TOPIC_NAME_FOR_GROUPS));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToCreateDelegationToken() {
 
         log.info("kafka-delegation-tokens.sh create <forbidden>, script representation test");
         assertThrows(DelegationTokenDisabledException.class, () -> admin.createDelegationToken());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testForbiddenToDescribeDelegationToken() {
 
         log.info("kafka-delegation-tokens.sh describe <forbidden>, script representation test");
