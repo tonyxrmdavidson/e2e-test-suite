@@ -139,7 +139,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
 
 
     // See: https://issues.redhat.com/browse/MGDSTRM-5635
-    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
+    @Test(enabled = false)
     @SneakyThrows
     public void testSecondaryUserCanNotCreateTopicOnTheKafkaInstance() {
 
