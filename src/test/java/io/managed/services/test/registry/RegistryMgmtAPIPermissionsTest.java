@@ -83,7 +83,7 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
             Environment.ALIEN_PASSWORD));
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     public void teardown() throws Throwable {
         assumeTeardown();
 
@@ -96,13 +96,13 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         bwait(vertx.close());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testSecondaryUserCanReadTheRegistry() throws ApiGenericException {
         var r = secondaryRegistryMgmtApi.getRegistry(registry.getId());
         assertEquals(r.getName(), registry.getName());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testUserCanReadTheRegistry() throws ApiGenericException {
         LOGGER.info("registries: {}", Json.encode(registryMgmtApi.getRegistries(null, null, null, null)));
         LOGGER.info("registry: {}", Json.encode(registry));
@@ -110,12 +110,12 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         assertEquals(r.getName(), registry.getName());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAlienUserCanNotReadTheRegistry() {
         assertThrows(ApiNotFoundException.class, () -> alienRegistryMgmtApi.getRegistry(registry.getId()));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testAlienUserCanNotCreateArtifactOnTheRegistry() throws Throwable {
         var registryClient = bwait(registryClient(vertx, registry.getRegistryUrl(),
             Environment.ALIEN_USERNAME,
@@ -124,24 +124,24 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         assertThrows(ForbiddenException.class, () -> registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8)));
     }
 
-    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 1)
     public void testSecondaryUserCanNotDeleteTheRegistry() {
         assertThrows(ApiForbiddenException.class, () -> secondaryRegistryMgmtApi.deleteRegistry(registry.getId()));
     }
 
-    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 1)
     public void testAlienUserCanNotDeleteTheRegistry() {
         assertThrows(ApiForbiddenException.class, () -> alienRegistryMgmtApi.deleteRegistry(registry.getId()));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testUnauthenticatedUserWithFakeToken() {
         var user = User.fromToken(TestUtils.FAKE_TOKEN);
         var api = registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testUnauthenticatedUserWithoutToken() {
         var user = User.fromToken("");
         var api = registryMgmtApi(Environment.OPENSHIFT_API_URI, user);

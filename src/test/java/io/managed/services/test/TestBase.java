@@ -13,9 +13,6 @@ import org.testng.annotations.Listeners;
     PrometheusSuiteListener.class})
 public abstract class TestBase {
 
-    protected static final long MINUTES = 60 * 1000;
-    protected static final long DEFAULT_TIMEOUT = 3 * MINUTES;
-
     static {
         log.info("### Environment variables:");
         Environment.getValues().forEach((key, value) -> log.info("{}: {}", key, value));

@@ -29,21 +29,21 @@ public class SSOAuthTest extends TestBase {
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testRedHatSSOLogin() throws Throwable {
         var auth = new KeycloakOAuth(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         bwait(auth.loginToRedHatSSO());
         LOGGER.info("user authenticated against: {}", Environment.REDHAT_SSO_URI);
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testMASSSOLogin() throws Throwable {
         var auth2 = new KeycloakOAuth(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         bwait(auth2.loginToOpenshiftIdentity());
         LOGGER.info("user authenticated against: {}", Environment.OPENSHIFT_IDENTITY_URI);
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testJoinedLogin() throws Throwable {
         var auth = new KeycloakOAuth(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 

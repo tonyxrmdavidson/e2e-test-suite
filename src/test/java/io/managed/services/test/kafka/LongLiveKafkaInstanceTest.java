@@ -86,7 +86,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         this.securityMgmtApi = apps.securityMgmt();
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testThatTheLongLiveKafkaInstanceAlreadyExist() {
 
@@ -99,7 +99,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         LOGGER.debug(kafka);
     }
 
-    @Test(priority = 1, timeOut = 15 * MINUTES)
+    @Test(priority = 1)
     @SneakyThrows
     public void testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist() {
         // recreate the instance only if it doesn't exist
@@ -113,7 +113,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
             Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testThatTheLongLiveServiceAccountAlreadyExist() {
 
@@ -128,7 +128,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     }
 
 
-    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 1)
     @SneakyThrows
     public void testRecreateTheLongLiveServiceAccountIfItDoesNotExist() {
         // recreate the account only if it doesn't exist
@@ -151,7 +151,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         return map;
     }
 
-    @Test(dependsOnMethods = "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist")
     public void testThatAllLongLiveTopicsAlreadyExist() throws Throwable {
 
         final var expectedTopics = expectedTopics();
@@ -162,7 +162,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         assertTrue(expectedTopics.isEmpty(), message("the topics '{}' don't exist", expectedTopics.keySet()));
     }
 
-    @Test(priority = 2, dependsOnMethods = "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist", timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 2, dependsOnMethods = "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist")
     @SneakyThrows
     public void testRecreateLongLiveTopicsIfTheyDoNotExist() {
 
@@ -189,7 +189,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     @Test(dependsOnMethods = {
         "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist",
         "testRecreateTheLongLiveServiceAccountIfItDoesNotExist"
-    }, timeOut = DEFAULT_TIMEOUT, enabled = false)
+    }, enabled = false)
     void testThatTheCanaryTopicExist() {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
@@ -205,7 +205,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testThatTheCanaryTopicExist", timeOut = DEFAULT_TIMEOUT, enabled = false)
+    @Test(dependsOnMethods = "testThatTheCanaryTopicExist", enabled = false)
     void testCanaryLiveliness() throws Throwable {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
@@ -233,7 +233,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist",
         "testRecreateLongLiveTopicsIfTheyDoNotExist",
         "testRecreateTheLongLiveServiceAccountIfItDoesNotExist"
-    }, timeOut = DEFAULT_TIMEOUT)
+    })
     public void testProduceAndConsumeKafkaMessages() throws Throwable {
 
         String bootstrapHost = kafka.getBootstrapServerHost();
@@ -255,7 +255,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist",
         "testRecreateLongLiveTopicsIfTheyDoNotExist",
         "testRecreateTheLongLiveServiceAccountIfItDoesNotExist"
-    }, timeOut = DEFAULT_TIMEOUT)
+    })
     void testTopicWithThreePartitionsAndThreeConsumers() throws Throwable {
 
         var bootstrapHost = kafka.getBootstrapServerHost();
@@ -279,7 +279,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist",
         "testRecreateLongLiveTopicsIfTheyDoNotExist",
         "testRecreateTheLongLiveServiceAccountIfItDoesNotExist"
-    }, timeOut = DEFAULT_TIMEOUT)
+    })
     public void testMessageInTotalMetric() throws Throwable {
 
         LOGGER.info("test message in total metric");

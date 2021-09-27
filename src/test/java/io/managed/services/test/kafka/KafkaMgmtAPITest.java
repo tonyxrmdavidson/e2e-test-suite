@@ -82,7 +82,7 @@ public class KafkaMgmtAPITest extends TestBase {
         kafkaMgmtApi = apps.kafkaMgmt();
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     public void teardown() {
 
         // delete kafka instance
@@ -106,7 +106,7 @@ public class KafkaMgmtAPITest extends TestBase {
         }
     }
 
-    @Test(timeOut = 15 * MINUTES)
+    @Test
     @SneakyThrows
     public void testCreateKafkaInstance() {
 
@@ -123,7 +123,7 @@ public class KafkaMgmtAPITest extends TestBase {
         kafka = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testCreateServiceAccount() {
 
@@ -132,7 +132,7 @@ public class KafkaMgmtAPITest extends TestBase {
         serviceAccount = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testCreateTopics() {
 
@@ -152,7 +152,7 @@ public class KafkaMgmtAPITest extends TestBase {
         kafkaInstanceApi.createTopic(metricTopicPayload);
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
     @SneakyThrows
     public void testMessageInTotalMetric() {
 
@@ -160,7 +160,7 @@ public class KafkaMgmtAPITest extends TestBase {
         KafkaMgmtMetricsUtils.testMessageInTotalMetric(kafkaMgmtApi, kafka, serviceAccount, TOPIC_NAME);
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
     @SneakyThrows
     public void testMessagingKafkaInstanceUsingOAuth() {
 
@@ -180,7 +180,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.OAUTH));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
     @SneakyThrows
     public void testFailedToMessageKafkaInstanceUsingOAuthAndFakeSecret() {
 
@@ -199,7 +199,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.OAUTH)));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
     @SneakyThrows
     public void testMessagingKafkaInstanceUsingPlainAuth() {
 
@@ -219,7 +219,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.PLAIN));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
     @SneakyThrows
     public void testFailedToMessageKafkaInstanceUsingPlainAuthAndFakeSecret() {
 
@@ -238,7 +238,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.PLAIN)));
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"})
     @SneakyThrows
     public void testListAndSearchKafkaInstance() {
 
@@ -267,7 +267,7 @@ public class KafkaMgmtAPITest extends TestBase {
         assertEquals(kafkaOptional.get().getName(), KAFKA_INSTANCE_NAME);
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"})
     public void testFailToCreateKafkaInstanceIfItAlreadyExist() {
 
         // Create Kafka Instance with existing name
@@ -281,7 +281,7 @@ public class KafkaMgmtAPITest extends TestBase {
         assertThrows(ApiConflictException.class, () -> kafkaMgmtApi.createKafka(true, payload));
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1)
     @SneakyThrows
     public void testDeleteKafkaInstance() {
 
@@ -318,7 +318,7 @@ public class KafkaMgmtAPITest extends TestBase {
         bwait(producer.asyncClose());
     }
 
-    @Test(priority = 2, timeOut = 10 * DEFAULT_TIMEOUT)
+    @Test(priority = 2)
     @SneakyThrows
     public void testDeleteProvisioningKafkaInstance() {
 

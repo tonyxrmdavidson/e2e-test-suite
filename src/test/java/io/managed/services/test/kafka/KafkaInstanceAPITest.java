@@ -70,7 +70,7 @@ public class KafkaInstanceAPITest extends TestBase {
 
     // TODO: Test update topic with random values
 
-    @BeforeClass(timeOut = 15 * MINUTES)
+    @BeforeClass
     @SneakyThrows
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
@@ -88,7 +88,7 @@ public class KafkaInstanceAPITest extends TestBase {
         LOGGER.info("kafka instance api client initialized");
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     public void teardown() {
         assumeTeardown();
 
@@ -119,7 +119,7 @@ public class KafkaInstanceAPITest extends TestBase {
         }
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testFailToCallAPIIfUserBelongsToADifferentOrganization() {
 
@@ -129,7 +129,7 @@ public class KafkaInstanceAPITest extends TestBase {
     }
 
     // See: https://issues.redhat.com/browse/MGDSTRM-5635
-    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
+    @Test(enabled = false)
     @SneakyThrows
     public void testFailToCallAPIIfUserDoesNotOwnTheKafkaInstance() {
 
@@ -138,7 +138,7 @@ public class KafkaInstanceAPITest extends TestBase {
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testFailToCallAPIIfTokenIsInvalid() {
 
@@ -147,7 +147,7 @@ public class KafkaInstanceAPITest extends TestBase {
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testCreateTopic() {
 
@@ -163,7 +163,7 @@ public class KafkaInstanceAPITest extends TestBase {
         LOGGER.debug(topic);
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic")
     public void testFailToCreateTopicIfItAlreadyExist() {
         // create existing topic should fail
         var payload = new NewTopicInput()
@@ -173,7 +173,7 @@ public class KafkaInstanceAPITest extends TestBase {
             () -> kafkaInstanceApi.createTopic(payload));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic")
     @SneakyThrows
     public void testGetTopicByName() {
         var topic = kafkaInstanceApi.getTopic(TEST_TOPIC_NAME);
@@ -181,14 +181,14 @@ public class KafkaInstanceAPITest extends TestBase {
         assertEquals(topic.getName(), TEST_TOPIC_NAME);
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic")
     public void testFailToGetTopicIfItDoesNotExist() {
         // get none existing topic should fail
         assertThrows(ApiNotFoundException.class,
             () -> kafkaInstanceApi.getTopic(TEST_NOT_EXISTING_TOPIC_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic")
     @SneakyThrows
     public void tetGetAllTopics() {
         var topics = kafkaInstanceApi.getTopics();
@@ -202,14 +202,14 @@ public class KafkaInstanceAPITest extends TestBase {
         assertTrue(filteredTopics.isPresent());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testFailToDeleteTopicIfItDoesNotExist() {
         // deleting not existing topic should fail
         assertThrows(ApiNotFoundException.class,
             () -> kafkaInstanceApi.deleteTopic(TEST_NOT_EXISTING_TOPIC_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic")
     @SneakyThrows
     public void testConsumerGroup() {
         LOGGER.info("create or retrieve service account '{}'", SERVICE_ACCOUNT_NAME);
@@ -232,7 +232,7 @@ public class KafkaInstanceAPITest extends TestBase {
         assertTrue(group.getConsumers().size() > 0);
     }
 
-    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup")
     @SneakyThrows
     public void testGetAllConsumerGroups() {
         var groups = kafkaInstanceApi.getConsumerGroups();
@@ -246,28 +246,28 @@ public class KafkaInstanceAPITest extends TestBase {
         assertTrue(filteredGroup.isPresent());
     }
 
-    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup")
     public void testFailToGetConsumerGroupIfItDoesNotExist() {
         // get consumer group non-existing consumer group should fail
         assertThrows(ApiNotFoundException.class,
             () -> kafkaInstanceApi.getConsumerGroupById(TEST_NOT_EXISTING_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup")
     public void testFailToDeleteConsumerGroupIfItIsActive() {
         // deleting active consumer group should fail
         assertThrows(ApiLockedException.class,
             () -> kafkaInstanceApi.deleteConsumerGroupById(TEST_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "testConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup")
     public void testFailToDeleteConsumerGroupIfItDoesNotExist() {
         // deleting not existing consumer group should fail
         assertThrows(ApiNotFoundException.class,
             () -> kafkaInstanceApi.deleteConsumerGroupById(TEST_NOT_EXISTING_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "testConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testConsumerGroup", priority = 1)
     public void testDeleteConsumerGroup() throws Throwable {
         LOGGER.info("close kafka consumer");
         bwait(kafkaConsumer.asyncClose());
@@ -281,7 +281,7 @@ public class KafkaInstanceAPITest extends TestBase {
         LOGGER.info("consumer group '{}' not found", TEST_GROUP_NAME);
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic", priority = 2)
     public void testDeleteTopic() throws Throwable {
         kafkaInstanceApi.deleteTopic(TEST_TOPIC_NAME);
         LOGGER.info("topic '{}' deleted", TEST_TOPIC_NAME);

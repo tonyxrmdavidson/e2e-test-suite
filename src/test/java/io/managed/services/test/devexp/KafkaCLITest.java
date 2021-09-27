@@ -78,7 +78,7 @@ public class KafkaCLITest extends TestBase {
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     @SneakyThrows
     public void clean() {
 
@@ -115,7 +115,7 @@ public class KafkaCLITest extends TestBase {
         bwait(vertx.close());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testDownloadCLI() {
 
@@ -131,7 +131,7 @@ public class KafkaCLITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testDownloadCLI", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testDownloadCLI")
     @SneakyThrows
     public void testLogin() {
 
@@ -145,7 +145,7 @@ public class KafkaCLITest extends TestBase {
         cli.listKafka();
     }
 
-    @Test(dependsOnMethods = "testLogin", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testLogin")
     @SneakyThrows
     public void testCreateServiceAccount() {
 
@@ -163,7 +163,7 @@ public class KafkaCLITest extends TestBase {
         serviceAccount = sa.get();
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateServiceAccount")
     @SneakyThrows
     public void testDescribeServiceAccount() {
 
@@ -173,7 +173,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(sa.getName(), SERVICE_ACCOUNT_NAME);
     }
 
-    @Test(dependsOnMethods = "testLogin", timeOut = 15 * MINUTES)
+    @Test(dependsOnMethods = "testLogin")
     @SneakyThrows
     public void testCreateKafkaInstance() {
 
@@ -186,7 +186,7 @@ public class KafkaCLITest extends TestBase {
         LOGGER.debug(kafka);
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testDescribeKafkaInstance() {
 
@@ -197,7 +197,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals("ready", k.getStatus());
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testListKafkaInstances() {
 
@@ -210,7 +210,7 @@ public class KafkaCLITest extends TestBase {
         assertTrue(exists.isPresent());
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testSearchKafkaByName() {
 
@@ -222,7 +222,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(exists.get().getName(), KAFKA_INSTANCE_NAME);
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testCreateTopic() {
 
@@ -234,7 +234,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(Objects.requireNonNull(topic.getPartitions()).size(), DEFAULT_PARTITIONS);
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic")
     @SneakyThrows
     public void testListTopics() {
 
@@ -248,7 +248,7 @@ public class KafkaCLITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"})
     @SneakyThrows
     public void testKafkaInstanceTopic() {
 
@@ -267,7 +267,7 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic")
     @SneakyThrows
     public void testUpdateTopic() {
 
@@ -289,7 +289,7 @@ public class KafkaCLITest extends TestBase {
         topic = t;
     }
 
-    @Test(dependsOnMethods = "testUpdateTopic", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testUpdateTopic")
     @SneakyThrows
     public void testDescribeUpdatedTopic() {
 
@@ -314,7 +314,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(retentionValue.get().getValue(), retentionTime);
     }
 
-    @Test(dependsOnMethods = {"testUpdateTopic", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testUpdateTopic", "testCreateServiceAccount"})
     @SneakyThrows
     public void testKafkaInstanceUpdatedTopic() {
 
@@ -333,7 +333,7 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"}, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"})
     @SneakyThrows
     public void testDescribeConsumerGroup() {
 
@@ -351,7 +351,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(group.getGroupId(), CONSUMER_GROUP_NAME);
     }
 
-    @Test(dependsOnMethods = "testDescribeConsumerGroup", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testDescribeConsumerGroup")
     @SneakyThrows
     public void testListConsumerGroups() {
         var groups = cli.listConsumerGroups();
@@ -365,7 +365,7 @@ public class KafkaCLITest extends TestBase {
         assertTrue(filteredGroup.isPresent());
     }
 
-    @Test(dependsOnMethods = "testDescribeConsumerGroup", priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testDescribeConsumerGroup", priority = 1)
     @SneakyThrows
     public void testDeleteConsumerGroup() {
 
@@ -376,7 +376,7 @@ public class KafkaCLITest extends TestBase {
             () -> cli.describeConsumerGroup(CONSUMER_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateTopic", priority = 2)
     @SneakyThrows
     public void testDeleteTopic() {
 
@@ -387,7 +387,7 @@ public class KafkaCLITest extends TestBase {
             () -> cli.describeTopic(TOPIC_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 2, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 2)
     @SneakyThrows
     public void testDeleteServiceAccount() {
 
@@ -398,7 +398,7 @@ public class KafkaCLITest extends TestBase {
             () -> cli.describeServiceAccount(serviceAccount.getId()));
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3)
     @SneakyThrows
     public void testDeleteKafkaInstance() {
 
@@ -408,7 +408,7 @@ public class KafkaCLITest extends TestBase {
         CLIUtils.waitUntilKafkaIsDeleted(cli, kafka.getId());
     }
 
-    @Test(dependsOnMethods = "testLogin", priority = 3, timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testLogin", priority = 3)
     @SneakyThrows
     public void testLogout() {
 

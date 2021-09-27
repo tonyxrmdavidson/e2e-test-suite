@@ -107,7 +107,7 @@ public class QuarkusApplicationTest extends TestBase {
     private KafkaRequest kafka;
     private Route route;
 
-    @BeforeClass(timeOut = 15 * MINUTES)
+    @BeforeClass
     @SneakyThrows
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
@@ -276,7 +276,7 @@ public class QuarkusApplicationTest extends TestBase {
         return Future.succeededFuture();
     }
 
-    @AfterClass(timeOut = 5 * MINUTES, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     public void teardown(ITestContext context) throws Throwable {
         assumeTeardown();
 
@@ -347,7 +347,7 @@ public class QuarkusApplicationTest extends TestBase {
         bwait(vertx.close());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testCLIConnectCluster() throws Throwable {
         cleanAccessTokenSecret();
         cleanKafkaConnection();
@@ -369,7 +369,7 @@ public class QuarkusApplicationTest extends TestBase {
         cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
     }
 
-    @Test(dependsOnMethods = "testCLIConnectCluster", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testCLIConnectCluster")
     public void testDeployQuarkusApplication() {
 
         // TODO: Deploy the application from https://raw.githubusercontent.com/redhat-developer/app-services-guides/main/code-examples/quarkus-kafka-quickstart/.kubernetes/kubernetes.yml
@@ -382,7 +382,7 @@ public class QuarkusApplicationTest extends TestBase {
         LOGGER.info("app deployed to: {}", route.getSpec().getHost());
     }
 
-    @Test(dependsOnMethods = "testDeployQuarkusApplication", timeOut = DEFAULT_TIMEOUT)
+    @Test(dependsOnMethods = "testDeployQuarkusApplication")
     public void testCreateServiceBinding() throws Throwable {
         cleanServiceBinding();
 
@@ -454,7 +454,7 @@ public class QuarkusApplicationTest extends TestBase {
         bwait(waitFor(vertx, "service binding to be ready", ofSeconds(3), ofMinutes(1), serviceBindingIsReady));
     }
 
-    @Test(dependsOnMethods = "testCreateServiceBinding", timeOut = 5 * MINUTES)
+    @Test(dependsOnMethods = "testCreateServiceBinding")
     public void testQuarkusApplication() throws Throwable {
 
         var endpoint = String.format("https://%s", route.getSpec().getHost());

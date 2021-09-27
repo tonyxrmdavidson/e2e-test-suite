@@ -73,7 +73,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
     private KafkaRequest kafka;
     private ServiceAccount serviceAccount;
 
-    @BeforeClass(timeOut = 20 * MINUTES)
+    @BeforeClass
     public void bootstrap() throws Throwable {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
@@ -119,7 +119,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         registryClient.createRoleMapping(role);
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     public void teardown() throws Throwable {
         assumeTeardown();
 
@@ -144,7 +144,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         bwait(vertx.close());
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testProduceConsumeAvroMessageWithServiceRegistry() throws Throwable {
 
         // producer

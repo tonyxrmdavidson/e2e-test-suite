@@ -54,7 +54,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
 
     private KafkaRequest kafka;
 
-    @BeforeClass(timeOut = 15 * MINUTES)
+    @BeforeClass
     @SneakyThrows
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
@@ -80,7 +80,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         kafka = KafkaMgmtApiUtils.applyKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
     }
 
-    @AfterClass(timeOut = DEFAULT_TIMEOUT, alwaysRun = true)
+    @AfterClass(alwaysRun = true)
     @SneakyThrows
     public void teardown() {
         assumeTeardown();
@@ -104,7 +104,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         }
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testSecondaryUserCanReadTheKafkaInstance() {
 
@@ -121,7 +121,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     }
 
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testAlienUserCanNotReadTheKafkaInstance() {
 
@@ -161,7 +161,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
      * kafka instance created by the main user
      */
     // See: https://issues.redhat.com/browse/MGDSTRM-5635
-    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
+    @Test(enabled = false)
     @SneakyThrows
     public void testSecondaryUserServiceAccountCanNotCreateTopicOnTheKafkaInstance() {
 
@@ -188,7 +188,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         admin.close();
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testAlienUserCanNotCreateTopicOnTheKafkaInstance() {
 
@@ -207,7 +207,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     /**
      * A user in org A is not allowed to create topic to produce and consume messages on a kafka instance in org B
      */
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     @SneakyThrows
     public void testAlienUserServiceAccountCanNotCreateTopicOnTheKafkaInstance() {
 
@@ -235,25 +235,25 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         admin.close();
     }
 
-    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 1)
     public void testSecondaryUserCanNotDeleteTheKafkaInstance() {
         // should failKafkaControlManagerAPIPermissionsTestKafkaControlManagerAPIPermissionsTest
         assertThrows(ApiNotFoundException.class, () -> secondaryAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
     }
 
-    @Test(priority = 1, timeOut = DEFAULT_TIMEOUT)
+    @Test(priority = 1)
     public void testAlienUserCanNotDeleteTheKafkaInstance() {
         // should fail
         assertThrows(ApiNotFoundException.class, () -> alienAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testUnauthenticatedUserWithFakeToken() {
         var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, TestUtils.FAKE_TOKEN);
         assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    @Test
     public void testUnauthenticatedUserWithoutToken() {
         var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, "");
         assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
