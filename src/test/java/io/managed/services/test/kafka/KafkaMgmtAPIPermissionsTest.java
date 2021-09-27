@@ -138,7 +138,8 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     }
 
 
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    // See: https://issues.redhat.com/browse/MGDSTRM-5635
+    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
     @SneakyThrows
     public void testSecondaryUserCanNotCreateTopicOnTheKafkaInstance() {
 
@@ -159,7 +160,8 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
      * Use the secondary user to create a service account and consume and produce messages on the
      * kafka instance created by the main user
      */
-    @Test(timeOut = DEFAULT_TIMEOUT)
+    // See: https://issues.redhat.com/browse/MGDSTRM-5635
+    @Test(timeOut = DEFAULT_TIMEOUT, enabled = false)
     @SneakyThrows
     public void testSecondaryUserServiceAccountCanNotCreateTopicOnTheKafkaInstance() {
 
