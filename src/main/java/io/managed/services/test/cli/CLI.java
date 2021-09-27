@@ -178,9 +178,8 @@ public class CLI {
         return stdoutAsJson(p, Topic.class);
     }
 
-    public Topic updateTopic(String topicName, String retentionTime) throws CliGenericException {
-        var p = retry(() -> exec("kafka", "topic", "update", "--name", topicName, "--retention-ms", retentionTime, "-o", "json"));
-        return stdoutAsJson(p, Topic.class);
+    public void updateTopic(String topicName, String retentionTime) throws CliGenericException {
+        retry(() -> exec("kafka", "topic", "update", "--name", topicName, "--retention-ms", retentionTime));
     }
 
     public ConsumerGroupList listConsumerGroups() throws CliGenericException {

@@ -275,7 +275,8 @@ public class KafkaCLITest extends TestBase {
         var retentionKey = "retention.ms";
 
         LOGGER.info("update kafka topic with name {}", TOPIC_NAME);
-        var t = cli.updateTopic(TOPIC_NAME, retentionTime);
+        cli.updateTopic(TOPIC_NAME, retentionTime);
+        var t = cli.describeTopic(TOPIC_NAME);
         LOGGER.debug(t);
 
         var retentionValue = Objects.requireNonNull(t.getConfig())
