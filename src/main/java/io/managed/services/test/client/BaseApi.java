@@ -38,7 +38,7 @@ public abstract class BaseApi<E extends Exception> {
     private static boolean retryCondition(Throwable t) {
         if (t instanceof ApiGenericException) {
             var code = ((ApiGenericException) t).getCode();
-            return (code >= 500 && code < 600) // Server Errors
+            return code >= 500 && code < 600 // Server Errors
                 || code == 408;  // Request Timeout
         }
         return false;
