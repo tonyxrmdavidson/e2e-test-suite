@@ -12,22 +12,22 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Given you're logged in to the OpenShift CLI as a user who has privileges to create a new project
     When you create a new project
     And you deploy the `quay.io/rhosak/rhoas-tools` image provided by Streams for Apache Kafka
-    And you enter the `rhoas` command
+    And you enter the `rhoas` command in the pod for the tools application
     Then the command line shows help text for the RHOAS CLI
 
     # 2. Checking RHOAS Operator connection to your OpenShift cluster
     When you log in to the RHOAS CLI
-    And you enter the `rhoas cluster status` command
+    And you enter the `rhoas cluster status` command in the pod for the tools application
     Then the command line shows that the RHOAS Operator was successfully installed and displays the name of the current OpenShift project
 
     # 3. Connecting a Kafka instance to your OpenShift cluster
     Given you copied an API token from `https://console.redhat.com/openshift/token`
-    When you enter the `rhoas cluster connect` command
+    When you enter the `rhoas cluster connect` command in the pod for the tools application
     And you specify the Kafka instance that you want to connect to OpenShift
     And you type `y` and press *Enter*
     And you paste your API token on the command line and press *Enter*
     Then the command line shows `KafkaConnection successfully installed on your cluster`
-    When you enter the `oc get KafkaConnection` command
+    When you enter the `oc get KafkaConnection` command in the pod for the tools application
     Then the command line shows the name of a `KafkaConnection` object that corresponds to the name of your Kafka instance
 
   Scenario: Binding a Quarkus application in OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
