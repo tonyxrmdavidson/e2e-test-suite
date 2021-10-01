@@ -23,7 +23,7 @@ public class CLIDownloader {
     private static final String NAME = "rhoas";
 
     private static final String DOWNLOAD_ASSET_TEMPLATE = "^%s_\\S+_%s_%s.%s$"; // rhoas_{version}_linux_amd64.tar.gz
-    private static final String ARCHIVE_ENTRY_TEMPLATE = "^%s_\\S+_%s_%s/bin/%s$"; // rhoas_{version}_linux_amd64/bin/rhoas
+    private static final String ARCHIVE_ENTRY_TEMPLATE = "^%s_\\S+_%s_%s/%s$"; // rhoas_{version}_linux_amd64/rhoas
 
     private final GitHub github;
     private final String organization;
