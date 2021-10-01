@@ -24,7 +24,7 @@ public class KafkaMgmtMetricsUtils {
 
     private static final String IN_MESSAGES_METRIC = "kafka_server_brokertopicmetrics_messages_in_total";
     private static final int MESSAGE_COUNT = 17;
-    private static final Duration WAIT_FOR_METRIC_TIMEOUT = Duration.ofMinutes(2);
+    private static final Duration WAIT_FOR_METRIC_TIMEOUT = Duration.ofMinutes(5);
 
     /**
      * Return the sum for all values of a single metric and topic
