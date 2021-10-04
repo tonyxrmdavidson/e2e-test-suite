@@ -19,7 +19,14 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Then the service account has a generated Client ID and Client Secret
     And the service account is listed in the service accounts table
 
-    # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
+    # 3. Setting permissions for a service account in a Kafka instance in OpenShift Streams for Apache Kafka
+    Given you've created a Kafka instance
+    * The Kafka instance is in Ready state
+    * You've created a service account that you want to allow to interact with the running Kafka instance
+    When you add permissions for the new service account in the Kafka instance
+    Then the new permissions for the service account are listed in the Permissions page of the Kafka instance
+
+    # 4. Creating a Kafka topic in OpenShift Streams for Apache Kafka
     Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
     * The Kafka instance is in Ready state
     When you create a Kafka topic with a unique name
