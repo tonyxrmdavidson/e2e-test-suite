@@ -115,7 +115,7 @@ public class KafkaMgmtAPITest extends TestBase {
             .name(KAFKA_INSTANCE_NAME)
             .multiAz(true)
             .cloudProvider("aws")
-            .region("us-east-1");
+            .region(Environment.DEFAULT_KAFKA_REGION);
 
         log.info("create kafka instance '{}'", payload.getName());
         var k = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
@@ -275,7 +275,7 @@ public class KafkaMgmtAPITest extends TestBase {
             .name(KAFKA_INSTANCE_NAME)
             .multiAz(true)
             .cloudProvider("aws")
-            .region("us-east-1");
+            .region(Environment.DEFAULT_KAFKA_REGION);
 
         log.info("create kafka instance '{}' with existing name", payload.getName());
         assertThrows(ApiConflictException.class, () -> kafkaMgmtApi.createKafka(true, payload));
@@ -329,7 +329,7 @@ public class KafkaMgmtAPITest extends TestBase {
             .name(KAFKA2_INSTANCE_NAME)
             .multiAz(true)
             .cloudProvider("aws")
-            .region("us-east-1");
+            .region(Environment.DEFAULT_KAFKA_REGION);
 
         log.info("create kafka instance '{}'", KAFKA2_INSTANCE_NAME);
         var kafkaToDelete = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);

@@ -71,6 +71,7 @@ public class Environment {
     private static final String SKIP_TEARDOWN_ENV = "SKIP_TEARDOWN";
 
     private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
+    private static final String DEFAULT_KAFKA_REGION_ENV = "DEFAULT_KAFKA_REGION";
 
     private static final String PROMETHEUS_PUSH_GATEWAY_ENV = "PROMETHEUS_PUSH_GATEWAY";
 
@@ -129,6 +130,9 @@ public class Environment {
 
     // Skip only the Kafka instance delete teardown to speed the local development
     public static final boolean SKIP_KAFKA_TEARDOWN = getOrDefault(SKIP_KAFKA_TEARDOWN_ENV, Boolean::parseBoolean, false);
+
+    // Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise
+    public static final String DEFAULT_KAFKA_REGION = getOrDefault(DEFAULT_KAFKA_REGION_ENV, "us-east-1");
 
     public static final String PROMETHEUS_PUSH_GATEWAY = getOrDefault(PROMETHEUS_PUSH_GATEWAY_ENV, null);
 

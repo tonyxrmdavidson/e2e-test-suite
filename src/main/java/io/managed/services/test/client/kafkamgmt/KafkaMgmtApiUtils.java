@@ -64,7 +64,7 @@ public class KafkaMgmtApiUtils {
             .name(name)
             .multiAz(true)
             .cloudProvider("aws")
-            .region("us-east-1");
+            .region(Environment.DEFAULT_KAFKA_REGION);
 
         return applyKafkaInstance(api, payload);
     }

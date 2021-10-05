@@ -72,6 +72,7 @@ Environment variables can also be configured in the [config.json](#config-file) 
 | LAUNCH_KEY                  | A string key used to identify the current configuration and owner which is used to generate unique name and identify the launch            | change-me |
 | SKIP_TEARDOWN               | Skip the whole test teardown in most tests, although some of them will need top re-enable it to succeed                                    | false |
 | SKIP_KAFKA_TEARDOWN         | Skip only the Kafka instance cleanup teardown in the tests that don't require a new instance for each run to speed the local development   | false |
+| DEFAULT_KAFKA_REGION        | Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise                             | us-east-1 |
 
 ## Config File
 

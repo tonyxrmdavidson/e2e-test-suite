@@ -62,7 +62,7 @@ public class QuickstartsStepDefinitions {
             .name(KAFKA_INSTANCE_NAME)
             .multiAz(true)
             .cloudProvider("aws")
-            .region("us-east-1");
+            .region(Environment.DEFAULT_KAFKA_REGION);
 
         kafkaInstance = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
         LOGGER.debug(kafkaInstance);
