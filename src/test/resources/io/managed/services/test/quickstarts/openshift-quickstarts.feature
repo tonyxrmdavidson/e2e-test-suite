@@ -63,3 +63,47 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     And the command line shows that the binding succeeded
     When you reopen the *Last price* web page in your web browser
     Then the `price` value is continuously updated
+
+  Scenario: Binding a Node.js application to Red Hat OpenShift Streams for Apache Kafka using the OpenShift web console
+    Given your OpenShift cluster is running on OpenShift 4.8 or later
+    * You've connected OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
+    * You have privileges to deploy applications in the OpenShift project that you connected your Kafka instance to
+    * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
+    * You've installed Git
+
+    # 1. Installing the Service Binding Operator
+    When you log in to OpenShift with the `dedicated-admin` or `cluster-admin` role
+    And you install the Service Binding Operator
+    Then the Service Binding Operator is installed in the `openshift-operators` namespace
+
+    # 2. Deploying an example Node.js application
+    When you switch to the OpenShift project that you previously connected your Kafka instance to
+    And you clone the `nodeshift-starters/reactive-example` repository from GitHub
+    And you navigate to the `consumer-backend` directory of the cloned repository
+    And you enter the `npm install` command on the command line
+    Then Node Package Manager installs dependencies for the consumer component of the Node.js application
+    When you enter the `npm run openshift` command
+    Then Node Package Manager builds the consumer component and deploys it to your OpenShift project
+    But the logs of the pod for the deployed consumer component show that the component can't connect to Kafka
+    When you navigate to the `producer-backend` directory of the cloned repository
+    And you enter the `npm install` command on the command line
+    Then Node Package Manager installs dependencies for the producer component of the Node.js application
+    When you enter the `npm run openshift` command
+    Then Node Package Manager builds the producer component and deploys it to your OpenShift project
+    But the logs of the pod for the deployed producer component show that the component can't connect to Kafka
+
+    # 3. Creating a Kafka topic for your Node.js application
+    When you create a topic called `countries` in your Kafka instance
+    Then the `countries` Kafka topic is listed in the topics table
+
+    # 4. Binding the Node.js application to your Kafka instance
+    When you log in to the OpenShift web console as the same user who deployed the Node.js application
+    * You switch to the *Developer* perspective
+    * You switch to the OpenShift project that you previously connected your Kafka instance to
+    * You open the *Topology* page of the console
+    * You left-click and drag a binding connection from the icon for the producer component to the icon for the `KafkaConnection` object
+    * You left-click and drag a binding connection from the icon for the consumer component to the icon for the `KafkaConnection` object
+    Then the Service Binding Operator binds your Kafka instance to each component
+    And the logs of the pod for the producer component show that the producer generates random country names
+    And the logs of the pod for the consumer component show that the consumer consumes the same country names, and in the same order
