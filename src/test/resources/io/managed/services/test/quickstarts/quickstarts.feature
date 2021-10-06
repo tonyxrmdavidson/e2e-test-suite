@@ -32,6 +32,14 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     When you create a Kafka topic with a unique name
     Then the Kafka topic is listed in the topics table
 
+    # 5. Viewing metrics for a Kafka instance in OpenShift Streams for Apache Kafka
+    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    * The Kafka instance is in Ready state
+    * You've created topics in your Kafka instance
+    * You've started producing and consuming messages in your services
+    When you open the Dashboard tab
+    Then metrics for your Kafka instance and topics are displayed
+
   Scenario: Using Quarkus applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
     * You have a running Kafka instance in OpenShift Streams for Apache Kafka
