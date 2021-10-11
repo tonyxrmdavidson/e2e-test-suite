@@ -36,8 +36,10 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
     * The Kafka instance is in Ready state
     * You've created topics in your Kafka instance
-    * You've started producing and consuming messages in your services
-    When you open the Dashboard tab
+    When you open the Dashboard tab for a new Kafka instance
+    Then no metrics are displayed for your new instance and topics
+    When you produce and consume messages in your topics
+    And you open again the Dashboard tab for the instance
     Then metrics for your Kafka instance and topics are displayed
 
   Scenario: Using Quarkus applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
