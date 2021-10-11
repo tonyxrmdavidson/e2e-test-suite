@@ -44,7 +44,6 @@ import static org.testng.Assert.assertThrows;
  */
 @Log4j2
 public class KafkaAdminPermissionTest extends TestBase {
-
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-pe-" + Environment.LAUNCH_KEY;
     private static final String SERVICE_ACCOUNT_NAME = "mk-e2e-pe-sa-" + Environment.LAUNCH_KEY;
     private static final String TOPIC_NAME = "test-topic-1";

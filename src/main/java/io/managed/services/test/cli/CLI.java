@@ -156,7 +156,7 @@ public class CLI {
     }
 
     public void createServiceAccount(String name, Path path) throws CliGenericException {
-        retry(() -> exec("service-account", "create", "--name", name, "--file-format", "json", "--output-file", path.toString(), "--overwrite"));
+        retry(() -> exec("service-account", "create", "--short-description", name, "--file-format", "json", "--output-file", path.toString(), "--overwrite"));
     }
 
     public Topic createTopic(String topicName) throws CliGenericException {
