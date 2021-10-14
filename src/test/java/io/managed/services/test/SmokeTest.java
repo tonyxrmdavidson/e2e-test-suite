@@ -1,13 +1,18 @@
 package io.managed.services.test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openshift.cloud.api.kas.models.MetricsInstantQueryList;
 import io.managed.services.test.cli.CliGenericException;
 import io.managed.services.test.client.kafka.KafkaMessagingUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -99,5 +104,17 @@ public class SmokeTest extends TestBase {
             "\n" +
             "{\"code\":404,\"error_message\":\"This server does not host this topic-partition.\",\"class\":\"UnknownTopicOrPartitionException\"}");
         assertEquals(404, code);
+    }
+
+    @Test
+    public void testCollectTopicMetric() throws IOException {
+        var stream = SmokeTest.class.getClassLoader().getResourceAsStream("smoke/user-metrics.json");
+        var metrics = new ObjectMapper().readValue(stream, MetricsInstantQueryList.class);
+
+        var result = KafkaMgmtMetricsUtils.collectTopicMetric(
+            metrics.getItems(),
+            "metric-test-topic",
+            "kafka_server_brokertopicmetrics_messages_in_total");
+        Assert.assertEquals(result, 2856);
     }
 }

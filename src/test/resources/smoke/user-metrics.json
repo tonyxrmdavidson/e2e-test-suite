@@ -1,0 +1,546 @@
+{
+  "kind": "MetricsInstantQueryList",
+  "id": "c55i81v6q598ar2lke00",
+  "items": [
+    {
+      "metric": {
+        "__name__": "kubelet_volume_stats_used_bytes",
+        "persistentvolumeclaim": "data-0-mk-e2e-ll-ci-stage-kafka-2"
+      },
+      "timestamp": 1634217721769,
+      "value": 1089081344
+    },
+    {
+      "metric": {
+        "__name__": "kubelet_volume_stats_used_bytes",
+        "persistentvolumeclaim": "data-0-mk-e2e-ll-ci-stage-kafka-1"
+      },
+      "timestamp": 1634217721769,
+      "value": 1088937984
+    },
+    {
+      "metric": {
+        "__name__": "kubelet_volume_stats_used_bytes",
+        "persistentvolumeclaim": "data-0-mk-e2e-ll-ci-stage-kafka-0"
+      },
+      "timestamp": 1634217721769,
+      "value": 1089118208
+    },
+    {
+      "metric": {
+        "__name__": "kafka_broker_quota_softlimitbytes",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721829,
+      "value": 357913941332
+    },
+    {
+      "metric": {
+        "__name__": "kafka_broker_quota_softlimitbytes",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721829,
+      "value": 357913941332
+    },
+    {
+      "metric": {
+        "__name__": "kafka_broker_quota_softlimitbytes",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721829,
+      "value": 357913941332
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__consumer_offsets"
+      },
+      "timestamp": 1634217721838,
+      "value": 31
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721838,
+      "value": 125859
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "metric-test-topic"
+      },
+      "timestamp": 1634217721838,
+      "value": 1920
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721838,
+      "value": 115188
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__consumer_offsets"
+      },
+      "timestamp": 1634217721838,
+      "value": 379374
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721838,
+      "value": 125788
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "metric-test-topic"
+      },
+      "timestamp": 1634217721838,
+      "value": 936
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721838,
+      "value": 114303
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "test-topic"
+      },
+      "timestamp": 1634217721838,
+      "value": 1670
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__consumer_offsets"
+      },
+      "timestamp": 1634217721838,
+      "value": 840
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721838,
+      "value": 125726
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_messages_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721838,
+      "value": 114573
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721848,
+      "value": 19256580
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "metric-test-topic"
+      },
+      "timestamp": 1634217721848,
+      "value": 128652
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721848,
+      "value": 299014244
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721848,
+      "value": 19245717
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "metric-test-topic"
+      },
+      "timestamp": 1634217721848,
+      "value": 63561
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721848,
+      "value": 295926365
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "test-topic"
+      },
+      "timestamp": 1634217721848,
+      "value": 38255
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721848,
+      "value": 19236384
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_out_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721848,
+      "value": 297250580
+    },
+    {
+      "metric": {
+        "__name__": "kafka_controller_kafkacontroller_global_partition_count",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721857,
+      "value": 60
+    },
+    {
+      "metric": {
+        "__name__": "kafka_controller_kafkacontroller_global_partition_count",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721857,
+      "value": 0
+    },
+    {
+      "metric": {
+        "__name__": "kafka_controller_kafkacontroller_global_partition_count",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721857,
+      "value": 0
+    },
+    {
+      "metric": {
+        "__name__": "kafka_topic:kafka_log_log_size:sum",
+        "topic": "__consumer_offsets"
+      },
+      "timestamp": 1634217721869,
+      "value": 15960338
+    },
+    {
+      "metric": {
+        "__name__": "kafka_topic:kafka_log_log_size:sum",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721869,
+      "value": 190971999
+    },
+    {
+      "metric": {
+        "__name__": "kafka_topic:kafka_log_log_size:sum",
+        "topic": "metric-test-topic"
+      },
+      "timestamp": 1634217721869,
+      "value": 565695
+    },
+    {
+      "metric": {
+        "__name__": "kafka_topic:kafka_log_log_size:sum",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721869,
+      "value": 2838982398
+    },
+    {
+      "metric": {
+        "__name__": "kafka_topic:kafka_log_log_size:sum",
+        "topic": "test-topic"
+      },
+      "timestamp": 1634217721869,
+      "value": 122259
+    },
+    {
+      "metric": {
+        "__name__": "kafka_namespace:haproxy_server_bytes_in_total:rate5m"
+      },
+      "timestamp": 1634217721879,
+      "value": 0
+    },
+    {
+      "metric": {
+        "__name__": "kafka_namespace:haproxy_server_bytes_out_total:rate5m"
+      },
+      "timestamp": 1634217721890,
+      "value": 0
+    },
+    {
+      "metric": {
+        "__name__": "kubelet_volume_stats_available_bytes",
+        "persistentvolumeclaim": "data-0-mk-e2e-ll-ci-stage-kafka-2"
+      },
+      "timestamp": 1634217721900,
+      "value": 389926612992
+    },
+    {
+      "metric": {
+        "__name__": "kubelet_volume_stats_available_bytes",
+        "persistentvolumeclaim": "data-0-mk-e2e-ll-ci-stage-kafka-1"
+      },
+      "timestamp": 1634217721900,
+      "value": 389926756352
+    },
+    {
+      "metric": {
+        "__name__": "kubelet_volume_stats_available_bytes",
+        "persistentvolumeclaim": "data-0-mk-e2e-ll-ci-stage-kafka-0"
+      },
+      "timestamp": 1634217721900,
+      "value": 389926576128
+    },
+    {
+      "metric": {
+        "__name__": "kafka_broker_quota_totalstorageusedbytes",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721908,
+      "value": 1105915904
+    },
+    {
+      "metric": {
+        "__name__": "kafka_broker_quota_totalstorageusedbytes",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721908,
+      "value": 1105731584
+    },
+    {
+      "metric": {
+        "__name__": "kafka_broker_quota_totalstorageusedbytes",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721908,
+      "value": 1105879040
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__consumer_offsets"
+      },
+      "timestamp": 1634217721917,
+      "value": 3355
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721917,
+      "value": 19256427
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "metric-test-topic"
+      },
+      "timestamp": 1634217721917,
+      "value": 128652
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721917,
+      "value": 297664643
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__consumer_offsets"
+      },
+      "timestamp": 1634217721917,
+      "value": 38089483
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721917,
+      "value": 19245717
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "metric-test-topic"
+      },
+      "timestamp": 1634217721917,
+      "value": 63561
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721917,
+      "value": 294686259
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "test-topic"
+      },
+      "timestamp": 1634217721917,
+      "value": 38255
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__consumer_offsets"
+      },
+      "timestamp": 1634217721917,
+      "value": 250124
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "__strimzi_canary"
+      },
+      "timestamp": 1634217721917,
+      "value": 19236078
+    },
+    {
+      "metric": {
+        "__name__": "kafka_server_brokertopicmetrics_bytes_in_total",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage",
+        "topic": "multi-partitions-topic"
+      },
+      "timestamp": 1634217721917,
+      "value": 296028477
+    },
+    {
+      "metric": {
+        "__name__": "kafka_controller_kafkacontroller_offline_partitions_count",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-0",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721931,
+      "value": 0
+    },
+    {
+      "metric": {
+        "__name__": "kafka_controller_kafkacontroller_offline_partitions_count",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-1",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721931,
+      "value": 0
+    },
+    {
+      "metric": {
+        "__name__": "kafka_controller_kafkacontroller_offline_partitions_count",
+        "statefulset_kubernetes_io_pod_name": "mk-e2e-ll-ci-stage-kafka-2",
+        "strimzi_io_cluster": "mk-e2e-ll-ci-stage"
+      },
+      "timestamp": 1634217721931,
+      "value": 0
+    }
+  ]
+}

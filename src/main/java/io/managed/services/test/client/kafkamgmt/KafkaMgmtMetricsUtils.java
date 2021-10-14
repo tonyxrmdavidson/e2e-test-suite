@@ -29,7 +29,7 @@ public class KafkaMgmtMetricsUtils {
     /**
      * Return the sum for all values of a single metric and topic
      *
-     * @param metricItems List<KafkaUserMetricItem>
+     * @param metricItems List<InstantQuery>
      * @param topicName   String
      * @param metric      String
      * @return double
@@ -38,11 +38,10 @@ public class KafkaMgmtMetricsUtils {
         Objects.requireNonNull(metricItems);
         return metricItems.stream()
             .filter(item -> item.getMetric() != null)
-            .filter(item -> item.getMetric().get("__name__") != null)
-            .filter(item -> item.getMetric().get("topic") != null)
-            .filter(item -> item.getMetric().get("__name__").equals(metric))
-            .filter(item -> item.getMetric().get("topic").equals(topicName))
-            .reduce((double) 0, (__, item) -> item.getValue(), Double::sum);
+            .filter(item -> metric.equals(item.getMetric().get("__name__")))
+            .filter(item -> topicName.equals(item.getMetric().get("topic")))
+            .mapToDouble(i -> i.getValue())
+            .sum();
     }
 
     public static void testMessageInTotalMetric(

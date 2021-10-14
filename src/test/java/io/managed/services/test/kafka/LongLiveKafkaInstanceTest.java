@@ -146,7 +146,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
 
         var map = new HashMap<String, NewTopicInput>();
         map.put(TEST_TOPIC_NAME, topic.apply(TEST_TOPIC_NAME, 1));
-        map.put(METRIC_TOPIC_NAME, topic.apply(METRIC_TOPIC_NAME, 1));
+        map.put(METRIC_TOPIC_NAME, topic.apply(METRIC_TOPIC_NAME, 3));
         map.put(MULTI_PARTITION_TOPIC_NAME, topic.apply(MULTI_PARTITION_TOPIC_NAME, 3));
         return map;
     }
