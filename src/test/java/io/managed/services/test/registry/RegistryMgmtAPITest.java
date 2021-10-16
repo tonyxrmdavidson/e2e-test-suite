@@ -1,7 +1,7 @@
 package io.managed.services.test.registry;
 
-import com.openshift.cloud.api.srs.models.RegistryCreateRest;
-import com.openshift.cloud.api.srs.models.RegistryRest;
+import com.openshift.cloud.api.srs.models.RegistryCreate;
+import com.openshift.cloud.api.srs.models.Registry;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.ApiGenericException;
@@ -46,7 +46,7 @@ public class RegistryMgmtAPITest extends TestBase {
     private static final String ARTIFACT_SCHEMA = "{\"type\":\"record\",\"name\":\"Greeting\",\"fields\":[{\"name\":\"Message\",\"type\":\"string\"},{\"name\":\"Time\",\"type\":\"long\"}]}";
 
     private RegistryMgmtApi registryMgmtApi;
-    private RegistryRest registry;
+    private Registry registry;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
@@ -78,7 +78,7 @@ public class RegistryMgmtAPITest extends TestBase {
     @Test
     public void testCreateRegistry() throws Exception {
 
-        var registryCreateRest = new RegistryCreateRest()
+        var registryCreateRest = new RegistryCreate()
             .name(SERVICE_REGISTRY_NAME)
             .description("Hello World!");
 
@@ -133,7 +133,7 @@ public class RegistryMgmtAPITest extends TestBase {
     public void testFailToCreateRegistryIfItAlreadyExist() {
         // TODO: Enable after https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/75
 
-        var registryCreateRest = new RegistryCreateRest()
+        var registryCreateRest = new RegistryCreate()
             .name(SERVICE_REGISTRY_NAME);
 
         assertThrows(() -> registryMgmtApi.createRegistry(registryCreateRest));
@@ -152,7 +152,7 @@ public class RegistryMgmtAPITest extends TestBase {
     @Test(priority = 2)
     public void testDeleteProvisioningRegistry() throws Throwable {
 
-        var registryCreateRest = new RegistryCreateRest()
+        var registryCreateRest = new RegistryCreate()
             .name(SERVICE_REGISTRY_NAME);
 
         LOGGER.info("create kafka instance: {}", SERVICE_REGISTRY_2_NAME);

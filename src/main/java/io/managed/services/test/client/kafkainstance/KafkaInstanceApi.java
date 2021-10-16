@@ -5,6 +5,12 @@ import com.openshift.cloud.api.kas.auth.GroupsApi;
 import com.openshift.cloud.api.kas.auth.TopicsApi;
 import com.openshift.cloud.api.kas.auth.invoker.ApiClient;
 import com.openshift.cloud.api.kas.auth.invoker.ApiException;
+import com.openshift.cloud.api.kas.auth.models.AclBinding;
+import com.openshift.cloud.api.kas.auth.models.AclBindingListPage;
+import com.openshift.cloud.api.kas.auth.models.AclOperationFilter;
+import com.openshift.cloud.api.kas.auth.models.AclPatternTypeFilter;
+import com.openshift.cloud.api.kas.auth.models.AclPermissionTypeFilter;
+import com.openshift.cloud.api.kas.auth.models.AclResourceTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroupList;
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
@@ -14,9 +20,10 @@ import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
 
+import java.math.BigDecimal;
+
 public class KafkaInstanceApi extends BaseApi<ApiException> {
 
-    @SuppressWarnings({"FieldCanBeLocal", "unused"})
     private final AclsApi aclsApi;
     private final GroupsApi groupsApi;
     private final TopicsApi topicsApi;
@@ -42,7 +49,7 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
     }
 
     public TopicsList getTopics(Integer size, Integer page, String filter, String order, String orderKey) throws ApiGenericException {
-        return retry(() -> topicsApi.getTopics(null, null, size, filter, page, order, orderKey));
+        return retry(() -> topicsApi.getTopics(size, filter, page, order, orderKey));
     }
 
     public Topic getTopic(String topicName) throws ApiGenericException {
@@ -62,7 +69,7 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
     }
 
     public ConsumerGroupList getConsumerGroups(Integer size, Integer page, String topic, String groupIdFilter, String order, String orderKey) throws ApiGenericException {
-        return retry(() -> groupsApi.getConsumerGroups(null, null, size, page, topic, groupIdFilter, order, orderKey));
+        return retry(() -> groupsApi.getConsumerGroups(size, page, topic, groupIdFilter, order, orderKey));
     }
 
     public ConsumerGroup getConsumerGroupById(String consumerGroupId) throws ApiGenericException {
@@ -75,5 +82,17 @@ public class KafkaInstanceApi extends BaseApi<ApiException> {
 
     public void deleteConsumerGroupById(String consumerGroupId) throws ApiGenericException {
         retry(() -> groupsApi.deleteConsumerGroupById(consumerGroupId));
+    }
+
+    public AclBindingListPage getAcls(AclResourceTypeFilter resourceType, String resourceName, AclPatternTypeFilter patternType, String principal, AclOperationFilter operation, AclPermissionTypeFilter permission, BigDecimal page, BigDecimal size, String order, String orderKey) throws ApiGenericException {
+        return retry(() -> aclsApi.getAcls(resourceType, resourceName, patternType, principal, operation, permission, page, size, order, orderKey));
+    }
+
+    public void createAcl(AclBinding aclBinding) throws ApiGenericException {
+        retry(() -> aclsApi.createAcl(aclBinding));
+    }
+
+    public AclBindingListPage deleteAcls(AclResourceTypeFilter resourceType, String resourceName, AclPatternTypeFilter patternType, String principal, AclOperationFilter operation, AclPermissionTypeFilter permission) throws ApiGenericException {
+        return retry(() -> aclsApi.deleteAcls(resourceType, resourceName, patternType, principal, operation, permission));
     }
 }

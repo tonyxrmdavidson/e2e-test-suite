@@ -1,9 +1,9 @@
 package io.managed.services.test.client.registrymgmt;
 
-import com.openshift.cloud.api.srs.models.RegistryCreateRest;
-import com.openshift.cloud.api.srs.models.RegistryListRest;
-import com.openshift.cloud.api.srs.models.RegistryRest;
-import com.openshift.cloud.api.srs.models.RegistryStatusValueRest;
+import com.openshift.cloud.api.srs.models.Registry;
+import com.openshift.cloud.api.srs.models.RegistryCreate;
+import com.openshift.cloud.api.srs.models.RegistryList;
+import com.openshift.cloud.api.srs.models.RegistryStatusValue;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.SrsApiClient;
@@ -50,12 +50,12 @@ public class RegistryMgmtApiUtils {
      *
      * @param api  RegistryMgmtApi
      * @param name Name for the Registry
-     * @return RegistryRest
+     * @return Registry
      */
-    public static RegistryRest applyRegistry(RegistryMgmtApi api, String name)
+    public static Registry applyRegistry(RegistryMgmtApi api, String name)
         throws ApiGenericException, InterruptedException, TimeoutException {
 
-        var registryCreateRest = new RegistryCreateRest().name(name);
+        var registryCreateRest = new RegistryCreate().name(name);
         return applyRegistry(api, registryCreateRest);
     }
 
@@ -63,10 +63,10 @@ public class RegistryMgmtApiUtils {
      * Create a Registry if it doesn't exist or return the existing Registry
      *
      * @param api     RegistryMgmtApi
-     * @param payload RegistryCreateRest
-     * @return RegistryRest
+     * @param payload RegistryCreate
+     * @return Registry
      */
-    public static RegistryRest applyRegistry(RegistryMgmtApi api, RegistryCreateRest payload)
+    public static Registry applyRegistry(RegistryMgmtApi api, RegistryCreate payload)
         throws ApiGenericException, InterruptedException, TimeoutException {
 
         var registryList = getRegistryByName(api, payload.getName());
@@ -87,17 +87,17 @@ public class RegistryMgmtApiUtils {
     }
 
     /**
-     * Function that returns RegistryRest only if status is in ready
+     * Function that returns Registry only if status is in ready
      *
      * @param api        RegistryMgmtApi
      * @param registryID String
-     * @return RegistryRest
+     * @return Registry
      */
-    public static RegistryRest waitUntilRegistryIsReady(RegistryMgmtApi api, String registryID)
+    public static Registry waitUntilRegistryIsReady(RegistryMgmtApi api, String registryID)
         throws InterruptedException, ApiGenericException, TimeoutException {
 
         // save the last ready registry in the atomic reference
-        var registryReference = new AtomicReference<RegistryRest>();
+        var registryReference = new AtomicReference<Registry>();
 
         ThrowingFunction<Boolean, Boolean, ApiGenericException> isReady
             = last -> isRegistryReady(api.getRegistry(registryID), registryReference, last);
@@ -107,7 +107,7 @@ public class RegistryMgmtApiUtils {
         return registryReference.get();
     }
 
-    public static boolean isRegistryReady(RegistryRest registry, AtomicReference<RegistryRest> reference, boolean last) {
+    public static boolean isRegistryReady(Registry registry, AtomicReference<Registry> reference, boolean last) {
         LOGGER.info("registry status is: {}", registry.getStatus());
 
         if (last) {
@@ -116,7 +116,7 @@ public class RegistryMgmtApiUtils {
 
         reference.set(registry);
 
-        return RegistryStatusValueRest.READY.equals(registry.getStatus());
+        return RegistryStatusValue.READY.equals(registry.getStatus());
     }
 
     public static void cleanRegistry(RegistryMgmtApi api, String name) throws ApiGenericException {
@@ -156,7 +156,7 @@ public class RegistryMgmtApiUtils {
         waitFor("registry to be deleted", ofSeconds(1), ofSeconds(20), isReady);
     }
 
-    public static RegistryListRest getRegistryByName(RegistryMgmtApi api, String name) throws ApiGenericException {
+    public static RegistryList getRegistryByName(RegistryMgmtApi api, String name) throws ApiGenericException {
 
         // Attention: we support only 10 registries until the name doesn't become unique
         return api.getRegistries(1, 10, null, String.format("name = %s", name));

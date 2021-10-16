@@ -1,5 +1,10 @@
 package io.managed.services.test.client.kafkainstance;
 
+import com.openshift.cloud.api.kas.auth.models.AclBinding;
+import com.openshift.cloud.api.kas.auth.models.AclOperation;
+import com.openshift.cloud.api.kas.auth.models.AclPatternType;
+import com.openshift.cloud.api.kas.auth.models.AclPermissionType;
+import com.openshift.cloud.api.kas.auth.models.AclResourceType;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.Topic;
@@ -169,5 +174,63 @@ public class KafkaInstanceApiUtils {
             log.info("create kafka instance '{}'", payload.getName());
             return api.createTopic(payload);
         }
+    }
+
+    /**
+     * Convert service account clientID into ACL principal.
+     *
+     * @param clientID Service account clientID
+     * @return The principal name for ACLs
+     */
+    public static String toPrincipal(String clientID) {
+        return "User:" + clientID;
+    }
+
+    /**
+     * Allow the principal to perform the operation on all resources of the given resource type
+     *
+     * @param api          KafkaInstanceApi
+     * @param principal    The principal id like a service account client id
+     * @param resourceType The resource type for which the operation will be allowed
+     * @param operation    The operation that will be allowed
+     */
+    public static void createAllowAnyACL(KafkaInstanceApi api, String principal, AclResourceType resourceType, AclOperation operation)
+        throws ApiGenericException {
+
+        var acl = new AclBinding()
+            .principal(principal)
+            .resourceType(resourceType)
+            .patternType(AclPatternType.LITERAL)
+            .resourceName("*")
+            .permission(AclPermissionType.ALLOW)
+            .operation(operation);
+
+        log.debug(acl);
+
+        api.createAcl(acl);
+    }
+
+    public static void createReadAnyTopicACL(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        createAllowAnyACL(api, principal, AclResourceType.TOPIC, AclOperation.READ);
+    }
+
+    public static void createWriteAnyTopicACL(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        createAllowAnyACL(api, principal, AclResourceType.TOPIC, AclOperation.WRITE);
+    }
+
+    public static void createReadAnyGroupACL(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        createAllowAnyACL(api, principal, AclResourceType.GROUP, AclOperation.READ);
+    }
+
+    /**
+     * Allow the principal to consume and produce messages from and to any topics and in any group.
+     *
+     * @param api       KafkaInstanceApi
+     * @param principal The principal id like a service account client id
+     */
+    public static void createProducerAndConsumerACLs(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        createReadAnyGroupACL(api, principal);
+        createReadAnyTopicACL(api, principal);
+        createWriteAnyTopicACL(api, principal);
     }
 }

@@ -12,6 +12,7 @@ import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
@@ -65,6 +66,7 @@ public class KafkaMgmtAPITest extends TestBase {
     private SecurityMgmtApi securityMgmtApi;
     private KafkaRequest kafka;
     private ServiceAccount serviceAccount;
+    private KafkaInstanceApi kafkaInstanceApi;
 
     // TODO: Test delete Service Account
     // TODO: Test create existing Service Account
@@ -121,6 +123,9 @@ public class KafkaMgmtAPITest extends TestBase {
         var k = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
 
         kafka = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
+
+        kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
     }
 
     @Test
@@ -130,6 +135,17 @@ public class KafkaMgmtAPITest extends TestBase {
         // Create Service Account
         log.info("create service account '{}'", SERVICE_ACCOUNT_NAME);
         serviceAccount = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME));
+    }
+
+    @Test(dependsOnMethods = "testCreateServiceAccount")
+    @SneakyThrows
+    public void testCreateProducerAndConsumerACLs() {
+
+        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
+        log.info("create topic and group read and topic write ACLs for the principal '{}'", principal);
+
+        // Create ACLs to consumer and produce messages
+        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance")
@@ -152,7 +168,7 @@ public class KafkaMgmtAPITest extends TestBase {
         kafkaInstanceApi.createTopic(metricTopicPayload);
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"})
     @SneakyThrows
     public void testMessageInTotalMetric() {
 
@@ -160,7 +176,7 @@ public class KafkaMgmtAPITest extends TestBase {
         KafkaMgmtMetricsUtils.testMessageInTotalMetric(kafkaMgmtApi, kafka, serviceAccount, TOPIC_NAME);
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"})
     @SneakyThrows
     public void testMessagingKafkaInstanceUsingOAuth() {
 
@@ -180,7 +196,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.OAUTH));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"})
     @SneakyThrows
     public void testFailedToMessageKafkaInstanceUsingOAuthAndFakeSecret() {
 
@@ -199,7 +215,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.OAUTH)));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"})
     @SneakyThrows
     public void testMessagingKafkaInstanceUsingPlainAuth() {
 
@@ -219,7 +235,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.PLAIN));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"})
     @SneakyThrows
     public void testFailedToMessageKafkaInstanceUsingPlainAuthAndFakeSecret() {
 

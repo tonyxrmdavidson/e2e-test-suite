@@ -1,6 +1,6 @@
 package io.managed.services.test.registry;
 
-import com.openshift.cloud.api.srs.models.RegistryRest;
+import com.openshift.cloud.api.srs.models.Registry;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
@@ -58,7 +58,7 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
     private RegistryMgmtApi secondaryRegistryMgmtApi;
     private RegistryMgmtApi alienRegistryMgmtApi;
 
-    private RegistryRest registry;
+    private Registry registry;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
