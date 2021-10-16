@@ -26,6 +26,7 @@ import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -72,6 +73,8 @@ public class RegistryKafkaIntegrationTest extends TestBase {
     private SecurityMgmtApi securityMgmtApi;
     private KafkaRequest kafka;
     private ServiceAccount serviceAccount;
+    private KafkaProducerClient<String, GenericRecord> producer;
+    private KafkaConsumerClient<String, GenericRecord> consumer;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
@@ -107,8 +110,12 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         var topic = KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME);
         LOGGER.debug(topic);
 
+        // grant access to the service account to the kafka instance
+        LOGGER.info("grant access to the kafka instance for service account: {}", serviceAccount.getClientId());
+        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId()));
+
         // grant access to the service account to the registry
-        LOGGER.info("grant access to service account: {}", serviceAccount.getClientId());
+        LOGGER.info("grant access to the registry for service account: {}", serviceAccount.getClientId());
         var registryClient = registryClient(registry.getRegistryUrl(), user);
         var role = new RoleMapping();
         // We expect the service account to be always created with the same name
@@ -141,6 +148,18 @@ public class RegistryKafkaIntegrationTest extends TestBase {
             LOGGER.error("clean service registry error: ", t);
         }
 
+        try {
+            bwait(consumer.asyncClose());
+        } catch (Throwable t) {
+            LOGGER.error("clean service registry error: ", t);
+        }
+
+        try {
+            bwait(producer.asyncClose());
+        } catch (Throwable t) {
+            LOGGER.error("clean service registry error: ", t);
+        }
+
         bwait(vertx.close());
     }
 
@@ -156,7 +175,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         producerRegistryConfig.put(SerdeConfig.AUTH_USERNAME, serviceAccount.getClientId());
         producerRegistryConfig.put(SerdeConfig.AUTH_PASSWORD, serviceAccount.getClientSecret());
 
-        var producer = new KafkaProducerClient<>(
+        producer = new KafkaProducerClient<>(
             vertx,
             kafka.getBootstrapServerHost(),
             serviceAccount.getClientId(),
@@ -173,7 +192,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         consumerRegistryConfig.put(SerdeConfig.AUTH_USERNAME, serviceAccount.getClientId());
         consumerRegistryConfig.put(SerdeConfig.AUTH_PASSWORD, serviceAccount.getClientSecret());
 
-        var consumer = new KafkaConsumerClient<>(
+        consumer = new KafkaConsumerClient<>(
             vertx,
             kafka.getBootstrapServerHost(),
             serviceAccount.getClientId(),
@@ -209,8 +228,5 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         var m = (Utf8) records.get(0).record().value().get("Message");
         assertEquals(m.toString(), "Hello World");
-
-        bwait(consumer.asyncClose());
-        bwait(producer.asyncClose());
     }
 }
