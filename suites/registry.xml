@@ -1,12 +1,12 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
 
 <suite name="ServiceRegistry">
-    <test name="RegistryManagerAPITest">
+    <test name="RegistryMgmtAPITest">
         <classes>
             <class name="io.managed.services.test.registry.RegistryMgmtAPITest"/>
         </classes>
     </test>
-    <test name="RegistryManagerAPIPermissionsTest">
+    <test name="RegistryMgmtAPIPermissionsTest">
         <classes>
             <class name="io.managed.services.test.registry.RegistryMgmtAPIPermissionsTest"/>
         </classes>

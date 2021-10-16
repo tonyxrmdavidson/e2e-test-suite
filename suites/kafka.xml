@@ -1,17 +1,17 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
 
-<suite name="ManageKafka">
+<suite name="Kafka">
     <test name="SSOAuthTest">
         <classes>
             <class name="io.managed.services.test.SSOAuthTest"/>
         </classes>
     </test>
-    <test name="KafkaManagerAPITest">
+    <test name="KafkaMgmtAPITest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaMgmtAPITest"/>
         </classes>
     </test>
-    <test name="KafkaManagerAPIPermissionsTest">
+    <test name="KafkaMgmtAPIPermissionsTest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaMgmtAPIPermissionsTest"/>
         </classes>
@@ -21,7 +21,7 @@
             <class name="io.managed.services.test.kafka.LongLiveKafkaInstanceTest"/>
         </classes>
     </test>
-    <test name="KafkaAdminAPITest">
+    <test name="KafkaInstanceAPITest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaInstanceAPITest"/>
         </classes>
