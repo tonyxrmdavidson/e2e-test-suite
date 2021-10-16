@@ -31,15 +31,24 @@ public enum KafkaAuthMethod {
         return config;
     }
 
-    static public Map<String, String> oAuthConfigs(String bootstrapHost, String clientID, String clientSecret) {
+    static public Map<String, String> oAuthConfigs(String bootstrapHost, String jaasConfig) {
         Map<String, String> config = new HashMap<>();
         config.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapHost);
         config.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
         config.put(SaslConfigs.SASL_MECHANISM, "OAUTHBEARER");
-        String jaas = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id=\"%s\" oauth.client.secret=\"%s\" " +
-            "oauth.token.endpoint.uri=\"%s/auth/realms/%s/protocol/openid-connect/token\";", clientID, clientSecret, Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
-        config.put(SaslConfigs.SASL_JAAS_CONFIG, jaas);
+        config.put(SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
         config.put(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
         return config;
+    }
+
+    static public Map<String, String> oAuthConfigs(String bootstrapHost, String clientID, String clientSecret) {
+        String jaas = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id=\"%s\" oauth.client.secret=\"%s\" " +
+            "oauth.token.endpoint.uri=\"%s/auth/realms/%s/protocol/openid-connect/token\";", clientID, clientSecret, Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
+        return oAuthConfigs(bootstrapHost, jaas);
+    }
+
+    static public Map<String, String> oAuthTokenConfigs(String bootstrapHost, String token) {
+        String jaas = String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.access.token=\"%s\";", token);
+        return oAuthConfigs(bootstrapHost, jaas);
     }
 }

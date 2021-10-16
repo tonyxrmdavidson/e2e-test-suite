@@ -215,6 +215,9 @@ public class KafkaInstanceAPITest extends TestBase {
         LOGGER.info("create or retrieve service account '{}'", SERVICE_ACCOUNT_NAME);
         var account = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
 
+        LOGGER.info("grant access to the service account '{}'", SERVICE_ACCOUNT_NAME);
+        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, KafkaInstanceApiUtils.toPrincipal(account.getClientId()));
+
         kafkaConsumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
             TEST_GROUP_NAME,
             TEST_TOPIC_NAME,

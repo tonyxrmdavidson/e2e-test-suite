@@ -161,6 +161,11 @@ public class KeycloakOAuth {
 
             var document = Jsoup.parse(response.bodyAsString());
 
+            var loginError = document.select("#rh-login-form-error-title").text();
+            if (!loginError.isBlank()) {
+                return Future.failedFuture(new ResponseException(loginError, response));
+            }
+
             var loginForm = document.select("#rh-password-verification-form")
                 .forms().stream().findAny();
             if (loginForm.isPresent()) {

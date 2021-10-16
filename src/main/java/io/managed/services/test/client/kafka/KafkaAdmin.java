@@ -47,8 +47,15 @@ public class KafkaAdmin implements AutoCloseable {
     public final Admin admin;
 
     public KafkaAdmin(String bootstrapHost, String clientID, String clientSecret) {
-        Map<String, Object> conf = KafkaAuthMethod.oAuthConfigs(bootstrapHost, clientID, clientSecret)
-            .entrySet().stream()
+        this(bootstrapHost, KafkaAuthMethod.oAuthConfigs(bootstrapHost, clientID, clientSecret));
+    }
+
+    public KafkaAdmin(String bootstrapHost, String token) {
+        this(bootstrapHost, KafkaAuthMethod.oAuthTokenConfigs(bootstrapHost, token));
+    }
+
+    public KafkaAdmin(String bootstrapHost, Map<String, String> config) {
+        Map<String, Object> conf = config.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         admin = Admin.create(conf);
     }
@@ -214,6 +221,10 @@ public class KafkaAdmin implements AutoCloseable {
 
     public void describeDelegationToken() {
         get(admin.describeDelegationToken().delegationTokens());
+    }
+
+    public void createAcls(Collection<AclBinding> acls) {
+        get(admin.createAcls(acls).all());
     }
 
     @Override

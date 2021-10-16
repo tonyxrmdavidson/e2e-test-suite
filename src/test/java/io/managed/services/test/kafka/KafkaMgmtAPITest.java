@@ -137,7 +137,7 @@ public class KafkaMgmtAPITest extends TestBase {
         serviceAccount = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount")
+    @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"})
     @SneakyThrows
     public void testCreateProducerAndConsumerACLs() {
 

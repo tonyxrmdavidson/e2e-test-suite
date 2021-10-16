@@ -4,7 +4,6 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
-import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
@@ -17,7 +16,9 @@ import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.DelegationTokenDisabledException;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
 import org.apache.kafka.common.errors.InvalidRequestException;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.resource.ResourceType;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -115,48 +116,24 @@ public class KafkaAdminPermissionTest extends TestBase {
             serviceAccount.getClientId(),
             serviceAccount.getClientSecret());
         log.info("kafka admin api initialized for instance: {}", kafka.getBootstrapServerHost());
-
-        // create temporary topic
-        admin.createTopic(TOPIC_NAME_FOR_GROUPS);
-
-        // set up a consumer to create the group
-        var consumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
-            TEST_GROUP_ID,
-            TOPIC_NAME_FOR_GROUPS,
-            kafka.getBootstrapServerHost(),
-            serviceAccount.getClientId(),
-            serviceAccount.getClientSecret()));
-
-        log.info("close the consumer to release the consumer consumer group");
-        bwait(consumer.asyncClose());
     }
 
     @Test
-    public void testAllowedToCreateTopic() {
-
-        log.info("kafka-topics.sh --create <Permitted>, script representation test");
-        admin.createTopic(TOPIC_NAME);
-
-        log.info("topic successfully created: {}", TOPIC_NAME);
+    public void testForbiddenToCreateTopic() {
+        log.info("kafka-topics.sh --create <forbidden>, script representation test");
+        assertThrows(TopicAuthorizationException.class, () -> admin.createTopic(TOPIC_NAME));
     }
 
-    @Test(dependsOnMethods = "testAllowedToCreateTopic")
+    @Test
     public void testAllowedToListTopic() {
-
-        log.info("kafka-topics.sh --list <Permitted>, script representation test");
-        var r = admin.listTopics();
-
-        log.info("topics successfully listed, response contains {} topic/s", r.size());
+        log.info("kafka-topics.sh --list <permitted>, script representation test");
+        admin.listTopics();
     }
 
-    @Test(dependsOnMethods = "testAllowedToCreateTopic", priority = 1)
-    public void testAllowedToDeleteTopic() {
-
-        log.info("kafka-topics.sh --delete <Permitted>, script representation test");
-        log.info("delete created topic : {}", TOPIC_NAME);
-        admin.deleteTopic(TOPIC_NAME);
-
-        log.info("topic {} successfully deleted", TOPIC_NAME);
+    @Test
+    public void testForbiddenToDeleteTopic() {
+        log.info("kafka-topics.sh --delete <forbidden>, script representation test");
+        assertThrows(TopicAuthorizationException.class, () -> admin.deleteTopic(TOPIC_NAME));
     }
 
     @DataProvider
@@ -209,7 +186,7 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     @Test(dataProvider = "aclDeleteCmdProvider")
     public void testForbiddenToDeleteACLResource(String testName, ResourceType resourceType) {
-        log.info("kafka-acls.sh {} <Forbidden>, script representation test", testName);
+        log.info("kafka-acls.sh {} <forbidden>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> admin.deleteAclResource(resourceType));
     }
 
@@ -244,15 +221,14 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     @Test(dataProvider = "configureBrokerCmdProvider")
     public void testForbiddenToAlterBrokerConfig(String testName, ConfigResource.Type resourceType, AlterConfigOp.OpType opType) {
-        log.info("kafka-config.sh {} <allowed>, script representation test", testName);
+        log.info("kafka-config.sh {} <forbidden>, script representation test", testName);
         assertThrows(ClusterAuthorizationException.class, () -> admin.configureBrokerResource(resourceType, opType, "0"));
     }
 
-    @Test(dependsOnMethods = "testAllowedToCreateTopic")
-    public void testAllowedToDeleteTopicConfig() {
-
-        log.info("kafka-config.sh --alter --entity-type topics --delete-config <allowed>, script representation test");
-        admin.configureBrokerResource(ConfigResource.Type.TOPIC, AlterConfigOp.OpType.DELETE, TOPIC_NAME);
+    @Test()
+    public void testForbiddenToDeleteTopicConfig() {
+        log.info("kafka-config.sh --alter --entity-type topics --delete-config <forbidden>, script representation test");
+        assertThrows(TopicAuthorizationException.class, () -> admin.configureBrokerResource(ConfigResource.Type.TOPIC, AlterConfigOp.OpType.DELETE, TOPIC_NAME));
     }
 
     @Test
@@ -298,38 +274,30 @@ public class KafkaAdminPermissionTest extends TestBase {
         log.info("describe consumer groups: {}", r);
     }
 
-    // test is postponed from others due to existence of many test that require presence of to be deleted consumer group
-    @Test(priority = 1)
-    public void testDeleteConsumerGroup() {
-
-        log.info("kafka-consumer-groups.sh --all-groups --delete  <permitted>, script representation test");
-        log.info("deleting group");
-        // because consumer is closed group can be deleted without causing any exception.
-        admin.deleteConsumerGroups(TEST_GROUP_ID);
+    @Test
+    public void testForbiddenToDeleteConsumerGroup() {
+        log.info("kafka-consumer-groups.sh --all-groups --delete  <forbidden>, script representation test");
+        assertThrows(GroupAuthorizationException.class, () -> admin.deleteConsumerGroups(TEST_GROUP_ID));
     }
 
     @Test
-    public void testAllowedToResetConsumerGroupOffset() {
-
-        log.info("kafka-consumer-groups.sh --all-groups --reset-offsets --execute --all-groups --all-topics  <permitted>, script representation test");
-        admin.resetOffsets(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID);
-        log.info("offset successfully reset");
+    public void testForbiddenToResetConsumerGroupOffset() {
+        log.info("kafka-consumer-groups.sh --all-groups --reset-offsets --execute --all-groups --all-topics  <forbidden>, script representation test");
+        assertThrows(GroupAuthorizationException.class, () -> admin.resetOffsets(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID));
     }
 
     @Test
-    public void testAllowedToDeleteConsumerGroupOffset() {
+    public void testForbiddenToDeleteConsumerGroupOffset() {
 
-        log.info("kafka-consumer-groups.sh --delete-offsets  <permitted>, script representation test");
-        admin.deleteOffset(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID);
-        log.info("offset successfully deleted");
+        log.info("kafka-consumer-groups.sh --delete-offsets  <forbidden>, script representation test");
+        assertThrows(GroupAuthorizationException.class, () -> admin.deleteOffset(TOPIC_NAME_FOR_GROUPS, TEST_GROUP_ID));
     }
 
     @Test
-    public void testAllowedToDeleteRecords() {
+    public void testForbiddenToDeleteRecords() {
 
-        log.info("kafka-delete-records.sh --offset-json-file <permitted>, script representation test");
-        admin.deleteRecords(TOPIC_NAME_FOR_GROUPS);
-        log.info("record successfully deleted");
+        log.info("kafka-delete-records.sh --offset-json-file <forbidden>, script representation test");
+        assertThrows(TopicAuthorizationException.class, () -> admin.deleteRecords(TOPIC_NAME_FOR_GROUPS));
     }
 
     @Test
