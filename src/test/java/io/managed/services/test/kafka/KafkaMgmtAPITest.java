@@ -8,8 +8,11 @@ import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
+import io.managed.services.test.TestUtils;
+import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
+import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
@@ -31,12 +34,17 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeoutException;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static java.time.Duration.ofSeconds;
+import static java.time.Duration.ofMinutes;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
@@ -61,6 +69,20 @@ public class KafkaMgmtAPITest extends TestBase {
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.LAUNCH_KEY;
     static final String TOPIC_NAME = "test-topic";
     static final String METRIC_TOPIC_NAME = "metric-test-topic";
+    static final String[] KAFKA_METRICS = {
+        "kubelet_volume_stats_available_bytes",
+        "kubelet_volume_stats_used_bytes",
+        "kafka_broker_quota_softlimitbytes",
+        "kafka_broker_quota_totalstorageusedbytes",
+        "kafka_server_brokertopicmetrics_messages_in_total",
+        "kafka_server_brokertopicmetrics_bytes_in_total",
+        "kafka_server_brokertopicmetrics_bytes_out_total",
+        "kafka_controller_kafkacontroller_offline_partitions_count",
+        "kafka_controller_kafkacontroller_global_partition_count",
+        "kafka_topic:kafka_log_log_size:sum",
+        "kafka_namespace:haproxy_server_bytes_in_total:rate5m",
+        "kafka_namespace:haproxy_server_bytes_out_total:rate5m"
+    };
 
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
@@ -252,6 +274,33 @@ public class KafkaMgmtAPITest extends TestBase {
             10,
             11,
             KafkaAuthMethod.PLAIN)));
+    }
+
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"})
+    @SneakyThrows
+    public <T extends Throwable> void testFederateMetrics() {
+        // Verify all expected user facing Kafka metrics retrieved from Observatorium are included in the response in a Prometheus Text Format
+        var missingMetricsAtom = new AtomicReference<List<String>>();
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> isMetricAvailable = last -> {
+            var metrics = kafkaMgmtApi.federateMetrics(kafka.getId());
+            log.debug(metrics);
+
+            var missingMetrics = new ArrayList<String>();
+            for (var metricName : KAFKA_METRICS) {
+                var metricTypeDefinition = String.format("# TYPE %s gauge", metricName);
+                if (!metrics.contains(metricTypeDefinition)) missingMetrics.add(metricName);
+            }
+
+            missingMetricsAtom.set(missingMetrics);
+            log.debug("missing metrics: {}", missingMetrics);
+
+            return missingMetrics.size() == 0;
+        };
+        try {
+            waitFor("all federated metrics to become available", ofSeconds(3), ofMinutes(5), isMetricAvailable);
+        } catch (TimeoutException e) {
+            throw new AssertionError(TestUtils.message("Missing metrics: expected metrics: {} but missing: {}", KAFKA_METRICS, missingMetricsAtom.get()), e);
+        }
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"})

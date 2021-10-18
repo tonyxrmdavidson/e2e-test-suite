@@ -63,4 +63,8 @@ public class KafkaMgmtApi extends BaseApi {
     public MetricsInstantQueryList getMetricsByInstantQuery(String id, List<String> filters) throws ApiGenericException {
         return retry(() -> api.getMetricsByInstantQuery(id, filters));
     }
+
+    public String federateMetrics(String id) throws ApiGenericException {
+        return retry(() -> api.federateMetrics(id));
+    }
 }
