@@ -186,6 +186,16 @@ public class KafkaCLITest extends TestBase {
         LOGGER.debug(kafka);
     }
 
+    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testCreateServiceAccount"})
+    @SneakyThrows
+    public void testGrantProducerAndConsumerAccess() {
+        LOGGER.info("grant producer and consumer access to the account: {}", serviceAccount.getClientId());
+        cli.grantProducerAndConsumerAccess(serviceAccount.getClientId(), "all", "all");
+
+        var acl = cli.listACLs();
+        LOGGER.debug(acl);
+    }
+
     @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testDescribeKafkaInstance() {
@@ -248,7 +258,7 @@ public class KafkaCLITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testCreateTopic", "testGrantProducerAndConsumerAccess"})
     @SneakyThrows
     public void testKafkaInstanceTopic() {
 
@@ -315,7 +325,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(retentionValue.get().getValue(), retentionTime);
     }
 
-    @Test(dependsOnMethods = {"testUpdateTopic", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testUpdateTopic", "testGrantProducerAndConsumerAccess"})
     @SneakyThrows
     public void testKafkaInstanceUpdatedTopic() {
 
@@ -334,7 +344,7 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopic", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testGrantProducerAndConsumerAccess"})
     @SneakyThrows
     public void testDescribeConsumerGroup() {
 

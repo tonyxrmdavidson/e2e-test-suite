@@ -1,5 +1,6 @@
 package io.managed.services.test.cli;
 
+import com.openshift.cloud.api.kas.auth.models.AclBindingListPage;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroupList;
 import com.openshift.cloud.api.kas.auth.models.Topic;
@@ -198,6 +199,15 @@ public class CLI {
 
     public void connectCluster(String token, String kubeconfig) throws CliGenericException {
         retry(() -> exec("cluster", "connect", "--token", token, "--kubeconfig", kubeconfig, "-y"));
+    }
+
+    public void grantProducerAndConsumerAccess(String userName, String topic, String group) throws CliGenericException {
+        retry(() -> exec("kafka", "acl", "grant-access", "-y", "--producer", "--consumer", "--user", userName, "--topic", topic, "--group", group));
+    }
+
+    public AclBindingListPage listACLs() throws CliGenericException {
+        var p = retry(() -> exec("kafka", "acl", "list", "-o", "json"));
+        return stdoutAsJson(p, AclBindingListPage.class);
     }
 
     private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {
