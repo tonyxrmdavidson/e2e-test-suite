@@ -128,16 +128,6 @@ public class KafkaInstanceAPITest extends TestBase {
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 
-    // See: https://issues.redhat.com/browse/MGDSTRM-5635
-    @Test(enabled = false)
-    @SneakyThrows
-    public void testFailToCallAPIIfUserDoesNotOwnTheKafkaInstance() {
-
-        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
-            new KeycloakOAuth(Environment.SECONDARY_USERNAME, Environment.SECONDARY_PASSWORD), kafka));
-        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
-    }
-
     @Test
     @SneakyThrows
     public void testFailToCallAPIIfTokenIsInvalid() {
