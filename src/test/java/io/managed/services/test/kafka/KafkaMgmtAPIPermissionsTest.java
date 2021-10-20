@@ -8,6 +8,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ApplicationServicesApi;
+import io.managed.services.test.client.exception.ApiForbiddenException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
@@ -150,7 +151,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
             .name("api-secondary-test-topic")
             .settings(new TopicSettings().numPartitions(1));
         LOGGER.info("create kafka topic: {}", topicPayload.getName());
-        assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.createTopic(topicPayload));
+        assertThrows(ApiForbiddenException.class, () -> kafkaInstanceApi.createTopic(topicPayload));
     }
 
 
