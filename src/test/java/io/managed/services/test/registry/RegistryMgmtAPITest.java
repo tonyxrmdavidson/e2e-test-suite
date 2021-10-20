@@ -1,7 +1,7 @@
 package io.managed.services.test.registry;
 
-import com.openshift.cloud.api.srs.models.RegistryCreate;
 import com.openshift.cloud.api.srs.models.Registry;
+import com.openshift.cloud.api.srs.models.RegistryCreate;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.ApiGenericException;
@@ -129,9 +129,8 @@ public class RegistryMgmtAPITest extends TestBase {
         assertEquals(registries.getItems().get(0).getName(), SERVICE_REGISTRY_NAME);
     }
 
-    @Test(dependsOnMethods = "testCreateRegistry", enabled = false)
+    @Test(dependsOnMethods = "testCreateRegistry")
     public void testFailToCreateRegistryIfItAlreadyExist() {
-        // TODO: Enable after https://github.com/bf2fc6cc711aee1a0c2a/srs-fleet-manager/issues/75
 
         var registryCreateRest = new RegistryCreate()
             .name(SERVICE_REGISTRY_NAME);
