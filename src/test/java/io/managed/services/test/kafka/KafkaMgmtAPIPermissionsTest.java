@@ -137,9 +137,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         assertTrue(o.isEmpty());
     }
 
-
-    // See: https://issues.redhat.com/browse/MGDSTRM-5635
-    @Test(enabled = false)
+    @Test
     @SneakyThrows
     public void testSecondaryUserCanNotCreateTopicOnTheKafkaInstance() {
 
@@ -160,8 +158,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
      * Use the secondary user to create a service account and consume and produce messages on the
      * kafka instance created by the main user
      */
-    // See: https://issues.redhat.com/browse/MGDSTRM-5635
-    @Test(enabled = false)
+    @Test
     @SneakyThrows
     public void testSecondaryUserServiceAccountCanNotCreateTopicOnTheKafkaInstance() {
 
