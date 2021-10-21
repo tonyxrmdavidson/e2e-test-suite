@@ -1,9 +1,9 @@
 package io.managed.services.test.client.kafkamgmt;
 
-import io.managed.services.test.client.exception.ApiToManyRequestsException;
+import io.managed.services.test.client.exception.ApiForbiddenException;
 
 public class KafkaToManyRequestsException extends Exception {
-    public KafkaToManyRequestsException(ApiToManyRequestsException e) {
+    public KafkaToManyRequestsException(ApiForbiddenException e) {
         super(e);
     }
 }

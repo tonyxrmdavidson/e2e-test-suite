@@ -5,14 +5,20 @@ import java.net.HttpURLConnection;
 public class ApiGenericException extends Exception {
 
     private final int code;
+    private final String responseBody;
 
     public ApiGenericException(ApiUnknownException e) {
         super(e.getFullMessage(), e);
         this.code = e.getCode();
+        this.responseBody = e.getResponseBody();
     }
 
     public int getCode() {
         return code;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
     }
 
     public static ApiGenericException apiException(ApiUnknownException e) {

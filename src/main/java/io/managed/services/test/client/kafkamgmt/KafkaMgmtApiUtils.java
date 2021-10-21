@@ -1,6 +1,9 @@
 package io.managed.services.test.client.kafkamgmt;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openshift.cloud.api.kas.models.Error;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
 import io.managed.services.test.DNSUtils;
@@ -8,9 +11,9 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.KasApiClient;
+import io.managed.services.test.client.exception.ApiForbiddenException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
-import io.managed.services.test.client.exception.ApiToManyRequestsException;
 import io.managed.services.test.client.oauth.KeycloakOAuth;
 import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
@@ -26,12 +29,14 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.managed.services.test.TestUtils.waitFor;
+import static java.time.Duration.ofDays;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
 
 public class KafkaMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtApiUtils.class);
+    private static final String CLUSTER_CAPACITY_EXHAUSTED_CODE = "KAFKAS-MGMT-24";
 
     public static KafkaMgmtApi kafkaMgmtApi(String uri, User user) {
         var token = KeycloakOAuth.getToken(user);
@@ -111,20 +116,34 @@ public class KafkaMgmtApiUtils {
         throws ApiGenericException, InterruptedException, KafkaToManyRequestsException {
 
         var kafkaAtom = new AtomicReference<KafkaRequest>();
-        var exceptionAtom = new AtomicReference<ApiToManyRequestsException>();
+        var exceptionAtom = new AtomicReference<ApiForbiddenException>();
         ThrowingFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
             try {
                 kafkaAtom.set(api.createKafka(true, payload));
-            } catch (ApiToManyRequestsException e) {
-                LOGGER.debug("failed to create kafka instance:", e);
-                exceptionAtom.set(e);
-                return false;
+            } catch (ApiForbiddenException e) {
+
+                Error error;
+                try {
+                    error = new ObjectMapper().readValue(e.getResponseBody(), Error.class);
+                } catch (JsonProcessingException ex) {
+                    LOGGER.warn("failed to decode API error: ", ex);
+                    throw e;
+                }
+
+                if (CLUSTER_CAPACITY_EXHAUSTED_CODE.equals(error.getCode())) {
+                    // try again without logging
+                    exceptionAtom.set(e);
+                    return false;
+                }
+
+                // failed for other reasons
+                throw e;
             }
             return true;
         };
 
         try {
-            waitFor("create kafka instance", ofSeconds(10), ofMinutes(10), ready);
+            waitFor("create kafka instance", ofSeconds(30), ofDays(1), ready);
         } catch (TimeoutException e) {
             throw new KafkaToManyRequestsException(exceptionAtom.get());
         }
@@ -226,7 +245,7 @@ public class KafkaMgmtApiUtils {
         var admin = "admin-server-" + bootstrap;
         var hosts = new ArrayList<>(List.of(bootstrap, admin, broker0, broker1, broker2));
 
-        ThrowingFunction<Boolean, Boolean, Error> ready = last -> {
+        ThrowingFunction<Boolean, Boolean, java.lang.Error> ready = last -> {
 
             for (var i = 0; i < hosts.size(); i++) {
                 try {

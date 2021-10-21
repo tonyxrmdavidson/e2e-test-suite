@@ -24,14 +24,3 @@ public class KasAuthApiClient {
         return apiClient;
     }
 }
-
-// class
-// com.openshift.cloud.api.kas.auth.invoker.auth.OAuth
-// cannot be cast to class
-// com.openshift.cloud.api.kas.auth.invoker.auth.HttpBearerAuth
-// (
-//  com.openshift.cloud.api.kas.auth.invoker.auth.OAuth
-//  and
-//  com.openshift.cloud.api.kas.auth.invoker.auth.HttpBearerAuth
-//  are in unnamed module of loader 'app'
-//)
