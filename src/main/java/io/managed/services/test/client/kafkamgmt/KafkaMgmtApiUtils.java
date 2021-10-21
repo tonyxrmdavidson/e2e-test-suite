@@ -63,7 +63,7 @@ public class KafkaMgmtApiUtils {
      * @return KafkaRequest
      */
     public static KafkaRequest applyKafkaInstance(KafkaMgmtApi api, String name)
-        throws ApiGenericException, InterruptedException, KafkaToManyRequestsException, KafkaNotReadyException, KafkaUnknownHostsException {
+        throws ApiGenericException, InterruptedException, KafkaClusterCapacityExhaustedException, KafkaNotReadyException, KafkaUnknownHostsException, KafkaUnprovisionedException {
 
         var payload = new KafkaRequestPayload()
             .name(name)
@@ -82,7 +82,7 @@ public class KafkaMgmtApiUtils {
      * @return KafkaRequest
      */
     public static KafkaRequest applyKafkaInstance(KafkaMgmtApi api, KafkaRequestPayload payload)
-        throws ApiGenericException, InterruptedException, KafkaNotReadyException, KafkaToManyRequestsException, KafkaUnknownHostsException {
+        throws ApiGenericException, InterruptedException, KafkaNotReadyException, KafkaClusterCapacityExhaustedException, KafkaUnknownHostsException, KafkaUnprovisionedException {
 
         var existing = getKafkaByName(api, payload.getName());
 
@@ -113,7 +113,7 @@ public class KafkaMgmtApiUtils {
      * @return KafkaRequest
      */
     public static KafkaRequest createKafkaInstance(KafkaMgmtApi api, KafkaRequestPayload payload)
-        throws ApiGenericException, InterruptedException, KafkaToManyRequestsException {
+        throws ApiGenericException, InterruptedException, KafkaClusterCapacityExhaustedException, KafkaUnprovisionedException {
 
         var kafkaAtom = new AtomicReference<KafkaRequest>();
         var exceptionAtom = new AtomicReference<ApiForbiddenException>();
@@ -133,6 +133,7 @@ public class KafkaMgmtApiUtils {
                 if (CLUSTER_CAPACITY_EXHAUSTED_CODE.equals(error.getCode())) {
                     // try again without logging
                     exceptionAtom.set(e);
+                    LOGGER.debug("{}: {}", e.getClass(), e.getMessage());
                     return false;
                 }
 
@@ -145,10 +146,13 @@ public class KafkaMgmtApiUtils {
         try {
             waitFor("create kafka instance", ofSeconds(30), ofDays(1), ready);
         } catch (TimeoutException e) {
-            throw new KafkaToManyRequestsException(exceptionAtom.get());
+            throw new KafkaClusterCapacityExhaustedException(exceptionAtom.get());
         }
 
-        return kafkaAtom.get();
+        // If there is space in other regions but not in the requested region the Kafka instance
+        // remains in the accepted state until a space doesn't become available in the requested region
+        // Workaround for https://issues.redhat.com/browse/MGDSTRM-5995
+        return waitUntilKafkaIsProvisioning(api, kafkaAtom.get().getId());
     }
 
     /**
@@ -184,6 +188,40 @@ public class KafkaMgmtApiUtils {
             LOGGER.info("kafka instance '{}' not found", name);
         }
     }
+
+    /**
+     * Returns KafkaRequest only if status is in provisioning
+     *
+     * @param api     KafkaMgmtApi
+     * @param kafkaID String
+     * @return KafkaRequest
+     */
+    public static KafkaRequest waitUntilKafkaIsProvisioning(KafkaMgmtApi api, String kafkaID)
+        throws KafkaUnprovisionedException, ApiGenericException, InterruptedException {
+
+        var kafkaAtom = new AtomicReference<KafkaRequest>();
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> ready = last -> {
+            var kafka = api.getKafkaById(kafkaID);
+            kafkaAtom.set(kafka);
+
+            LOGGER.debug(kafka);
+            return !"accepted".equals(kafka.getStatus());
+        };
+
+        try {
+            waitFor("kafka instance to to start provisioning", ofSeconds(30), ofDays(1), ready);
+        } catch (TimeoutException e) {
+            // throw a more accurate error
+            throw new KafkaUnprovisionedException(kafkaAtom.get(), e);
+        }
+
+        var kafka = kafkaAtom.get();
+        LOGGER.info("kafka instance '{}' is provisioning", kafka.getName());
+        LOGGER.debug(kafka);
+
+        return kafka;
+    }
+
 
     /**
      * Returns KafkaRequest only if status is in ready

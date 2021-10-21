@@ -11,11 +11,9 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static java.time.Duration.ofSeconds;
-
 @Log4j2
 public class RetryUtils {
-    private static final int DEFAULT_THRESHOLD = 3;
+    private static final int DEFAULT_THRESHOLD = 5;
 
     private static final Counter ERRORS = Counter.build()
         .name("test_skipped_errors")
@@ -54,7 +52,7 @@ public class RetryUtils {
         Function<Throwable, Boolean> condition,
         int attempts) {
 
-        return retry(x, caller(backtrace), call, condition, attempts);
+        return retry(x, caller(backtrace), call, condition, attempts, Duration.ofSeconds(1));
     }
 
     private static <T> Future<T> retry(
@@ -62,14 +60,15 @@ public class RetryUtils {
         StackWalker.StackFrame caller,
         Supplier<Future<T>> call,
         Function<Throwable, Boolean> condition,
-        int attempts) {
+        int attempts,
+        Duration interval) {
 
         Function<Throwable, Future<T>> retry = t -> {
             logSkip(caller, t);
 
             // retry the API call
-            return sleep(x, ofSeconds(1))
-                .compose(r -> retry(x, caller, call, condition, attempts - 1));
+            return sleep(x, interval)
+                .compose(r -> retry(x, caller, call, condition, attempts - 1, interval.plusSeconds(3)));
         };
 
         return call.get().recover(t -> {
@@ -117,7 +116,7 @@ public class RetryUtils {
         int attempts)
         throws E {
 
-        return retry(backtrace, null, call, condition, attempts);
+        return retry(backtrace, null, call, condition, attempts, Duration.ofSeconds(1));
     }
 
     @SneakyThrows
@@ -126,7 +125,8 @@ public class RetryUtils {
         StackWalker.StackFrame caller,
         ThrowingSupplier<T, E> call,
         Function<Throwable, Boolean> condition,
-        int attempts)
+        int attempts,
+        Duration interval)
         throws E {
 
         try {
@@ -141,8 +141,8 @@ public class RetryUtils {
                 logSkip(caller, t);
 
                 // retry the API call
-                Thread.sleep(ofSeconds(1).toMillis());
-                return retry(backtrace, caller, call, condition, attempts - 1);
+                Thread.sleep(interval.toMillis());
+                return retry(backtrace, caller, call, condition, attempts - 1, interval.plusSeconds(3));
             }
 
             // if the attempts are finished or the condition doesn't match throw the original exception
