@@ -64,20 +64,19 @@ public class KafkaAdminPermissionTest extends TestBase {
     @AfterClass(alwaysRun = true)
     @SneakyThrows
     public void teardown() {
-
         if (admin != null) {
-            // delete temporary topic for test concerned about groups.
-            try {
-                admin.deleteTopic(TOPIC_NAME_FOR_GROUPS);
-            } catch (Throwable t) {
-                log.error("error deleting temporary topic: ", t);
-            }
-
             // close KafkaAdmin
             admin.close();
         }
 
         assumeTeardown();
+
+        // delete temporary topic for test concerned about groups.
+        try {
+            kafkaInstanceApi.deleteTopic(TOPIC_NAME_FOR_GROUPS);
+        } catch (Throwable t) {
+            log.error("error deleting temporary topic: ", t);
+        }
 
         // delete service account
         try {
