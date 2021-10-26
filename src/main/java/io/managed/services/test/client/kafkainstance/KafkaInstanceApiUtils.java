@@ -55,6 +55,10 @@ public class KafkaInstanceApiUtils {
         return auth.loginToOpenshiftIdentity().map(u -> kafkaInstanceApi(kafkaInstanceApiUri(kafka), u));
     }
 
+    public static KafkaInstanceApi kafkaInstanceApi(KafkaRequest kafka, KeycloakUser user) {
+        return kafkaInstanceApi(kafkaInstanceApiUri(kafka), user);
+    }
+
     public static KafkaInstanceApi kafkaInstanceApi(String uri, KeycloakUser user) {
         return new KafkaInstanceApi(new ApiClient().setBasePath(uri), user);
     }

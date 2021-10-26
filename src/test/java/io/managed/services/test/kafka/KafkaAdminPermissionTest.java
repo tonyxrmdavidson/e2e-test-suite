@@ -2,10 +2,12 @@ package io.managed.services.test.kafka;
 
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
-import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.vertx.core.Vertx;
@@ -56,6 +58,7 @@ public class KafkaAdminPermissionTest extends TestBase {
 
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
+    private KafkaInstanceApi kafkaInstanceApi;
     private KafkaAdmin admin;
 
     @AfterClass(alwaysRun = true)
@@ -99,18 +102,23 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
 
-        var apps = ApplicationServicesApi.applicationServicesApi(
-            Environment.PRIMARY_USERNAME,
-            Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var redhatUser = bwait(auth.loginToRedHatSSO());
 
-        kafkaMgmtApi = apps.kafkaMgmt();
-        securityMgmtApi = apps.securityMgmt();
+        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, redhatUser);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.OPENSHIFT_API_URI, redhatUser);
 
-        // create the kafka admin
         var kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
         var serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
 
+        var masUser = bwait(auth.loginToOpenshiftIdentity());
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, masUser);
+
+        // create topic
+        KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME_FOR_GROUPS);
+
+        // create the kafka admin
         admin = new KafkaAdmin(
             kafka.getBootstrapServerHost(),
             serviceAccount.getClientId(),
