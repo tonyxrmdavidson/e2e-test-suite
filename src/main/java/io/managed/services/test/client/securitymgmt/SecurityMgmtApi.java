@@ -12,7 +12,7 @@ import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
 import io.managed.services.test.client.oauth.KeycloakUser;
 
-public class SecurityMgmtApi extends BaseApi<ApiException> {
+public class SecurityMgmtApi extends BaseApi {
 
     private final ApiClient apiClient;
     private final SecurityApi api;

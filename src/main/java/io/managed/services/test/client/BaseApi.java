@@ -12,7 +12,7 @@ import lombok.extern.log4j.Log4j2;
 import java.util.Objects;
 
 @Log4j2
-public abstract class BaseApi<E extends Exception> {
+public abstract class BaseApi {
 
     private final KeycloakUser user;
 
@@ -28,7 +28,7 @@ public abstract class BaseApi<E extends Exception> {
 
     protected abstract void setAccessToken(String t);
 
-    private <A> A handleException(ThrowingSupplier<A, E> f) throws ApiGenericException {
+    private <A> A handleException(ThrowingSupplier<A, Exception> f) throws ApiGenericException {
 
         try {
             return f.get();
@@ -41,7 +41,7 @@ public abstract class BaseApi<E extends Exception> {
         }
     }
 
-    private <A> A handle(ThrowingSupplier<A, E> f) throws ApiGenericException {
+    private <A> A handle(ThrowingSupplier<A, Exception> f) throws ApiGenericException {
 
         // Set the access token before each call because another API could
         // have renewed it
@@ -58,11 +58,11 @@ public abstract class BaseApi<E extends Exception> {
         }
     }
 
-    protected <A> A retry(ThrowingSupplier<A, E> f) throws ApiGenericException {
+    protected <A> A retry(ThrowingSupplier<A, Exception> f) throws ApiGenericException {
         return RetryUtils.retry(1, () -> handle(f), BaseApi::retryCondition);
     }
 
-    protected void retry(ThrowingVoid<E> f) throws ApiGenericException {
+    protected void retry(ThrowingVoid<Exception> f) throws ApiGenericException {
         RetryUtils.retry(1, () -> handle(f.toSupplier()), BaseApi::retryCondition);
     }
 

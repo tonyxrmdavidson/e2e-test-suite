@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Log4j2
-public class KafkaMgmtApi extends BaseApi<ApiException> {
+public class KafkaMgmtApi extends BaseApi {
 
     private final ApiClient apiClient;
     private final DefaultApi api;

@@ -23,7 +23,7 @@ import io.managed.services.test.client.oauth.KeycloakUser;
 
 import java.math.BigDecimal;
 
-public class KafkaInstanceApi extends BaseApi<ApiException> {
+public class KafkaInstanceApi extends BaseApi {
 
     private final ApiClient apiClient;
     private final AclsApi aclsApi;
