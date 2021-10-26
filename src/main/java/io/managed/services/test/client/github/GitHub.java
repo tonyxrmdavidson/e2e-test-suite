@@ -2,7 +2,6 @@ package io.managed.services.test.client.github;
 
 import io.managed.services.test.client.exception.ClientException;
 import org.apache.http.HttpHeaders;
-import org.keycloak.admin.client.resource.BearerAuthFilter;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -72,7 +71,7 @@ public class GitHub implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         client.close();
     }
 }

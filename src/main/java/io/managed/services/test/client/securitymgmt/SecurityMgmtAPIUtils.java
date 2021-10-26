@@ -2,13 +2,11 @@ package io.managed.services.test.client.securitymgmt;
 
 
 import com.openshift.cloud.api.kas.invoker.ApiClient;
-import com.openshift.cloud.api.kas.invoker.auth.HttpBearerAuth;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
 import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.client.exception.ApiGenericException;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.vertx.ext.auth.User;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -19,16 +17,8 @@ import java.util.stream.Collectors;
 public class SecurityMgmtAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(SecurityMgmtAPIUtils.class);
 
-    public static SecurityMgmtApi securityMgmtApi(String uri, User user) {
-        return securityMgmtApi(uri, KeycloakOAuth.getToken(user));
-    }
-
-    public static SecurityMgmtApi securityMgmtApi(String uri, String token) {
-        var apiClient = new ApiClient();
-        apiClient.setBasePath(uri);
-        ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(token);
-        LOGGER.info("token: {}", token);
-        return new SecurityMgmtApi(apiClient);
+    public static SecurityMgmtApi securityMgmtApi(String uri, KeycloakUser user) {
+        return new SecurityMgmtApi(new ApiClient().setBasePath(uri), user);
     }
 
     /**

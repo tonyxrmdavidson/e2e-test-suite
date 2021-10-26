@@ -22,7 +22,8 @@ import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.client.sample.QuarkusSample;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.LogCollector;
@@ -36,7 +37,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.streams.WriteStream;
-import io.vertx.ext.auth.User;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -100,7 +100,7 @@ public class QuarkusApplicationTest extends TestBase {
     private final Vertx vertx = Vertx.vertx();
 
     private CLI cli;
-    private User user;
+    private KeycloakUser user;
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
     private OpenShiftClient oc;
@@ -136,7 +136,7 @@ public class QuarkusApplicationTest extends TestBase {
         CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
 
         // User
-        var auth = new KeycloakOAuth(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
         user = bwait(auth.loginToRedHatSSO());
 
@@ -366,7 +366,7 @@ public class QuarkusApplicationTest extends TestBase {
         cli.useKafka(kafka.getId());
 
         LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
-        cli.connectCluster(KeycloakOAuth.getRefreshToken(user), kubeconfgipath);
+        cli.connectCluster(user.getRefreshToken(), kubeconfgipath);
     }
 
     @Test(dependsOnMethods = "testCLIConnectCluster")

@@ -17,7 +17,7 @@ import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaNotDeletedException;
 import io.managed.services.test.client.kafkamgmt.KafkaNotReadyException;
 import io.managed.services.test.client.kafkamgmt.KafkaUnknownHostsException;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
@@ -84,7 +84,7 @@ public class CLIUtils {
         LOGGER.info("start CLI login with username: {}", username);
         var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL);
 
-        var oauth2 = new KeycloakOAuth(vertx, username, password);
+        var oauth2 = new KeycloakLoginSession(vertx, username, password);
 
         LOGGER.info("start oauth login against CLI");
         var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI))

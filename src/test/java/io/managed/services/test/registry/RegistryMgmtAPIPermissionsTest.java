@@ -9,11 +9,11 @@ import io.managed.services.test.client.exception.ApiForbiddenException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import io.vertx.ext.auth.User;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +28,6 @@ import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
-import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.registryMgmtApi;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
@@ -136,15 +135,13 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
 
     @Test
     public void testUnauthenticatedUserWithFakeToken() {
-        var user = User.fromToken(TestUtils.FAKE_TOKEN);
-        var api = registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        var api = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(TestUtils.FAKE_TOKEN));
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 
     @Test
     public void testUnauthenticatedUserWithoutToken() {
-        var user = User.fromToken("");
-        var api = registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        var api = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(""));
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 }

@@ -14,6 +14,7 @@ import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
@@ -247,13 +248,13 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
 
     @Test
     public void testUnauthenticatedUserWithFakeToken() {
-        var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, TestUtils.FAKE_TOKEN);
+        var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(TestUtils.FAKE_TOKEN));
         assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
 
     @Test
     public void testUnauthenticatedUserWithoutToken() {
-        var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, "");
+        var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(""));
         assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
 }

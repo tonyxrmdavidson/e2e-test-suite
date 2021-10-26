@@ -71,11 +71,19 @@ public abstract class BaseVertxClient {
         return Future.succeededFuture(response);
     }
 
-    public static Future<String> getRedirectLocation(HttpResponse<Buffer> response) {
+    public static String getRedirectLocation(HttpResponse<Buffer> response) throws ResponseException {
         var l = response.getHeader("Location");
         if (l == null) {
-            return Future.failedFuture(new ResponseException("Location header not found", response));
+            throw new ResponseException("Location header not found", response);
         }
-        return Future.succeededFuture(l);
+        return l;
+    }
+
+    public static Future<String> getRedirectLocationAsFeature(HttpResponse<Buffer> response) {
+        try {
+            return Future.succeededFuture(getRedirectLocation(response));
+        } catch (ResponseException e) {
+            return Future.failedFuture(e);
+        }
     }
 }

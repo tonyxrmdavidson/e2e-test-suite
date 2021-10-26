@@ -1,19 +1,19 @@
 package io.managed.services.test.client.registrymgmt;
 
+import com.openshift.cloud.api.srs.invoker.ApiClient;
 import com.openshift.cloud.api.srs.models.Registry;
 import com.openshift.cloud.api.srs.models.RegistryCreate;
 import com.openshift.cloud.api.srs.models.RegistryList;
 import com.openshift.cloud.api.srs.models.RegistryStatusValue;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
-import io.managed.services.test.client.SrsApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import io.vertx.ext.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,21 +28,20 @@ public class RegistryMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(RegistryMgmtApiUtils.class);
 
     public static Future<RegistryMgmtApi> registryMgmtApi(String username, String password) {
-        return registryMgmtApi(new KeycloakOAuth(Vertx.vertx(), username, password));
+        return registryMgmtApi(new KeycloakLoginSession(Vertx.vertx(), username, password));
     }
 
-    public static Future<RegistryMgmtApi> registryMgmtApi(KeycloakOAuth auth) {
+    public static Future<RegistryMgmtApi> registryMgmtApi(KeycloakLoginSession auth) {
         LOGGER.info("authenticate user: {} against RH SSO", auth.getUsername());
         return auth.loginToRedHatSSO().map(u -> registryMgmtApi(u));
     }
 
-    public static RegistryMgmtApi registryMgmtApi(User user) {
+    public static RegistryMgmtApi registryMgmtApi(KeycloakUser user) {
         return registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
     }
 
-    public static RegistryMgmtApi registryMgmtApi(String uri, User user) {
-        var token = KeycloakOAuth.getToken(user);
-        return new RegistryMgmtApi(new SrsApiClient().basePath(uri).bearerToken(token).getApiClient());
+    public static RegistryMgmtApi registryMgmtApi(String uri, KeycloakUser user) {
+        return new RegistryMgmtApi(new ApiClient().setBasePath(uri), user);
     }
 
     /**

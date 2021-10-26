@@ -1,5 +1,6 @@
 package io.managed.services.test.client.kafkainstance;
 
+import com.openshift.cloud.api.kas.auth.invoker.ApiClient;
 import com.openshift.cloud.api.kas.auth.models.AclBinding;
 import com.openshift.cloud.api.kas.auth.models.AclOperation;
 import com.openshift.cloud.api.kas.auth.models.AclPatternType;
@@ -13,16 +14,15 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
-import io.managed.services.test.client.KasAuthApiClient;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.wait.TReadyFunction;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.ext.auth.User;
 import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.javatuples.Pair;
@@ -47,17 +47,16 @@ public class KafkaInstanceApiUtils {
     }
 
     public static Future<KafkaInstanceApi> kafkaInstanceApi(KafkaRequest kafka, String username, String password) {
-        return kafkaInstanceApi(new KeycloakOAuth(username, password), kafka);
+        return kafkaInstanceApi(new KeycloakLoginSession(username, password), kafka);
     }
 
-    public static Future<KafkaInstanceApi> kafkaInstanceApi(KeycloakOAuth auth, KafkaRequest kafka) {
+    public static Future<KafkaInstanceApi> kafkaInstanceApi(KeycloakLoginSession auth, KafkaRequest kafka) {
         log.info("authenticate user '{}' against MAS SSO", auth.getUsername());
         return auth.loginToOpenshiftIdentity().map(u -> kafkaInstanceApi(kafkaInstanceApiUri(kafka), u));
     }
 
-    public static KafkaInstanceApi kafkaInstanceApi(String uri, User user) {
-        var token = KeycloakOAuth.getToken(user);
-        return new KafkaInstanceApi(new KasAuthApiClient().basePath(uri).bearerToken(token).getApiClient());
+    public static KafkaInstanceApi kafkaInstanceApi(String uri, KeycloakUser user) {
+        return new KafkaInstanceApi(new ApiClient().setBasePath(uri), user);
     }
 
     public static Future<KafkaConsumerClient<String, String>> startConsumerGroup(

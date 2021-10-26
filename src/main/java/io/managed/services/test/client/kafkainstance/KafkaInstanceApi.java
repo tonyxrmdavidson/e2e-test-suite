@@ -19,29 +19,37 @@ import com.openshift.cloud.api.kas.auth.models.TopicsList;
 import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
+import io.managed.services.test.client.oauth.KeycloakUser;
 
 import java.math.BigDecimal;
 
 public class KafkaInstanceApi extends BaseApi<ApiException> {
 
+    private final ApiClient apiClient;
     private final AclsApi aclsApi;
     private final GroupsApi groupsApi;
     private final TopicsApi topicsApi;
 
-    public KafkaInstanceApi(ApiClient apiClient) {
-        this(new AclsApi(apiClient), new GroupsApi(apiClient), new TopicsApi(apiClient));
-    }
-
-    public KafkaInstanceApi(AclsApi aclsApi, GroupsApi groupsApi, TopicsApi topicsApi) {
-        super(ApiException.class);
-        this.aclsApi = aclsApi;
-        this.groupsApi = groupsApi;
-        this.topicsApi = topicsApi;
+    public KafkaInstanceApi(ApiClient apiClient, KeycloakUser user) {
+        super(user);
+        this.apiClient = apiClient;
+        this.aclsApi = new AclsApi(apiClient);
+        this.groupsApi = new GroupsApi(apiClient);
+        this.topicsApi = new TopicsApi(apiClient);
     }
 
     @Override
-    protected ApiUnknownException toApiException(ApiException e) {
-        return new ApiUnknownException(e.getMessage(), e.getCode(), e.getResponseHeaders(), e.getResponseBody(), e);
+    protected ApiUnknownException toApiException(Exception e) {
+        if (e instanceof ApiException) {
+            var ex = (ApiException) e;
+            return new ApiUnknownException(ex.getMessage(), ex.getCode(), ex.getResponseHeaders(), ex.getResponseBody(), ex);
+        }
+        return null;
+    }
+
+    @Override
+    protected void setAccessToken(String t) {
+        apiClient.setAccessToken(t);
     }
 
     public TopicsList getTopics() throws ApiGenericException {

@@ -17,14 +17,14 @@ import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.framework.LogCollector;
 import io.managed.services.test.operator.OperatorUtils;
 import io.managed.services.test.wait.ReadyFunction;
 import io.vertx.core.json.Json;
-import io.vertx.ext.auth.User;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -69,7 +69,7 @@ import static org.testng.Assert.assertNotNull;
 public class KafkaOperatorTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaOperatorTest.class);
 
-    private User user;
+    private KeycloakUser user;
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
     private OpenShiftClient oc;
@@ -92,7 +92,7 @@ public class KafkaOperatorTest extends TestBase {
         assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
         assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
 
-        var auth = new KeycloakOAuth(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
         user = bwait(auth.loginToRedHatSSO());
@@ -214,7 +214,7 @@ public class KafkaOperatorTest extends TestBase {
 
         // Create Secret
         var data = new HashMap<String, String>();
-        data.put("value", Base64.getEncoder().encodeToString(KeycloakOAuth.getRefreshToken(user).getBytes()));
+        data.put("value", Base64.getEncoder().encodeToString(user.getRefreshToken().getBytes()));
 
         LOGGER.info("create access token secret with name: {}", ACCESS_TOKEN_SECRET_NAME);
         oc.secrets().create(OperatorUtils.buildSecret(ACCESS_TOKEN_SECRET_NAME, data));

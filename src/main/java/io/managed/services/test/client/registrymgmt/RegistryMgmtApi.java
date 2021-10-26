@@ -3,29 +3,38 @@ package io.managed.services.test.client.registrymgmt;
 import com.openshift.cloud.api.srs.RegistriesApi;
 import com.openshift.cloud.api.srs.invoker.ApiClient;
 import com.openshift.cloud.api.srs.invoker.ApiException;
+import com.openshift.cloud.api.srs.invoker.auth.HttpBearerAuth;
 import com.openshift.cloud.api.srs.models.Registry;
 import com.openshift.cloud.api.srs.models.RegistryCreate;
 import com.openshift.cloud.api.srs.models.RegistryList;
 import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
+import io.managed.services.test.client.oauth.KeycloakUser;
 
 public class RegistryMgmtApi extends BaseApi<ApiException> {
 
+    private final ApiClient apiClient;
     private final RegistriesApi registriesApi;
 
-    public RegistryMgmtApi(ApiClient apiClient) {
-        this(new RegistriesApi(apiClient));
-    }
-
-    public RegistryMgmtApi(RegistriesApi registriesApi) {
-        super(ApiException.class);
-        this.registriesApi = registriesApi;
+    public RegistryMgmtApi(ApiClient apiClient, KeycloakUser user) {
+        super(user);
+        this.apiClient = apiClient;
+        this.registriesApi = new RegistriesApi(apiClient);
     }
 
     @Override
-    protected ApiUnknownException toApiException(ApiException e) {
-        return new ApiUnknownException(e.getMessage(), e.getCode(), e.getResponseHeaders(), e.getResponseBody(), e);
+    protected ApiUnknownException toApiException(Exception e) {
+        if (e instanceof ApiException) {
+            var ex = (ApiException) e;
+            return new ApiUnknownException(ex.getMessage(), ex.getCode(), ex.getResponseHeaders(), ex.getResponseBody(), ex);
+        }
+        return null;
+    }
+
+    @Override
+    protected void setAccessToken(String t) {
+        ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(t);
     }
 
     public Registry createRegistry(RegistryCreate registryCreateRest) throws ApiGenericException {

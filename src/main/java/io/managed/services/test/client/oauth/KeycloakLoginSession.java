@@ -1,16 +1,13 @@
 package io.managed.services.test.client.oauth;
 
+import com.github.scribejava.core.builder.ServiceBuilder;
+import com.github.scribejava.core.oauth.OAuth20Service;
 import io.managed.services.test.Environment;
 import io.managed.services.test.RetryUtils;
 import io.managed.services.test.client.BaseVertxClient;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.User;
-import io.vertx.ext.auth.oauth2.OAuth2Auth;
-import io.vertx.ext.auth.oauth2.OAuth2FlowType;
-import io.vertx.ext.auth.oauth2.OAuth2Options;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
@@ -23,15 +20,15 @@ import java.net.HttpURLConnection;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.managed.services.test.client.BaseVertxClient.getRedirectLocation;
-import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.authenticateUser;
-import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.followRedirects;
-import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.grantAccess;
-import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.postUsernamePassword;
-import static io.managed.services.test.client.oauth.KeycloakOAuthUtils.startLogin;
+import static io.managed.services.test.client.BaseVertxClient.getRedirectLocationAsFeature;
+import static io.managed.services.test.client.oauth.KeycloakLoginUtils.authenticateUser;
+import static io.managed.services.test.client.oauth.KeycloakLoginUtils.followRedirects;
+import static io.managed.services.test.client.oauth.KeycloakLoginUtils.grantAccess;
+import static io.managed.services.test.client.oauth.KeycloakLoginUtils.postUsernamePassword;
+import static io.managed.services.test.client.oauth.KeycloakLoginUtils.startLogin;
 
-public class KeycloakOAuth {
-    private static final Logger LOGGER = LogManager.getLogger(KeycloakOAuth.class);
+public class KeycloakLoginSession {
+    private static final Logger LOGGER = LogManager.getLogger(KeycloakLoginSession.class);
 
     static final String AUTH_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/auth";
     static final String TOKEN_PATH_FORMAT = "/auth/realms/%s/protocol/openid-connect/token";
@@ -42,19 +39,11 @@ public class KeycloakOAuth {
     private final Vertx vertx;
     private final VertxWebClientSession session;
 
-    static public String getToken(User user) {
-        return user.get("access_token");
-    }
-
-    static public String getRefreshToken(User user) {
-        return user.get("refresh_token");
-    }
-
-    public KeycloakOAuth(String username, String password) {
+    public KeycloakLoginSession(String username, String password) {
         this(Vertx.vertx(), username, password);
     }
 
-    public KeycloakOAuth(Vertx vertx, String username, String password) {
+    public KeycloakLoginSession(Vertx vertx, String username, String password) {
         this.vertx = vertx;
         this.username = username;
         this.password = password;
@@ -65,25 +54,15 @@ public class KeycloakOAuth {
         this.session = new VertxWebClientSession(WebClientSession.create(client));
     }
 
-    private OAuth2Auth createOAuth2(
-        String keycloakURI,
+    private OAuth20Service createOAuth2(
+        String baseUrl,
         String realm,
-        String clientID) {
+        String clientID,
+        String callback) {
 
-        var tokenPath = String.format(TOKEN_PATH_FORMAT, realm);
-        var authPath = String.format(AUTH_PATH_FORMAT, realm);
-
-        return OAuth2Auth.create(vertx, new OAuth2Options()
-            .setFlow(OAuth2FlowType.AUTH_CODE)
-            .setClientId(clientID)
-            .setSite(keycloakURI)
-            .setTokenPath(tokenPath)
-            .setAuthorizationPath(authPath));
-    }
-
-    private String getAuthURI(OAuth2Auth oauth2, String redirectURI) {
-        return oauth2.authorizeURL(new JsonObject()
-            .put("redirect_uri", redirectURI));
+        return new ServiceBuilder(clientID)
+            .callback(callback)
+            .build(Keycloak2Api.instance(baseUrl, realm));
     }
 
     /**
@@ -105,7 +84,7 @@ public class KeycloakOAuth {
             });
     }
 
-    public Future<User> loginToRedHatSSO() {
+    public Future<KeycloakUser> loginToRedHatSSO() {
         return login(
             Environment.REDHAT_SSO_URI,
             Environment.REDHAT_SSO_REDIRECT_URI,
@@ -113,7 +92,7 @@ public class KeycloakOAuth {
             Environment.REDHAT_SSO_CLIENT_ID);
     }
 
-    public Future<User> loginToOpenshiftIdentity() {
+    public Future<KeycloakUser> loginToOpenshiftIdentity() {
         return login(
             Environment.OPENSHIFT_IDENTITY_URI,
             Environment.OPENSHIFT_IDENTITY_REDIRECT_URI,
@@ -125,16 +104,16 @@ public class KeycloakOAuth {
      * Login for the first time against the oauth realm using username and password and hook to the redirectURI
      * to retrieve the access code and complete the authentication to retrieve the access_token and refresh_token
      */
-    public Future<User> login(String keycloakURI, String redirectURI, String realm, String clientID) {
+    public Future<KeycloakUser> login(String keycloakURI, String redirectURI, String realm, String clientID) {
 
-        var oauth2 = createOAuth2(keycloakURI, realm, clientID);
-        var authURI = getAuthURI(oauth2, redirectURI);
+        var oauth2 = createOAuth2(keycloakURI, realm, clientID, redirectURI);
+        var authURI = oauth2.getAuthorizationUrl();
 
         return login(authURI, redirectURI)
-            .compose(r -> authenticateUser(vertx, oauth2, redirectURI, r))
-            .map(u -> {
+            .map(r -> authenticateUser(oauth2, r))
+            .map(t -> {
                 LOGGER.info("authentication completed");
-                return u;
+                return new KeycloakUser(oauth2, t);
             });
     }
 
@@ -187,7 +166,7 @@ public class KeycloakOAuth {
         if (response.statusCode() >= 300 && response.statusCode() < 400) {
 
             // handle redirects
-            return getRedirectLocation(response)
+            return getRedirectLocationAsFeature(response)
                 .compose(l -> {
                     LOGGER.info("follow authentication redirect to: {}", l);
                     return session.getAbs(l).send();

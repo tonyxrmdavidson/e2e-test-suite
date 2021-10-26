@@ -1,32 +1,30 @@
 package io.managed.services.test.client.oauth;
 
+import com.github.scribejava.core.model.OAuth2AccessToken;
+import com.github.scribejava.core.model.OAuthConstants;
+import com.github.scribejava.core.oauth.AccessTokenRequestParams;
+import com.github.scribejava.core.oauth.OAuth20Service;
 import io.managed.services.test.RetryUtils;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.impl.NoStackTraceThrowable;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.User;
-import io.vertx.ext.auth.oauth2.OAuth2Auth;
 import io.vertx.ext.web.client.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jsoup.internal.StringUtil;
 import org.jsoup.nodes.FormElement;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.managed.services.test.client.BaseVertxClient.getRedirectLocation;
+import static io.managed.services.test.client.BaseVertxClient.getRedirectLocationAsFeature;
 
-public class KeycloakOAuthUtils {
-    private static final Logger LOGGER = LogManager.getLogger(KeycloakOAuthUtils.class);
+public class KeycloakLoginUtils {
+    private static final Logger LOGGER = LogManager.getLogger(KeycloakLoginUtils.class);
 
     public static Future<VertxHttpResponse> followRedirects(
         VertxWebClientSession session, VertxHttpResponse response) {
@@ -35,7 +33,7 @@ public class KeycloakOAuthUtils {
         if (c >= 300 && c < 400) {
 
             // handle redirects
-            return getRedirectLocation(response)
+            return getRedirectLocationAsFeature(response)
                 .compose(l -> {
                     LOGGER.info("follow redirect to: {}", l);
                     return session.getAbs(l).send();
@@ -90,23 +88,19 @@ public class KeycloakOAuthUtils {
         return session.postAbs(actionURI).sendForm(f);
     }
 
-    public static Future<User> authenticateUser(Vertx vertx, OAuth2Auth oauth2, String redirectURI, HttpResponse<Buffer> response) {
+    @SneakyThrows
+    public static OAuth2AccessToken authenticateUser(OAuth20Service oauth2, HttpResponse<Buffer> response) {
 
-        return getRedirectLocation(response)
-            .compose(locationURI -> {
-                List<NameValuePair> queries = URLEncodedUtils.parse(URI.create(locationURI), StandardCharsets.UTF_8);
-                String code = queries.stream()
-                    .filter(v -> v.getName().equals("code")).findFirst()
-                    .orElseThrow().getValue();
+        var redirectLocation = getRedirectLocation(response);
+        LOGGER.info("redirect location found: {}", redirectLocation);
+        var auth = oauth2.extractAuthorization(redirectLocation);
 
-                LOGGER.info("authenticate user; code={}", code);
-                return retry(vertx, () -> oauth2.authenticate(new JsonObject()
-                    .put("code", code)
-                    .put("redirectUri", redirectURI)));
-            });
-
+        var params = AccessTokenRequestParams.create(auth.getCode())
+            .addExtraParameter(OAuthConstants.CLIENT_ID, oauth2.getApiKey());
+        return oauth2.getAccessToken(auth.getCode());
     }
 
+    @Deprecated
     private static <T> Future<T> retry(Vertx vertx, Supplier<Future<T>> call) {
 
         Function<Throwable, Boolean> condition = t -> {
@@ -120,6 +114,4 @@ public class KeycloakOAuthUtils {
 
         return RetryUtils.retry(vertx, 1, call, condition);
     }
-
-
 }

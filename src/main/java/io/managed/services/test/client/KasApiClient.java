@@ -16,8 +16,12 @@ public class KasApiClient {
     }
 
     public KasApiClient bearerToken(String token) {
-        ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(token);
+        setBearerToken(token);
         return this;
+    }
+
+    public void setBearerToken(String token) {
+        ((HttpBearerAuth) apiClient.getAuthentication("Bearer")).setBearerToken(token);
     }
 
     public ApiClient getApiClient() {

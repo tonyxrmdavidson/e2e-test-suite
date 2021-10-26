@@ -1,6 +1,6 @@
 package io.managed.services.test;
 
-import io.managed.services.test.client.oauth.KeycloakOAuth;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,21 +31,21 @@ public class SSOAuthTest extends TestBase {
 
     @Test
     public void testRedHatSSOLogin() throws Throwable {
-        var auth = new KeycloakOAuth(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         bwait(auth.loginToRedHatSSO());
         LOGGER.info("user authenticated against: {}", Environment.REDHAT_SSO_URI);
     }
 
     @Test
     public void testMASSSOLogin() throws Throwable {
-        var auth2 = new KeycloakOAuth(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth2 = new KeycloakLoginSession(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         bwait(auth2.loginToOpenshiftIdentity());
         LOGGER.info("user authenticated against: {}", Environment.OPENSHIFT_IDENTITY_URI);
     }
 
     @Test
     public void testJoinedLogin() throws Throwable {
-        var auth = new KeycloakOAuth(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         bwait(auth.loginToRedHatSSO());
         LOGGER.info("user authenticated against: {}", Environment.REDHAT_SSO_URI);

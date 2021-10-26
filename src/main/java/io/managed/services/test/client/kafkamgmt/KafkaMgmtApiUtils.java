@@ -3,6 +3,7 @@ package io.managed.services.test.client.kafkamgmt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openshift.cloud.api.kas.invoker.ApiClient;
 import com.openshift.cloud.api.kas.models.Error;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
@@ -10,12 +11,10 @@ import io.managed.services.test.DNSUtils;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
-import io.managed.services.test.client.KasApiClient;
 import io.managed.services.test.client.exception.ApiForbiddenException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
-import io.managed.services.test.client.oauth.KeycloakOAuth;
-import io.vertx.ext.auth.User;
+import io.managed.services.test.client.oauth.KeycloakUser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,9 +37,8 @@ public class KafkaMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtApiUtils.class);
     private static final String CLUSTER_CAPACITY_EXHAUSTED_CODE = "KAFKAS-MGMT-24";
 
-    public static KafkaMgmtApi kafkaMgmtApi(String uri, User user) {
-        var token = KeycloakOAuth.getToken(user);
-        return new KafkaMgmtApi(new KasApiClient().basePath(uri).bearerToken(token).getApiClient());
+    public static KafkaMgmtApi kafkaMgmtApi(String uri, KeycloakUser user) {
+        return new KafkaMgmtApi(new ApiClient().setBasePath(uri), user);
     }
 
     /**
