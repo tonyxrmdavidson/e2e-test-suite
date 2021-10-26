@@ -9,7 +9,6 @@ import io.managed.services.test.client.exception.ApiUnknownException;
 import io.managed.services.test.client.oauth.KeycloakUser;
 import lombok.extern.log4j.Log4j2;
 
-import javax.ws.rs.ProcessingException;
 import java.util.Objects;
 
 @Log4j2
@@ -73,8 +72,8 @@ public abstract class BaseApi {
             return code >= 500 && code < 600 // Server Errors
                 || code == 408;  // Request Timeout
         }
-        if (t instanceof ProcessingException) {
-            // retry generic process exception
+        if (t instanceof RuntimeException) {
+            // retry generic runtime exception
             return true;
         }
         log.warn("not going to retry exception:", t);
