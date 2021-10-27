@@ -1,7 +1,6 @@
 package io.managed.services.test.registry;
 
 import com.openshift.cloud.api.srs.models.Registry;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
@@ -120,7 +119,7 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
             Environment.ALIEN_USERNAME,
             Environment.ALIEN_PASSWORD));
 
-        assertThrows(ForbiddenException.class, () -> registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8)));
+        assertThrows(ApiForbiddenException.class, () -> registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8)));
     }
 
     @Test(priority = 1)
