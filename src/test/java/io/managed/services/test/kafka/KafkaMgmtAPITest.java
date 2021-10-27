@@ -90,8 +90,6 @@ public class KafkaMgmtAPITest extends TestBase {
     private ServiceAccount serviceAccount;
     private KafkaInstanceApi kafkaInstanceApi;
 
-    // TODO: Test delete Service Account
-    // TODO: Test create existing Service Account
 
     @BeforeClass
     public void bootstrap() {
@@ -346,7 +344,69 @@ public class KafkaMgmtAPITest extends TestBase {
         assertThrows(ApiConflictException.class, () -> kafkaMgmtApi.createKafka(true, payload));
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1)
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"}, priority = 1)
+    @SneakyThrows
+    public void testDeleteServiceAccount() {
+
+        // create SA specifically for purpose of demonstration that it works, afterwards deleting it and fail to use it anymore
+        final String serviceAccountNameForDeletion = "mk-e2e-sa-delete" + Environment.LAUNCH_KEY;
+        log.info("create service account '{}'", serviceAccountNameForDeletion);
+        var serviceAccountForDeletion = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(serviceAccountNameForDeletion));
+
+        // ACLs
+        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccountForDeletion.getClientId());
+        log.info("create topic and group read and topic write ACLs for the principal '{}'", principal);
+        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
+
+        // working Communication (Producing & Consuming) using  SA (serviceAccountForDeletion)
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccountForDeletion.getClientId();
+        var clientSecret = serviceAccountForDeletion.getClientSecret();
+
+        bwait(testTopic(
+                Vertx.vertx(),
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                TOPIC_NAME,
+                1000,
+                10,
+                100,
+                KafkaAuthMethod.PLAIN));
+
+        // deletion of SA (serviceAccountForDeletion)
+        securityMgmtApi.deleteServiceAccountById(serviceAccountForDeletion.getId());
+
+        // fail to communicate due to service account being deleted using PLAIN & OAUTH
+        assertThrows(KafkaException.class, () -> {
+            bwait(testTopic(
+                    Vertx.vertx(),
+                    bootstrapHost,
+                    clientID,
+                    clientSecret,
+                    TOPIC_NAME,
+                    1000,
+                    10,
+                    100,
+                    KafkaAuthMethod.PLAIN
+            ));
+        });
+        assertThrows(KafkaException.class, () -> {
+            bwait(testTopic(
+                    Vertx.vertx(),
+                    bootstrapHost,
+                    clientID,
+                    clientSecret,
+                    TOPIC_NAME,
+                    1000,
+                    10,
+                    100,
+                    KafkaAuthMethod.OAUTH
+            ));
+        });
+    }
+
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 2)
     @SneakyThrows
     public void testDeleteKafkaInstance() {
 
@@ -383,7 +443,7 @@ public class KafkaMgmtAPITest extends TestBase {
         bwait(producer.asyncClose());
     }
 
-    @Test(priority = 2)
+    @Test(priority = 3)
     @SneakyThrows
     public void testDeleteProvisioningKafkaInstance() {
 
