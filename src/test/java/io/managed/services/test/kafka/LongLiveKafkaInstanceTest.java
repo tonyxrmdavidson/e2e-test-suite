@@ -59,7 +59,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.LAUNCH_KEY;
     public static final String SERVICE_ACCOUNT_NAME = "mk-e2e-ll-sa-" + Environment.LAUNCH_KEY;
 
-    private static final String TEST_TOPIC_NAME = "test-topic";
+    private static final String TOPIC_NAME = "test-topic";
     private static final String MULTI_PARTITION_TOPIC_NAME = "multi-partitions-topic";
     private static final String METRIC_TOPIC_NAME = "metric-test-topic";
 
@@ -128,13 +128,15 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     }
 
 
-    @Test(priority = 1)
+    @Test(priority = 1, dependsOnMethods = "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist")
     @SneakyThrows
     public void testRecreateTheLongLiveServiceAccountIfItDoesNotExist() {
-        // recreate the account only if it doesn't exist
+        // recreate the account only if it doesn't exist, in this case we also create ACL accordingly.
         if (Objects.isNull(serviceAccount)) {
             LOGGER.info("create service account '{}'", SERVICE_ACCOUNT_NAME);
             serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
+            var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
+            KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
         }
     }
 
@@ -145,7 +147,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
                 .settings(new TopicSettings().numPartitions(numPartitions));
 
         var map = new HashMap<String, NewTopicInput>();
-        map.put(TEST_TOPIC_NAME, topic.apply(TEST_TOPIC_NAME, 1));
+        map.put(TOPIC_NAME, topic.apply(TOPIC_NAME, 1));
         map.put(METRIC_TOPIC_NAME, topic.apply(METRIC_TOPIC_NAME, 3));
         map.put(MULTI_PARTITION_TOPIC_NAME, topic.apply(MULTI_PARTITION_TOPIC_NAME, 3));
         return map;
@@ -243,12 +245,12 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         String clientID = serviceAccount.getClientId();
         String clientSecret = serviceAccount.getClientSecret();
 
-        LOGGER.info("test topic '{}'", TEST_TOPIC_NAME);
+        LOGGER.info("test topic '{}'", TOPIC_NAME);
         bwait(testTopic(Vertx.vertx(),
             bootstrapHost,
             clientID,
             clientSecret,
-            TEST_TOPIC_NAME,
+                TOPIC_NAME,
             10,
             7,
             10));
