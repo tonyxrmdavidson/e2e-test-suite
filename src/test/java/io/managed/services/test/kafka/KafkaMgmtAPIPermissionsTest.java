@@ -18,6 +18,7 @@ import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -182,7 +183,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         var topicName = "secondary-test-topic";
 
         LOGGER.info("create kafka topic '{}'", topicName);
-        assertThrows(SaslAuthenticationException.class, () -> admin.createTopic(topicName));
+        assertThrows(TopicAuthorizationException.class, () -> admin.createTopic(topicName));
 
         admin.close();
     }
