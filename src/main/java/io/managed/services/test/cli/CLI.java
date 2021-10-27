@@ -197,8 +197,8 @@ public class CLI {
         return stdoutAsJson(p, ConsumerGroup.class);
     }
 
-    public void connectCluster(String token, String kubeconfig) throws CliGenericException {
-        retry(() -> exec("cluster", "connect", "--token", token, "--kubeconfig", kubeconfig, "-y"));
+    public void connectCluster(String token, String kubeconfig, String serviceType) throws CliGenericException {
+        retry(() -> exec("cluster", "connect", "--token", token, "--kubeconfig", kubeconfig, "--service-type", serviceType, "-y"));
     }
 
     public void grantProducerAndConsumerAccess(String userName, String topic, String group) throws CliGenericException {

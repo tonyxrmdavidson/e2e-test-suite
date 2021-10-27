@@ -366,10 +366,33 @@ public class QuarkusApplicationTest extends TestBase {
         cli.useKafka(kafka.getId());
 
         LOGGER.info("cli cluster connect using kubeconfig: {}", kubeconfgipath);
-        cli.connectCluster(user.getRefreshToken(), kubeconfgipath);
+        cli.connectCluster(user.getRefreshToken(), kubeconfgipath, "kafka");
     }
 
     @Test(dependsOnMethods = "testCLIConnectCluster")
+    @SneakyThrows
+    public void testCLIGrantAccess() {
+
+        LOGGER.info("get service account secret: {}", SERVICE_ACCOUNT_SECRET_NAME);
+        var secret = oc.secrets().withName(SERVICE_ACCOUNT_SECRET_NAME).get();
+        if (secret == null) {
+            throw new Error(message("failed to find secret with name: {}", SERVICE_ACCOUNT_SECRET_NAME));
+        }
+
+        LOGGER.info("get service account client-id");
+        var encodedClientID = secret.getData().get("client-id");
+        if (encodedClientID == null) {
+            throw new Error(message("client-id data not found in secret: {}", secret));
+        }
+        var clientID = decodeBase64(encodedClientID);
+
+        LOGGER.info("service account client-id is: {}", clientID);
+
+        LOGGER.info("grant consume and produce access for all topics and groups to the service account: {}", clientID);
+        cli.grantProducerAndConsumerAccess(clientID, "all", "all");
+    }
+
+    @Test(dependsOnMethods = "testCLIGrantAccess")
     public void testDeployQuarkusApplication() {
 
         // TODO: Deploy the application from https://raw.githubusercontent.com/redhat-developer/app-services-guides/main/code-examples/quarkus-kafka-quickstart/.kubernetes/kubernetes.yml
