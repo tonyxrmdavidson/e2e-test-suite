@@ -30,7 +30,6 @@ import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.apache.kafka.common.resource.ResourceType;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -229,7 +228,7 @@ public class KafkaAdmin implements AutoCloseable {
 
     @Override
     public void close() {
-        admin.close(Duration.ofSeconds(3));
+        admin.close();
     }
 }
 

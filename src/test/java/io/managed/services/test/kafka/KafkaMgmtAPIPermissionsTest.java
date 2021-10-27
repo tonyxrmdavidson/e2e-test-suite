@@ -178,14 +178,13 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
 
         // Create Kafka topic by another user
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+        try (var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret)) {
 
-        var topicName = "secondary-test-topic";
+            var topicName = "secondary-test-topic";
 
-        LOGGER.info("create kafka topic '{}'", topicName);
-        assertThrows(TopicAuthorizationException.class, () -> admin.createTopic(topicName));
-
-        admin.close();
+            LOGGER.info("create kafka topic '{}'", topicName);
+            assertThrows(TopicAuthorizationException.class, () -> admin.createTopic(topicName));
+        }
     }
 
     @Test
@@ -225,14 +224,13 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
 
         // Create Kafka topic in Org 1 from Org 2, and it should fail
         LOGGER.info("initialize kafka admin; host: {}; clientID: {}; clientSecret: {}", bootstrapHost, clientID, clientSecret);
-        var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
+        try (var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret)) {
 
-        var topicName = "alien-test-topic";
+            var topicName = "alien-test-topic";
 
-        LOGGER.info("create kafka topic: {}", topicName);
-        assertThrows(SaslAuthenticationException.class, () -> admin.createTopic(topicName));
-
-        admin.close();
+            LOGGER.info("create kafka topic: {}", topicName);
+            assertThrows(SaslAuthenticationException.class, () -> admin.createTopic(topicName));
+        }
     }
 
     @Test(priority = 1)

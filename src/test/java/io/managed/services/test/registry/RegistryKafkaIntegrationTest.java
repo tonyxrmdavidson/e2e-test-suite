@@ -151,13 +151,13 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         try {
             bwait(consumer.asyncClose());
         } catch (Throwable t) {
-            LOGGER.error("clean service registry error: ", t);
+            LOGGER.error("close consumer error: ", t);
         }
 
         try {
             bwait(producer.asyncClose());
         } catch (Throwable t) {
-            LOGGER.error("clean service registry error: ", t);
+            LOGGER.error("close consumer error: ", t);
         }
 
         bwait(vertx.close());

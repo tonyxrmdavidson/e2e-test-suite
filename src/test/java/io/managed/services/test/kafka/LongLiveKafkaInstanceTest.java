@@ -196,12 +196,13 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         var clientID = serviceAccount.getClientId();
         var clientSecret = serviceAccount.getClientSecret();
 
-        var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret);
-        var topics = admin.listTopics();
-        LOGGER.debug(topics);
+        try (var admin = new KafkaAdmin(bootstrapHost, clientID, clientSecret)) {
+            var topics = admin.listTopics();
+            LOGGER.debug(topics);
 
-        var topicOptional = topics.stream().filter(e -> e.equals(TEST_CANARY_NAME)).findAny();
-        assertTrue(topicOptional.isPresent());
+            var topicOptional = topics.stream().filter(e -> e.equals(TEST_CANARY_NAME)).findAny();
+            assertTrue(topicOptional.isPresent());
+        }
     }
 
 
@@ -212,7 +213,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         var clientID = serviceAccount.getClientId();
         var secret = serviceAccount.getClientSecret();
 
-        var consumerClient = new KafkaConsumerClient<>(
+        try (var consumerClient = new KafkaConsumerClient<>(
             Vertx.vertx(),
             bootstrapHost,
             clientID, secret,
@@ -220,12 +221,14 @@ public class LongLiveKafkaInstanceTest extends TestBase {
             TEST_CANARY_GROUP,
             "latest",
             StringDeserializer.class,
-            StringDeserializer.class);
-        var asyncRecords = bwait(consumerClient.receiveAsync(TEST_CANARY_NAME, 1));
+            StringDeserializer.class)) {
 
-        LOGGER.info("wait for records");
-        var records = bwait(asyncRecords);
-        LOGGER.debug(records);
+            var asyncRecords = bwait(consumerClient.receiveAsync(TEST_CANARY_NAME, 1));
+
+            LOGGER.info("wait for records");
+            var records = bwait(asyncRecords);
+            LOGGER.debug(records);
+        }
     }
 
 
