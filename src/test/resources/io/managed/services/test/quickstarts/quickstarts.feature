@@ -13,15 +13,15 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
     # 2. Creating a service account to connect to a Kafka instance in OpenShift Streams for Apache Kafka
     Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
-    * The Kafka instance has a generated bootstrap server
+    * the Kafka instance is in Ready state
+    * the Kafka instance has a generated bootstrap server
     When you create a service account with a unique name
     Then the service account has a generated Client ID and Client Secret
     And the service account is listed in the service accounts table
 
     # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
     Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     When you create a Kafka topic with a unique name
     Then the Kafka topic is listed in the topics table
 

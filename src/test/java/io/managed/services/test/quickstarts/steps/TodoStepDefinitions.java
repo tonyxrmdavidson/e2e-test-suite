@@ -1,4 +1,4 @@
-package io.managed.services.test.quickstarts;
+package io.managed.services.test.quickstarts.steps;
 
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
