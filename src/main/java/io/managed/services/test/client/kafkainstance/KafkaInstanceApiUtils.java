@@ -27,6 +27,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.javatuples.Pair;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -214,14 +215,17 @@ public class KafkaInstanceApiUtils {
     }
 
     public static void createReadAnyTopicACL(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        log.debug("create read any topic ACL for principal '{}'", principal);
         createAllowAnyACL(api, principal, AclResourceType.TOPIC, AclOperation.READ);
     }
 
     public static void createWriteAnyTopicACL(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        log.debug("create write any topic ACL for principal '{}'", principal);
         createAllowAnyACL(api, principal, AclResourceType.TOPIC, AclOperation.WRITE);
     }
 
     public static void createReadAnyGroupACL(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        log.debug("create read any group ACL for principal '{}'", principal);
         createAllowAnyACL(api, principal, AclResourceType.GROUP, AclOperation.READ);
     }
 
@@ -235,5 +239,44 @@ public class KafkaInstanceApiUtils {
         createReadAnyGroupACL(api, principal);
         createReadAnyTopicACL(api, principal);
         createWriteAnyTopicACL(api, principal);
+    }
+
+    public static boolean hasAllowAnyACL(List<AclBinding> acls, String principal, AclResourceType resourceType, AclOperation operation) {
+        return acls.stream().anyMatch(a -> principal.equals(a.getPrincipal())
+            && resourceType.equals(a.getResourceType())
+            && AclPatternType.LITERAL.equals(a.getPatternType())
+            && "*".equals(a.getResourceName())
+            && AclPermissionType.ALLOW.equals(a.getPermission())
+            && operation.equals(a.getOperation())
+        );
+    }
+
+    public static boolean hasReadAnyTopicACL(List<AclBinding> acls, String principal) {
+        return hasAllowAnyACL(acls, principal, AclResourceType.TOPIC, AclOperation.READ);
+    }
+
+    public static boolean hasWriteAnyTopicACL(List<AclBinding> acls, String principal) {
+        return hasAllowAnyACL(acls, principal, AclResourceType.TOPIC, AclOperation.WRITE);
+    }
+
+    public static boolean hasReadAnyGroupACL(List<AclBinding> acls, String principal) {
+        return hasAllowAnyACL(acls, principal, AclResourceType.GROUP, AclOperation.READ);
+    }
+
+    public static void applyProducerAndConsumerACLs(KafkaInstanceApi api, String principal) throws ApiGenericException {
+        var aclPage = api.getAcls(null, null, null, principal, null, null, null, null, null, null);
+        var acls = aclPage.getItems();
+
+        if (!hasReadAnyGroupACL(acls, principal)) {
+            createReadAnyGroupACL(api, principal);
+        }
+
+        if (!hasReadAnyTopicACL(acls, principal)) {
+            createReadAnyTopicACL(api, principal);
+        }
+
+        if (!hasWriteAnyTopicACL(acls, principal)) {
+            createWriteAnyTopicACL(api, principal);
+        }
     }
 }

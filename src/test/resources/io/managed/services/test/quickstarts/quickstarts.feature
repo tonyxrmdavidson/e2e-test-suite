@@ -6,7 +6,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
 
     # 1. Creating a Kafka instance in OpenShift Streams for Apache Kafka
-    Given you’re logged in to the OpenShift Streams for Apache Kafka web console
+    Given you are logged in to the OpenShift Streams for Apache Kafka web console
     When you create a Kafka instance with a unique name
     Then the Kafka instance is listed in the instances table
     And the Kafka instance is shown as Ready
@@ -99,33 +99,34 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
   Scenario: Using Kcat with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
-    * JDK 11 or later is installed
-    * For Windows, the latest version of Oracle JDK is installed
-    * You have downloaded and verified the latest supported version of Kcat for your operating system
+    * you are logged in to the OpenShift Streams for Apache Kafka web console
+    * you have downloaded and verified the latest supported version of Kcat for your operating system
+    * you have a running Kafka instance in OpenShift Streams for Apache Kafka
 
     # 1. Configuring Kcat to connect to a Kafka instance
-    Given you have the bootstrap server endpoint and the service account credentials for the Kafka instance
+    Given you have the bootstrap server endpoint for your Kafka instance
+    * you have the generated credentials for your service account
+    * you have set the permissions for your service account to access the Kafka instance resources
     When you set the Kafka instance bootstrap server endpoint and service account credentials as environment variables
-    Then Kcat can access all required configurations to authenticate the Kafka instance
 
     # 2. Producing messages in Kcat
     Given Kcat is installed
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
-    * You’ve set the Kafka bootstrap server endpoint and your service account credentials as environment variables
+    * you have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * the Kafka instance is in Ready state
+    * you have set the Kafka bootstrap server endpoint and your service account credentials as environment variables
     When you start Kcat in producer mode
     And you enter messages into Kcat that you want to produce
-    Then messages are produced to the specified topic in the configured Kafka instance
+    Then the producer is still running without any errors
 
     #3. Consuming messages in Kcat
     Given Kcat is installed
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
-    * The instance is in Ready state
-    * You’ve set the Kafka bootstrap server endpoint and your service account credentials as environment variables
-    * You used a producer to produce example messages to a topic
+    * you have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * the Kafka instance is in Ready state
+    * you have set the Kafka bootstrap server endpoint and your service account credentials as environment variables
+    * you used a producer to produce example messages to a topic
     When you start Kcat in consumer mode
-    Then messages from the producer are consumed and displayed on the command line
+    Then your consumer is running without any errors
+    And the consumer display the example messages from the producer
 
   Scenario: Using Kafka scripts to connect with Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account

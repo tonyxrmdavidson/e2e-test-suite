@@ -12,13 +12,13 @@ import java.util.Objects;
 import static org.testng.Assert.assertTrue;
 
 @Log4j2
-public class TopicSteps {
+public class KafkaTopicSteps {
 
     private static final String TOPIC_NAME = "test-topic";
 
     private final KafkaInstanceContext kafkaInstanceContext;
 
-    public TopicSteps(KafkaInstanceContext kafkaInstanceContext) {
+    public KafkaTopicSteps(KafkaInstanceContext kafkaInstanceContext) {
         this.kafkaInstanceContext = kafkaInstanceContext;
     }
 

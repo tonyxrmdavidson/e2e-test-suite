@@ -1,16 +1,18 @@
 package io.managed.services.test.quickstarts.steps;
 
-import io.cucumber.java.After;
+import io.cucumber.java.AfterAll;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.managed.services.test.Environment;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.quickstarts.contexts.KafkaInstanceContext;
 import io.managed.services.test.quickstarts.contexts.OpenShiftAPIContext;
 import lombok.extern.log4j.Log4j2;
-import org.testng.SkipException;
 
+import static io.managed.services.test.TestUtils.assumeTeardown;
+import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
@@ -66,11 +68,21 @@ public class KafkaInstanceSteps {
         kafkaInstanceContext.setKafkaInstance(instance);
     }
 
+    @Given("you have a running Kafka instance in OpenShift Streams for Apache Kafka")
+    public void you_have_a_running_kafka_instance_in_open_shift_streams_for_apache_kafka() throws Throwable {
+        var kafkaMgmtApi = openShiftAPIContext.requireKafkaMgmtApi();
+
+        log.info("load kafka instance with name '{}'", KAFKA_INSTANCE_UNIQUE_NAME);
+        var payload = KafkaMgmtApiUtils.defaultKafkaInstance(KAFKA_INSTANCE_UNIQUE_NAME);
+        var kafkaInstance = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, payload);
+        log.debug(kafkaInstance);
+
+        kafkaInstanceContext.setKafkaInstance(kafkaInstance);
+    }
+
     @Given("you’ve created a Kafka instance in OpenShift Streams for Apache Kafka")
     public void you_ve_created_a_kafka_instance_in_open_shift_streams_for_apache_kafka() {
         assertNotNull(kafkaInstanceContext.getKafkaInstance());
-
-        // TODO: Add logic to recreate instance
     }
 
     @Given("the Kafka instance is in Ready state")
@@ -79,25 +91,22 @@ public class KafkaInstanceSteps {
         assertEquals(kafkaInstance.getStatus(), "ready");
     }
 
+    @Given("you have the bootstrap server endpoint for your Kafka instance")
     @Given("the Kafka instance has a generated bootstrap server")
     public void the_kafka_instance_has_a_generated_bootstrap_server() {
         var kafkaInstance = kafkaInstanceContext.requireKafkaInstance();
         assertNotNull(kafkaInstance.getBootstrapServerHost());
     }
 
+    @AfterAll
+    public static void clean_kafka_instance() throws Throwable {
+        assumeTeardown();
 
-    @After
-    public void teardown() {
-        var kafkaMgmtApi = openShiftAPIContext.getKafkaMgmtApi();
-        if (kafkaMgmtApi == null) {
-            throw new SkipException("skip kafka instance teardown");
-        }
+        var keycloakLoginSession = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var redHatUser = bwait(keycloakLoginSession.loginToRedHatSSO());
+        var kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, redHatUser);
 
-        // delete kafka instance
-        try {
-            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_UNIQUE_NAME);
-        } catch (Throwable t) {
-            log.error("clean main kafka instance error: ", t);
-        }
+        log.info("clean kafka instance: {}", KAFKA_INSTANCE_UNIQUE_NAME);
+        KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_UNIQUE_NAME);
     }
 }

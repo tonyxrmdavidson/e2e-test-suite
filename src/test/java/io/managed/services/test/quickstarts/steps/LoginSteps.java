@@ -29,10 +29,10 @@ public class LoginSteps {
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
     }
 
-    @Given("you’re logged in to the OpenShift Streams for Apache Kafka web console")
-    public void you_re_logged_in_to_the_open_shift_streams_for_apache_kafka_web_console() throws Throwable {
+    @Given("you are logged in to the OpenShift Streams for Apache Kafka web console")
+    public void you_are_logged_in_to_the_open_shift_streams_for_apache_kafka_web_console() throws Throwable {
 
-        var keycloakLoginSession = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.SECONDARY_PASSWORD);
+        var keycloakLoginSession = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         // login to Red Hat SSO
         log.info("login to Red Hat SSO");

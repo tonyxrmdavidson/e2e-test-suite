@@ -7,6 +7,16 @@ import org.testng.SkipException;
 
 public class TodoStepDefinitions {
 
+    @Given("JDK 11 or later is installed")
+    public void jdk_11_or_later_is_installed() {
+        // TODO: Low priority requirement
+    }
+
+    @Given("for Windows the latest version of Oracle JDK is installed")
+    public void for_windows_the_latest_version_of_oracle_jdk_is_installed() {
+        // Ignore: the tests don't run on Windows
+    }
+
     @Given("your OpenShift cluster is running on OpenShift {double} or later")
     public void your_open_shift_cluster_is_running_on_open_shift_or_later(Double double1) {
         // Write code here that turns the phrase above into concrete actions
@@ -291,12 +301,6 @@ public class TodoStepDefinitions {
     }
 
 
-    @Given("You have a running Kafka instance in OpenShift Streams for Apache Kafka")
-    public void you_have_a_running_kafka_instance_in_open_shift_streams_for_apache_kafka() {
-        // Write code here that turns the phrase above into concrete actions
-        throw new SkipException("TODO");
-    }
-
     @Given("Git is installed")
     public void git_is_installed() {
         // Write code here that turns the phrase above into concrete actions
@@ -309,20 +313,8 @@ public class TodoStepDefinitions {
         throw new io.cucumber.java.PendingException();
     }
 
-    @Given("JDK {int} or later is installed")
-    public void jdk_or_later_is_installed(Integer int1) {
-        // Write code here that turns the phrase above into concrete actions
-        throw new io.cucumber.java.PendingException();
-    }
-
     @Given("Apache Maven {double}.{int} or later is installed")
     public void apache_maven_or_later_is_installed(Double double1, Integer int1) {
-        // Write code here that turns the phrase above into concrete actions
-        throw new io.cucumber.java.PendingException();
-    }
-
-    @Given("For Windows, the latest version of Oracle JDK is installed")
-    public void for_windows_the_latest_version_of_oracle_jdk_is_installed() {
         // Write code here that turns the phrase above into concrete actions
         throw new io.cucumber.java.PendingException();
     }

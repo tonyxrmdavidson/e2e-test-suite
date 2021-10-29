@@ -14,14 +14,12 @@ import io.managed.services.test.ThrowingSupplier;
 import lombok.SneakyThrows;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
-import static io.managed.services.test.cli.ProcessUtils.stdout;
-import static io.managed.services.test.cli.ProcessUtils.stdoutAsJson;
 import static java.time.Duration.ofMinutes;
 import static lombok.Lombok.sneakyThrow;
 
@@ -51,27 +49,24 @@ public class CLI {
             .directory(new File(workdir));
     }
 
-    private Process exec(String... command) throws CliGenericException {
+    private AsyncProcess exec(String... command) throws CliGenericException {
         return exec(List.of(command));
     }
 
-    private Process exec(List<String> command) throws CliGenericException {
+    private AsyncProcess exec(List<String> command) throws CliGenericException {
         try {
-            return execAsync(command).future(DEFAULT_TIMEOUT).get();
-        } catch (ExecutionException e) {
-            var cause = e.getCause();
-            if (cause instanceof ProcessException) {
-                throw CliGenericException.exception((ProcessException) cause);
-            }
-            throw sneakyThrow(cause);
-        } catch (InterruptedException e) {
-            throw sneakyThrow(e);
+            return execAsync(command).sync(DEFAULT_TIMEOUT);
+        } catch (ProcessException e) {
+            throw CliGenericException.exception(e);
         }
     }
 
-    @SneakyThrows
     private AsyncProcess execAsync(List<String> command) {
-        return new AsyncProcess(builder(command).start());
+        try {
+            return new AsyncProcess(builder(command).start());
+        } catch (IOException e) {
+            throw sneakyThrow(e);
+        }
     }
 
     /**
@@ -107,13 +102,12 @@ public class CLI {
 
     @SneakyThrows
     public String help() {
-        var p = exec("--help");
-        return stdout(p);
+        return exec("--help").stdoutAsString();
     }
 
     public KafkaRequest createKafka(String name) throws CliGenericException {
-        var p = retry(() -> exec("kafka", "create", "--name", name));
-        return stdoutAsJson(p, KafkaRequest.class);
+        return retry(() -> exec("kafka", "create", "--name", name))
+            .asJson(KafkaRequest.class);
     }
 
     public void deleteKafka(String id) throws CliGenericException {
@@ -121,8 +115,8 @@ public class CLI {
     }
 
     public KafkaRequest describeKafka(String id) throws CliGenericException {
-        var p = retry(() -> exec("kafka", "describe", "--id", id));
-        return stdoutAsJson(p, KafkaRequest.class);
+        return retry(() -> exec("kafka", "describe", "--id", id))
+            .asJson(KafkaRequest.class);
     }
 
     public void useKafka(String id) throws CliGenericException {
@@ -130,26 +124,26 @@ public class CLI {
     }
 
     public KafkaRequestList listKafka() throws CliGenericException {
-        var p = retry(() -> exec("kafka", "list", "-o", "json"));
-        return stdoutAsJson(p, KafkaRequestList.class);
+        return retry(() -> exec("kafka", "list", "-o", "json"))
+            .asJson(KafkaRequestList.class);
     }
 
     public KafkaRequestList searchKafkaByName(String name) throws CliGenericException {
         var p = retry(() -> exec("kafka", "list", "--search", name, "-o", "json"));
-        if (ProcessUtils.stderr(p).contains("No Kafka instances were found")) {
+        if (p.stderrAsString().contains("No Kafka instances were found")) {
             return new KafkaRequestList();
         }
-        return stdoutAsJson(p, KafkaRequestList.class);
+        return p.asJson(KafkaRequestList.class);
     }
 
     public ServiceAccount describeServiceAccount(String id) throws CliGenericException {
-        var p = retry(() -> exec("service-account", "describe", "--id", id));
-        return stdoutAsJson(p, ServiceAccount.class);
+        return retry(() -> exec("service-account", "describe", "--id", id))
+            .asJson(ServiceAccount.class);
     }
 
     public ServiceAccountList listServiceAccount() throws CliGenericException {
-        var p = retry(() -> exec("service-account", "list", "-o", "json"));
-        return stdoutAsJson(p, ServiceAccountList.class);
+        return retry(() -> exec("service-account", "list", "-o", "json"))
+            .asJson(ServiceAccountList.class);
     }
 
     public void deleteServiceAccount(String id) throws CliGenericException {
@@ -161,8 +155,8 @@ public class CLI {
     }
 
     public Topic createTopic(String topicName) throws CliGenericException {
-        var p = retry(() -> exec("kafka", "topic", "create", "--name", topicName, "-o", "json"));
-        return stdoutAsJson(p, Topic.class);
+        return retry(() -> exec("kafka", "topic", "create", "--name", topicName, "-o", "json"))
+            .asJson(Topic.class);
     }
 
     public void deleteTopic(String topicName) throws CliGenericException {
@@ -170,13 +164,13 @@ public class CLI {
     }
 
     public TopicsList listTopics() throws CliGenericException {
-        var p = retry(() -> exec("kafka", "topic", "list", "-o", "json"));
-        return stdoutAsJson(p, TopicsList.class);
+        return retry(() -> exec("kafka", "topic", "list", "-o", "json"))
+            .asJson(TopicsList.class);
     }
 
     public Topic describeTopic(String topicName) throws CliGenericException {
-        var p = retry(() -> exec("kafka", "topic", "describe", "--name", topicName, "-o", "json"));
-        return stdoutAsJson(p, Topic.class);
+        return retry(() -> exec("kafka", "topic", "describe", "--name", topicName, "-o", "json"))
+            .asJson(Topic.class);
     }
 
     public void updateTopic(String topicName, String retentionTime) throws CliGenericException {
@@ -184,8 +178,8 @@ public class CLI {
     }
 
     public ConsumerGroupList listConsumerGroups() throws CliGenericException {
-        var p = retry(() -> exec("kafka", "consumer-group", "list", "-o", "json"));
-        return stdoutAsJson(p, ConsumerGroupList.class);
+        return retry(() -> exec("kafka", "consumer-group", "list", "-o", "json"))
+            .asJson(ConsumerGroupList.class);
     }
 
     public void deleteConsumerGroup(String id) throws CliGenericException {
@@ -193,8 +187,8 @@ public class CLI {
     }
 
     public ConsumerGroup describeConsumerGroup(String name) throws CliGenericException {
-        var p = retry(() -> exec("kafka", "consumer-group", "describe", "--id", name, "-o", "json"));
-        return stdoutAsJson(p, ConsumerGroup.class);
+        return retry(() -> exec("kafka", "consumer-group", "describe", "--id", name, "-o", "json"))
+            .asJson(ConsumerGroup.class);
     }
 
     public void connectCluster(String token, String kubeconfig, String serviceType) throws CliGenericException {
@@ -206,8 +200,8 @@ public class CLI {
     }
 
     public AclBindingListPage listACLs() throws CliGenericException {
-        var p = retry(() -> exec("kafka", "acl", "list", "-o", "json"));
-        return stdoutAsJson(p, AclBindingListPage.class);
+        return retry(() -> exec("kafka", "acl", "list", "-o", "json"))
+            .asJson(AclBindingListPage.class);
     }
 
     private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {

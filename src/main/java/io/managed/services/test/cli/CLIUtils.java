@@ -34,12 +34,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-
-import static java.time.Duration.ofMinutes;
 
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
@@ -100,11 +99,10 @@ public class CLIUtils {
             .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"))
             .toCompletionStage().toCompletableFuture();
 
-        var cliFuture = process.future(ofMinutes(3))
+        var cliFuture = process.future(Duration.ofMinutes(3))
             .thenAccept(r -> LOGGER.info("CLI login completed"));
 
         return CompletableFuture.allOf(oauthFuture, edgeSSOFuture, cliFuture);
-
     }
 
     private static Future<String> parseUrl(Vertx vertx, BufferedReader stdout, String urlRegex) {

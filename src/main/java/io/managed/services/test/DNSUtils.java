@@ -1,9 +1,10 @@
 package io.managed.services.test;
 
+import io.managed.services.test.cli.AsyncProcess;
 import io.managed.services.test.cli.ProcessException;
-import io.managed.services.test.cli.ProcessUtils;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 
 public class DNSUtils {
@@ -29,18 +30,11 @@ public class DNSUtils {
             return e.getMessage();
         }
 
-        var processInfo = process.info();
-
-        int exitCode;
+        var asyncProcess = new AsyncProcess(process);
         try {
-            exitCode = process.waitFor();
-        } catch (InterruptedException e) {
+            return asyncProcess.sync(Duration.ofMinutes(1)).stdoutAsString();
+        } catch (ProcessException e) {
             return e.getMessage();
         }
-
-        if (exitCode != 0) {
-            return new ProcessException(process, processInfo, null).getMessage();
-        }
-        return ProcessUtils.readNow(process.getInputStream());
     }
 }

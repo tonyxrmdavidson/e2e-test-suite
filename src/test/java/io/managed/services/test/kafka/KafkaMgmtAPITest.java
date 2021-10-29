@@ -37,14 +37,14 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static java.time.Duration.ofSeconds;
 import static java.time.Duration.ofMinutes;
+import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
