@@ -53,6 +53,14 @@ public class KafkaMgmtApiUtils {
         return list.getItems().stream().findAny();
     }
 
+    public static KafkaRequestPayload defaultKafkaInstance(String name) {
+        return new KafkaRequestPayload()
+            .name(name)
+            .multiAz(true)
+            .cloudProvider("aws")
+            .region(Environment.DEFAULT_KAFKA_REGION);
+    }
+
     /**
      * Create a Kafka instance using the default options if it doesn't exist or return the existing Kafka instance
      *
@@ -63,12 +71,7 @@ public class KafkaMgmtApiUtils {
     public static KafkaRequest applyKafkaInstance(KafkaMgmtApi api, String name)
         throws ApiGenericException, InterruptedException, KafkaClusterCapacityExhaustedException, KafkaNotReadyException, KafkaUnknownHostsException, KafkaUnprovisionedException {
 
-        var payload = new KafkaRequestPayload()
-            .name(name)
-            .multiAz(true)
-            .cloudProvider("aws")
-            .region(Environment.DEFAULT_KAFKA_REGION);
-
+        var payload = defaultKafkaInstance(name);
         return applyKafkaInstance(api, payload);
     }
 

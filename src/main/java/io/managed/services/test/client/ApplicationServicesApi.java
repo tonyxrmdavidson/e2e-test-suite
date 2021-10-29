@@ -15,6 +15,7 @@ import lombok.extern.log4j.Log4j2;
 import static io.managed.services.test.TestUtils.bwait;
 
 @Log4j2
+@Deprecated
 public class ApplicationServicesApi {
 
     private final KafkaMgmtApi kafkaMgmtApi;

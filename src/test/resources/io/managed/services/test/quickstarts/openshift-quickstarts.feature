@@ -31,7 +31,8 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Then the command line shows the name of a `KafkaConnection` object that corresponds to the name of your Kafka instance
 
   Scenario: Binding a Quarkus application in OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
-    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    Given you have a Red Hat account
+    * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
     * The Kafka instance is in Ready state
     * You've connected OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
     * You have privileges to deploy applications in the OpenShift project that you connected your Kafka instance to
