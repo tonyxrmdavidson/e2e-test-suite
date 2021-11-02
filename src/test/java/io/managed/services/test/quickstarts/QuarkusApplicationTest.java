@@ -85,7 +85,7 @@ public class QuarkusApplicationTest extends TestBase {
     private static final String TOPIC_NAME = "prices";
 
     // this name is decided from the cli
-    private static final String ACCESS_TOKEN_SECRET_NAME = "rh-cloud-services-accesstoken-cli";
+    private static final String ACCESS_TOKEN_SECRET_NAME = "rh-cloud-services-accesstoken";
     private static final String SERVICE_ACCOUNT_SECRET_NAME = "rh-cloud-services-service-account";
 
     private static final String SERVICE_BINDING_NAME = "rhoas-kafka-quickstart-bind";
