@@ -53,7 +53,7 @@ public class QuickstartsStepDefinitions {
     @Given("you’re logged in to the OpenShift Streams for Apache Kafka web console")
     public void you_re_logged_in_to_the_open_shift_streams_for_apache_kafka_web_console() throws Throwable {
 
-        keycloakLoginSession = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.SECONDARY_PASSWORD);
+        keycloakLoginSession = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         var user = bwait(keycloakLoginSession.loginToRedHatSSO());
         kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, user);
@@ -87,7 +87,7 @@ public class QuickstartsStepDefinitions {
     }
 
     @Given("you’ve created a Kafka instance in OpenShift Streams for Apache Kafka")
-    public void you_ve_created_a_kafka_instance_in_open_shift_streams_for_apache_kafka() throws Throwable {
+    public void you_ve_created_a_kafka_instance_in_open_shift_streams_for_apache_kafka() {
         assertNotNull(kafkaInstance);
     }
 
