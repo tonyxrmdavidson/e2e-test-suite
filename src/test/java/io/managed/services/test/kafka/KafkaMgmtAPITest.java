@@ -64,6 +64,7 @@ import static org.testng.Assert.assertTrue;
 @Log4j2
 public class KafkaMgmtAPITest extends TestBase {
 
+    static final String SERVICE_ACCOUNT_NAME_FOR_DELETION = "mk-e2e-sa-delete" + Environment.LAUNCH_KEY;
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.LAUNCH_KEY;
     static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.LAUNCH_KEY;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.LAUNCH_KEY;
@@ -123,6 +124,12 @@ public class KafkaMgmtAPITest extends TestBase {
         // delete service account
         try {
             SecurityMgmtAPIUtils.cleanServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
+        } catch (Throwable t) {
+            log.error("clean service account error: ", t);
+        }
+
+        try {
+            SecurityMgmtAPIUtils.cleanServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME_FOR_DELETION);
         } catch (Throwable t) {
             log.error("clean service account error: ", t);
         }
@@ -344,14 +351,13 @@ public class KafkaMgmtAPITest extends TestBase {
         assertThrows(ApiConflictException.class, () -> kafkaMgmtApi.createKafka(true, payload));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"}, priority = 1)
+    @Test(dependsOnMethods = "testCreateTopics")
     @SneakyThrows
     public void testDeleteServiceAccount() {
 
         // create SA specifically for purpose of demonstration that it works, afterwards deleting it and fail to use it anymore
-        final String serviceAccountNameForDeletion = "mk-e2e-sa-delete" + Environment.LAUNCH_KEY;
-        log.info("create service account '{}'", serviceAccountNameForDeletion);
-        var serviceAccountForDeletion = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(serviceAccountNameForDeletion));
+        log.info("create service account '{}'", SERVICE_ACCOUNT_NAME_FOR_DELETION);
+        var serviceAccountForDeletion = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME_FOR_DELETION));
 
         // ACLs
         var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccountForDeletion.getClientId());
@@ -406,7 +412,7 @@ public class KafkaMgmtAPITest extends TestBase {
         });
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 2)
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1)
     @SneakyThrows
     public void testDeleteKafkaInstance() {
 
@@ -443,7 +449,7 @@ public class KafkaMgmtAPITest extends TestBase {
         bwait(producer.asyncClose());
     }
 
-    @Test(priority = 3)
+    @Test(priority = 2)
     @SneakyThrows
     public void testDeleteProvisioningKafkaInstance() {
 
