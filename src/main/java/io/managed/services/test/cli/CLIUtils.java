@@ -77,23 +77,26 @@ public class CLIUtils {
     }
 
     public static CompletableFuture<Void> login(Vertx vertx, CLI cli, String username, String password) {
+        var session = new KeycloakLoginSession(vertx, username, password);
+        return login(vertx, cli, session);
+    }
+
+    public static CompletableFuture<Void> login(Vertx vertx, CLI cli, KeycloakLoginSession session) {
 
         var authURL = String.format("%s/auth/realms/%s", Environment.REDHAT_SSO_URI, Environment.REDHAT_SSO_REALM);
         var masAuthURL = String.format("%s/auth/realms/%s", Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
 
-        LOGGER.info("start CLI login with username: {}", username);
+        LOGGER.info("start CLI login with username: {}", session.getUsername());
         var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL);
-
-        var oauth2 = new KeycloakLoginSession(vertx, username, password);
 
         LOGGER.info("start oauth login against CLI");
         var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI))
-            .compose(l -> oauth2.login(l))
+            .compose(l -> session.login(l))
             .onSuccess(__ -> LOGGER.info("first oauth login completed"))
             .toCompletionStage().toCompletableFuture();
 
         var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.OPENSHIFT_IDENTITY_URI))
-            .compose(l -> oauth2.login(l))
+            .compose(l -> session.login(l))
             .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"))
             .toCompletionStage().toCompletableFuture();
 
