@@ -125,8 +125,6 @@ public class QuarkusApplicationTest extends TestBase {
         LOGGER.info("initialize openshift client");
         oc = new DefaultOpenShiftClient(config);
 
-        var auth = new KeycloakLoginSession(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
-
         // CLI
         var downloader = CLIDownloader.defaultDownloader();
         LOGGER.info("download cli");
@@ -135,9 +133,10 @@ public class QuarkusApplicationTest extends TestBase {
 
         LOGGER.info("login the cli");
         cli = new CLI(cliBinary);
-        CLIUtils.login(cli, auth);
+        CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
 
         // User
+        var auth = new KeycloakLoginSession(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
         user = bwait(auth.loginToRedHatSSO());
 

@@ -18,6 +18,7 @@ import io.managed.services.test.client.kafkamgmt.KafkaNotDeletedException;
 import io.managed.services.test.client.kafkamgmt.KafkaNotReadyException;
 import io.managed.services.test.client.kafkamgmt.KafkaUnknownHostsException;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -36,8 +37,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
-import static io.managed.services.test.TestUtils.bwait;
 import static java.time.Duration.ofMinutes;
 
 public class CLIUtils {
@@ -75,48 +76,58 @@ public class CLIUtils {
         throw new IOException("cli not found");
     }
 
-    public static void login(Vertx vertx, CLI cli, String username, String password) {
-        var session = new KeycloakLoginSession(vertx, username, password);
-        login(cli, session);
-    }
-
-    @SneakyThrows
-    public static void login(CLI cli, KeycloakLoginSession session) {
+    public static CompletableFuture<Void> login(Vertx vertx, CLI cli, String username, String password) {
 
         var authURL = String.format("%s/auth/realms/%s", Environment.REDHAT_SSO_URI, Environment.REDHAT_SSO_REALM);
         var masAuthURL = String.format("%s/auth/realms/%s", Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
 
-        LOGGER.info("start CLI login with username: {}", session.getUsername());
+        LOGGER.info("start CLI login with username: {}", username);
         var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL);
 
+        var oauth2 = new KeycloakLoginSession(vertx, username, password);
+
         LOGGER.info("start oauth login against CLI");
-        var redhatSSOURL = parseUrl(process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI));
-        bwait(session.login(redhatSSOURL));
-        LOGGER.info("login to redhat sso completed");
+        var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI))
+            .compose(l -> oauth2.login(l))
+            .onSuccess(__ -> LOGGER.info("first oauth login completed"))
+            .toCompletionStage().toCompletableFuture();
 
-        var masSSOURL = parseUrl(process.stdout(), String.format("%s/auth/.*", Environment.OPENSHIFT_IDENTITY_URI));
-        bwait(session.login(masSSOURL));
-        LOGGER.info("login to mas sso completed");
+        var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.OPENSHIFT_IDENTITY_URI))
+            .compose(l -> oauth2.login(l))
+            .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"))
+            .toCompletionStage().toCompletableFuture();
 
-        process.future(ofMinutes(3)).get();
-        LOGGER.info("CLI login completed");
+        var cliFuture = process.future(ofMinutes(3))
+            .thenAccept(r -> LOGGER.info("CLI login completed"));
+
+        return CompletableFuture.allOf(oauthFuture, edgeSSOFuture, cliFuture);
+
     }
 
-    @SneakyThrows
-    private static String parseUrl(BufferedReader stdout, String urlRegex) {
+    private static Future<String> parseUrl(Vertx vertx, BufferedReader stdout, String urlRegex) {
 
-        var full = new ArrayList<String>();
-        while (true) {
-            var l = stdout.readLine();
-            if (l == null) {
-                throw new Exception("SSO URL Not found\n-- STDOUT --\n" + String.join("\n", full));
-            }
+        return vertx.executeBlocking(h -> {
+            var full = new ArrayList<String>();
+            while (true) {
+                try {
+                    var l = stdout.readLine();
+                    if (l == null) {
+                        h.fail(new Exception("SSO URL Not found\n-- STDOUT --\n" + String.join("\n", full)));
+                        return;
+                    }
 
-            if (l.matches(urlRegex)) {
-                return l;
+                    if (l.matches(urlRegex)) {
+                        h.complete(l);
+                        return;
+                    }
+                    full.add(l);
+
+                } catch (Exception e) {
+                    h.fail(e);
+                    return;
+                }
             }
-            full.add(l);
-        }
+        });
     }
 
     public static Optional<ConsumerGroup> getConsumerGroupByName(CLI cli, String consumerName) throws CliGenericException {

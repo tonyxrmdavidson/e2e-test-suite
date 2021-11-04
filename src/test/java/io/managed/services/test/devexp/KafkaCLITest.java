@@ -139,7 +139,7 @@ public class KafkaCLITest extends TestBase {
         assertThrows(CliGenericException.class, () -> cli.listKafka());
 
         LOGGER.info("login the CLI");
-        CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
 
         LOGGER.info("verify that we are logged-in");
         cli.listKafka();
