@@ -2,19 +2,28 @@ package io.managed.services.test.quickstarts.steps;
 
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
+import io.cucumber.java.After;
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.quickstarts.contexts.KafkaInstanceContext;
 import lombok.extern.log4j.Log4j2;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
+import static io.managed.services.test.TestUtils.assumeTeardown;
 import static org.testng.Assert.assertTrue;
 
 @Log4j2
 public class KafkaTopicSteps {
 
-    private static final String TOPIC_NAME = "test-topic";
+    /**
+     * Topics created by this class that will be cleaned in the @After method
+     */
+    private final Set<String> topicNames = new HashSet<>();
 
     private final KafkaInstanceContext kafkaInstanceContext;
 
@@ -22,30 +31,68 @@ public class KafkaTopicSteps {
         this.kafkaInstanceContext = kafkaInstanceContext;
     }
 
-    // TODO: Generalize topic name
-    @When("you create a Kafka topic with a unique name")
-    public void you_create_a_kafka_topic_with_a_unique_name() throws Throwable {
+    @When("you create the Kafka topic {word}")
+    public void you_create_the_kafka_topic(String name) throws Throwable {
         var kafkaInstance = kafkaInstanceContext.requireKafkaInstance();
         var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
 
-        log.info("create topic with name '{}' on kafka instance '{}'", TOPIC_NAME, kafkaInstance.getName());
+        log.info("create topic with name '{}' on kafka instance '{}'", name, kafkaInstance.getName());
         var payload = new NewTopicInput()
-            .name(TOPIC_NAME)
+            .name(name)
             .settings(new TopicSettings().numPartitions(1));
         var topic = kafkaInstanceApi.createTopic(payload);
         log.debug(topic);
+
+        topicNames.add(topic.getName());
     }
 
-    @Then("the Kafka topic is listed in the topics table")
-    public void the_kafka_topic_is_listed_in_the_topics_table() throws Throwable {
+    @Given("you have created the Kafka topic {word}")
+    public void you_have_created_the_kafka_topic(String name) throws Throwable {
+        var kafkaInstance = kafkaInstanceContext.requireKafkaInstance();
         var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
 
+        log.info("apply topic with name '{}' on kafka instance '{}'", name, kafkaInstance.getName());
+        var payload = new NewTopicInput()
+            .name(name)
+            .settings(new TopicSettings().numPartitions(1));
+        var topic = KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, payload);
+
+        // add to the topics list to clean it in the after method
+        topicNames.add(topic.getName());
+    }
+
+    @Then("the Kafka topic {word} is listed in the topics table")
+    public void the_kafka_topic_is_listed_in_the_topics_table(String name) throws Throwable {
+        var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
+
+        log.info("get topic list");
         var list = kafkaInstanceApi.getTopics();
         log.debug(list);
 
         var o = Objects.requireNonNull(list.getItems()).stream()
-            .filter(t -> TOPIC_NAME.equals(t.getName()))
+            .filter(t -> name.equals(t.getName()))
             .findAny();
         assertTrue(o.isPresent());
+    }
+
+    @After(order = 10100)
+    public void cleanTopics() {
+
+        // nothing to clan
+        if (topicNames.isEmpty()) return;
+
+        assumeTeardown();
+
+        var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
+        for (var topic : topicNames) {
+            try {
+                log.info("delete topic: {}", topic);
+                kafkaInstanceApi.deleteTopic(topic);
+            } catch (Throwable t) {
+                log.error("clean topic error: ", t);
+            }
+        }
+
+        topicNames.clear();
     }
 }

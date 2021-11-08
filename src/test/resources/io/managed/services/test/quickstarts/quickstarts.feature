@@ -22,8 +22,8 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
     Given you have created a Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
-    When you create a Kafka topic with a unique name
-    Then the Kafka topic is listed in the topics table
+    When you create the Kafka topic test-topic
+    Then the Kafka topic test-topic is listed in the topics table
 
   Scenario: Using Quarkus applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
@@ -50,7 +50,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     When you create a Kafka topic called `prices`
     Then the `prices` Kafka topic is listed in the topics table
 
-    #4. Running the Quarkus example application
+    # 4. Running the Quarkus example application
     Given you've configured the Quarkus example application to connect to the Kafka instance
     * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
@@ -83,7 +83,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     When you create a Kafka topic called `countries`
     Then the `countries` Kafka topic is listed in the topics table
 
-    #4. Running the Node.js example application
+    # 4. Running the Node.js example application
     Given you've configured the Node.js example application to connect to the Kafka instance
     * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
@@ -116,17 +116,19 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * you have a running Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
     * you have set the Kafka bootstrap server endpoint and your service account credentials as environment variables
-    When you start Kcat in producer mode
+    * you have created the Kafka topic my-first-kafka-topic
+    When you start Kcat in producer mode on the topic my-first-kafka-topic
     And you enter messages into Kcat that you want to produce
     Then the producer is still running without any errors
 
-    #3. Consuming messages in Kcat
+    # 3. Consuming messages in Kcat
     Given Kcat is installed
     * you have a running Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
     * you have set the Kafka bootstrap server endpoint and your service account credentials as environment variables
+    * you have created the Kafka topic my-first-kafka-topic
     * you used a producer to produce example messages to a topic
-    When you start Kcat in consumer mode
+    When you start Kcat in consumer mode on the topic my-first-kafka-topic
     Then your consumer is running without any errors
     And the consumer display the example messages from the producer
 

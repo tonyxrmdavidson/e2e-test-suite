@@ -6,7 +6,6 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.managed.services.test.cli.AsyncProcess;
 import io.managed.services.test.cli.Kcat;
-import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.quickstarts.contexts.KafkaInstanceContext;
 import io.managed.services.test.quickstarts.contexts.ServiceAccountContext;
 import lombok.extern.log4j.Log4j2;
@@ -32,8 +31,6 @@ public class KcatSteps {
     private static final String BOOTSTRAP_SERVER_ENV = "BOOTSTRAP_SERVER";
     private static final String USER_ENV = "USER";
     private static final String PASSWORD_ENV = "PASSWORD";
-
-    private static final String TOPIC_NAME = "my-first-kafka-topic";
 
     private final KafkaInstanceContext kafkaInstanceContext;
     private final ServiceAccountContext serviceAccountContext;
@@ -98,24 +95,16 @@ public class KcatSteps {
         assertNotNull(kcat.getEnvironment(PASSWORD_ENV));
     }
 
-    @When("you start Kcat in producer mode")
-    public void you_start_kcat_in_producer_mode() throws Throwable {
+    @When("you start Kcat in producer mode on the topic {word}")
+    public void you_start_kcat_in_producer_mode_on_the_topic(String topicName) {
         var kcat = requireKcat();
-        var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
-
-        // Apply topic
-        log.info("create the topic '{}' if it doesn't exists", TOPIC_NAME);
-        KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME);
 
         log.info("start the kcat producer");
         producerProcess = kcat.startProducer(
-            TOPIC_NAME,
+            topicName,
             kcat.getEnvironment(BOOTSTRAP_SERVER_ENV),
             kcat.getEnvironment(USER_ENV),
             kcat.getEnvironment(PASSWORD_ENV));
-
-
-//        ProcessUtils.asyncLogStderr(consumerProcess, "KcatProducerProcess");
 
         log.info("kcat producer started");
     }
@@ -157,13 +146,13 @@ public class KcatSteps {
         assertTrue(exampleMessagesProduced);
     }
 
-    @When("you start Kcat in consumer mode")
-    public void you_start_kcat_in_consumer_mode() {
+    @When("you start Kcat in consumer mode on the topic {word}")
+    public void you_start_kcat_in_consumer_mode_on_the_topic(String topicName) {
         var kcat = requireKcat();
 
         log.info("start the kcat consumer");
         consumerProcess = kcat.startConsumer(
-            TOPIC_NAME,
+            topicName,
             kcat.getEnvironment(BOOTSTRAP_SERVER_ENV),
             kcat.getEnvironment(USER_ENV),
             kcat.getEnvironment(PASSWORD_ENV));
@@ -230,16 +219,24 @@ public class KcatSteps {
         assertEquals(expectedMessages, new ArrayList<>());
     }
 
-    @After(order = 10200)
-    public void teardown() {
+    @After(order = 10210)
+    public void closeConsumer() {
+        if (consumerProcess == null) return;
 
-        // debugs logs
         try {
             consumerProcess.destroy();
             log.info("consumer output:\n{}", consumerProcess.outputAsString());
         } catch (Throwable t) {
             log.error("close consumer error:", t);
         }
+
+        consumerProcess = null;
+    }
+
+
+    @After(order = 10210)
+    public void closeProducer() {
+        if (producerProcess == null) return;
 
         try {
             producerProcess.destroy();
@@ -248,27 +245,25 @@ public class KcatSteps {
             log.error("close producer error:", t);
         }
 
+        producerProcess = null;
+    }
+
+
+    @After(order = 10200)
+    public void cleanKcatWorkdir() {
+
+        if (kcat == null) return;
+
         assumeTeardown();
 
-        // delete topic
-        try {
-            var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
-            log.info("delete topic: {}", TOPIC_NAME);
-            kafkaInstanceApi.deleteTopic(TOPIC_NAME);
-        } catch (Throwable t) {
-            log.error("clean topic error: ", t);
-        }
-
         // clean cli workdir
-        if (kcat != null) {
-            log.info("delete workdir: {}", kcat.getWorkdir());
-            try {
-                FileUtils.deleteDirectory(kcat.getWorkdir());
-            } catch (Throwable t) {
-                log.error("clean workdir error: ", t);
-            }
-
-            kcat = null;
+        log.info("delete workdir: {}", kcat.getWorkdir());
+        try {
+            FileUtils.deleteDirectory(kcat.getWorkdir());
+        } catch (Throwable t) {
+            log.error("clean workdir error: ", t);
         }
+
+        kcat = null;
     }
 }

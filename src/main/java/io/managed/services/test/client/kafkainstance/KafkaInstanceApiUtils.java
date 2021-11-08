@@ -176,7 +176,9 @@ public class KafkaInstanceApiUtils {
             return topic;
         } else {
             log.info("create kafka instance '{}'", payload.getName());
-            return api.createTopic(payload);
+            var topic = api.createTopic(payload);
+            log.debug(topic);
+            return topic;
         }
     }
 
