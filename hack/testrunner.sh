@@ -47,7 +47,7 @@ function fatal() {
 }
 
 function info() {
-  echo "$SCRIPT: info: $1" >&2
+  echo "$SCRIPT: info: $1"
 }
 
 # Main
@@ -108,7 +108,6 @@ fi
 set -x
 # shellcheck disable=SC2086
 exec mvn verify \
-  --offline \
   --no-transfer-progress \
   ${OPTIONS[*]} \
   "-Drp.enable=${REPORTPORTAL_ENABLE}" \

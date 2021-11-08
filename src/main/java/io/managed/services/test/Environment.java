@@ -163,15 +163,25 @@ public class Environment {
      * @return value of variable fin defined data type
      */
     private static <T> T getOrDefault(String var, Function<String, T> converter, T defaultValue) {
-        var value = System.getenv(var) != null ?
-            System.getenv(var) :
-            (Objects.requireNonNull(JSON_DATA).get(var) != null ?
-                JSON_DATA.get(var).asText() :
-                null);
-        T returnValue = defaultValue;
-        if (value != null && !value.isEmpty()) {
-            returnValue = converter.apply(value);
+
+        var environmentValue = System.getenv(var);
+
+        var configFileValue = Objects.requireNonNull(JSON_DATA).get(var) != null ?
+            JSON_DATA.get(var).asText() : null;
+
+        T returnValue = null;
+        if (configFileValue != null && !configFileValue.isBlank()) {
+            returnValue = converter.apply(configFileValue);
         }
+
+        if (environmentValue != null && !environmentValue.isBlank()) {
+            returnValue = converter.apply(environmentValue);
+        }
+
+        if (returnValue == null) {
+            returnValue = defaultValue;
+        }
+
         VALUES.put(var, String.valueOf(returnValue));
         return returnValue;
     }
@@ -182,17 +192,20 @@ public class Environment {
      * @return json object with loaded variables
      */
     private static JsonNode loadConfigurationFile() {
-        var config = System.getenv().getOrDefault(CONFIG_FILE_ENV,
-            Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString());
+        var envConfigFile = System.getenv(CONFIG_FILE_ENV);
+        var configFile = Paths.get(System.getProperty("user.dir"), "config.json").toAbsolutePath().toString();
+        if (envConfigFile != null && !envConfigFile.isBlank()) {
+            configFile = envConfigFile;
+        }
 
-        VALUES.put(CONFIG_FILE_ENV, config);
+        VALUES.put(CONFIG_FILE_ENV, configFile);
 
         var mapper = new ObjectMapper();
         try {
-            var jsonFile = new File(config).getAbsoluteFile();
+            var jsonFile = new File(configFile).getAbsoluteFile();
             return mapper.readTree(jsonFile);
         } catch (IOException ex) {
-            log.info("the json config file didn't exists or wasn't provided");
+            log.warn("the json config file '{}' didn't exists or wasn't provided", configFile);
             return mapper.createObjectNode();
         }
     }

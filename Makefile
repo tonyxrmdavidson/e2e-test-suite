@@ -1,6 +1,7 @@
 ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-DOCKER ?= docker
 KUBECONFIG ?= $(HOME)/.kube/config
+
+DOCKER ?= $(shell which podman >/dev/null && echo "podman" || echo "docker")
 
 IMAGE_REGISTRY ?= quay.io
 IMAGE_REPO ?= bf2
@@ -51,41 +52,43 @@ endif
 image/build:
 	$(DOCKER) build -t ${IMAGE} .
 
-container/test:
+container/test: image/build
 	mkdir -p test-results/failsafe-reports
 	mkdir -p test-results/logs
-	${DOCKER_RUN} \
-		--dns "1.1.1.1" \
-		--dns "10.5.30.45" \
-		--dns "10.5.30.46" \
+	$(DOCKER_RUN) \
+		--dns '1.1.1.1' \
+		--dns '10.5.30.45' \
+		--dns '10.5.30.46' \
+		-v '${ROOT_DIR}:/home/jboss/test-suite:z' \
 		-v "${ROOT_DIR}/test-results/failsafe-reports:/home/jboss/test-suite/target/failsafe-reports:z" \
 		-v "${ROOT_DIR}/test-results/logs:/home/jboss/test-suite/target/logs:z" \
-		-e TESTCASE="${TESTCASE}" \
-        -e PROFILE="${PROFILE}" \
-        -e CONFIG_FILE="${CONFIG_FILE}" \
-        -e LOG_DIR="${LOG_DIR}" \
-        -e PRIMARY_USERNAME="${PRIMARY_USERNAME}" \
-        -e PRIMARY_PASSWORD="${PRIMARY_PASSWORD}" \
-        -e SECONDARY_USERNAME="${SECONDARY_USERNAME}" \
-        -e SECONDARY_PASSWORD="${SECONDARY_PASSWORD}" \
-        -e ALIEN_USERNAME="${ALIEN_USERNAME}" \
-        -e ALIEN_PASSWORD="${ALIEN_PASSWORD}" \
-        -e OPENSHIFT_API_URI="${OPENSHIFT_API_URI}" \
-        -e REDHAT_SSO_URI="${REDHAT_SSO_URI}" \
-        -e OPENSHIFT_IDENTITY_URI="${OPENSHIFT_IDENTITY_URI}" \
-        -e DEV_CLUSTER_SERVER="${DEV_CLUSTER_SERVER}" \
-        -e DEV_CLUSTER_NAMESPACE="${DEV_CLUSTER_NAMESPACE}" \
-        -e DEV_CLUSTER_TOKEN="${DEV_CLUSTER_TOKEN}" \
-        -e CLI_VERSION="${CLI_VERSION}" \
-        -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
-        -e LAUNCH_KEY="${LAUNCH_KEY}" \
-        -e SKIP_TEARDOWN="${SKIP_TEARDOWN}" \
-        -e PROMETHEUS_PUSH_GATEWAY="${PROMETHEUS_PUSH_GATEWAY}" \
-        -e REPORTPORTAL_ENDPOINT="${REPORTPORTAL_ENDPOINT}" \
-        -e REPORTPORTAL_UUID="${REPORTPORTAL_UUID}" \
-        -e REPORTPORTAL_LAUNCH="${REPORTPORTAL_LAUNCH}" \
-        -e BUILD_URL="${BUILD_URL}" \
-		-e ENABLE_TEST="${ENABLE_TEST}" \
-		${IMAGE}
+		-w '/home/jboss/test-suite' \
+		-e TESTCASE='${TESTCASE}' \
+		-e PROFILE='${PROFILE}' \
+		-e CONFIG_FILE='${CONFIG_FILE}' \
+		-e LOG_DIR='${LOG_DIR}' \
+		-e PRIMARY_USERNAME='${PRIMARY_USERNAME}' \
+		-e PRIMARY_PASSWORD='${PRIMARY_PASSWORD}' \
+		-e SECONDARY_USERNAME='${SECONDARY_USERNAME}' \
+		-e SECONDARY_PASSWORD='${SECONDARY_PASSWORD}' \
+		-e ALIEN_USERNAME='${ALIEN_USERNAME}' \
+		-e ALIEN_PASSWORD='${ALIEN_PASSWORD}' \
+		-e OPENSHIFT_API_URI='${OPENSHIFT_API_URI}' \
+		-e REDHAT_SSO_URI='${REDHAT_SSO_URI}' \
+		-e OPENSHIFT_IDENTITY_URI='${OPENSHIFT_IDENTITY_URI}' \
+		-e DEV_CLUSTER_SERVER='${DEV_CLUSTER_SERVER}' \
+		-e DEV_CLUSTER_NAMESPACE='${DEV_CLUSTER_NAMESPACE}' \
+		-e DEV_CLUSTER_TOKEN='${DEV_CLUSTER_TOKEN}' \
+		-e CLI_VERSION='${CLI_VERSION}' \
+		-e GITHUB_TOKEN='${GITHUB_TOKEN}' \
+		-e LAUNCH_KEY='${LAUNCH_KEY}' \
+		-e SKIP_TEARDOWN='${SKIP_TEARDOWN}' \
+		-e PROMETHEUS_PUSH_GATEWAY='${PROMETHEUS_PUSH_GATEWAY}' \
+		-e REPORTPORTAL_ENDPOINT='${REPORTPORTAL_ENDPOINT}' \
+		-e REPORTPORTAL_UUID='${REPORTPORTAL_UUID}' \
+		-e REPORTPORTAL_LAUNCH='${REPORTPORTAL_LAUNCH}' \
+		-e BUILD_URL='${BUILD_URL}' \
+		-e ENABLE_TEST='${ENABLE_TEST}' \
+		${IMAGE} ./hack/testrunner.sh
 
 .PHONY: clean build test image/build container/test
