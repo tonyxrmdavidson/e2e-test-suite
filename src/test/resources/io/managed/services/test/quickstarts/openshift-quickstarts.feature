@@ -5,7 +5,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
   Scenario: Connecting OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
     Given you have a Red Hat account
     * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     * The RHOAS Operator is installed on your OpenShift cluster
 
     # 1. Running the required CLI tools
@@ -33,7 +33,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
   Scenario: Binding a Quarkus application in OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
     Given you have a Red Hat account
     * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     * You've connected OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
     * You have privileges to deploy applications in the OpenShift project that you connected your Kafka instance to
 
@@ -70,7 +70,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * You've connected OpenShift to Red Hat OpenShift Streams for Apache Kafka using the CLI
     * You have privileges to deploy applications in the OpenShift project that you connected your Kafka instance to
     * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     * You've installed Git
 
     # 1. Installing the Service Binding Operator

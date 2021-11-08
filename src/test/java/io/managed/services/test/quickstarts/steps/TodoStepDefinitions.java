@@ -304,7 +304,7 @@ public class TodoStepDefinitions {
     @Given("Git is installed")
     public void git_is_installed() {
         // Write code here that turns the phrase above into concrete actions
-        throw new io.cucumber.java.PendingException();
+        throw new SkipException("TODO");
     }
 
     @Given("You have an IDE such as IntelliJ IDEA, Eclipse, or VSCode")
@@ -375,6 +375,295 @@ public class TodoStepDefinitions {
 
     @Then("the application is running and the `Last price` is updated at http:\\/\\/localhost:{int}\\/prices.html")
     public void the_application_is_running_and_the_last_price_is_updated_at_http_localhost_prices_html(Integer int1) {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("Node.js {int} is installed")
+    public void node_js_is_installed(Integer int1) {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you clone the `reactive-example` repository from GitHub")
+    public void you_clone_the_reactive_example_repository_from_git_hub() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("the `reactive-example` repository is available locally")
+    public void the_reactive_example_repository_is_available_locally() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("you have the bootstrap server endpoint and the service account credentials for the Kafka instance")
+    public void you_have_the_bootstrap_server_endpoint_and_the_service_account_credentials_for_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("You created a file called `.env` at the root level of the cloned `reactive-example` repository")
+    public void you_created_a_file_called_env_at_the_root_level_of_the_cloned_reactive_example_repository() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you set the Kafka instance bootstrap server endpoint and service account credentials as environment variables in the `.env` file")
+    public void you_set_the_kafka_instance_bootstrap_server_endpoint_and_service_account_credentials_as_environment_variables_in_the_env_file() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you set the value of the `KAFKA_SASL_MECHANISM` environment variable to `plain` in the `.env` file")
+    public void you_set_the_value_of_the_kafka_sasl_mechanism_environment_variable_to_plain_in_the_env_file() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("the `reactive-example\\/.env` file of the Node.js example application contains all configurations required to authenticate the Kafka instance")
+    public void the_reactive_example_env_file_of_the_node_js_example_application_contains_all_configurations_required_to_authenticate_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you create a Kafka topic called `countries`")
+    public void you_create_a_kafka_topic_called_countries() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("you've configured the Node.js example application to connect to the Kafka instance")
+    public void you_ve_configured_the_node_js_example_application_to_connect_to_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("You've created the `countries` topic")
+    public void you_ve_created_the_countries_topic() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you navigate to the `reactive-example\\/consumer-backend` directory of the cloned repository")
+    public void you_navigate_to_the_reactive_example_consumer_backend_directory_of_the_cloned_repository() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you install the dependencies for the consumer component")
+    public void you_install_the_dependencies_for_the_consumer_component() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you run the consumer component")
+    public void you_run_the_consumer_component() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("the consumer component is running but doesn't display country names on the command line")
+    public void the_consumer_component_is_running_but_doesn_t_display_country_names_on_the_command_line() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("you've opened a second command-line window or tab")
+    public void you_ve_opened_a_second_command_line_window_or_tab() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you navigate to the `reactive-example\\/producer-backend` directory of the cloned repository")
+    public void you_navigate_to_the_reactive_example_producer_backend_directory_of_the_cloned_repository() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you install the dependencies for the producer component")
+    public void you_install_the_dependencies_for_the_producer_component() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you run the producer component")
+    public void you_run_the_producer_component() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("the producer is running and displays country names")
+    public void the_producer_is_running_and_displays_country_names() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("the consumer component displays the same country names as the producer on the first command line")
+    public void the_consumer_component_displays_the_same_country_names_as_the_producer_on_the_first_command_line() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+
+    @Given("You have a running Kafka instance in OpenShift Streams for Apache Kafka")
+    public void you_have_a_running_kafka_instance_in_open_shift_streams_for_apache_kafka() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("The Kafka instance has a generated bootstrap server")
+    public void the_kafka_instance_has_a_generated_bootstrap_server() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("You created a service account for the Kafka instance")
+    public void you_created_a_service_account_for_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("You have downloaded and verified the latest supported binary version of the Apache Kafka distribution")
+    public void you_have_downloaded_and_verified_the_latest_supported_binary_version_of_the_apache_kafka_distribution() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("you have client ID and Secret for the service account, and a SASL connection mechanism")
+    public void you_have_client_id_and_secret_for_the_service_account_and_a_sasl_connection_mechanism() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you create an `app-services.properties` file in the local `\\/config` directory of the Kafka binaries")
+    public void you_create_an_app_services_properties_file_in_the_local_config_directory_of_the_kafka_binaries() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("it contains the connection values")
+    public void it_contains_the_connection_values() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("you are set up to produce messages to Kafka topics")
+    public void you_are_set_up_to_produce_messages_to_kafka_topics() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("The Kafka topic creation script `kafka-topics.sh` is available in the `\\/bin` directory of the Kafka binaries")
+    public void the_kafka_topic_creation_script_kafka_topics_sh_is_available_in_the_bin_directory_of_the_kafka_binaries() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("The Kafka producer creation script `kafka-console-producer.sh` is available in the `\\/bin` directory of the Kafka binaries")
+    public void the_kafka_producer_creation_script_kafka_console_producer_sh_is_available_in_the_bin_directory_of_the_kafka_binaries() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("An `app-services.properties` file is configured in the local `\\/config` directory of the Kafka binaries")
+    public void an_app_services_properties_file_is_configured_in_the_local_config_directory_of_the_kafka_binaries() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("You have the bootstrap server address for the Kafka instance")
+    public void you_have_the_bootstrap_server_address_for_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you enter a command to create a Kafka topic using `kafka-topics.sh`")
+    public void you_enter_a_command_to_create_a_kafka_topic_using_kafka_topics_sh() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("use the bootstrap server address")
+    public void use_the_bootstrap_server_address() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("use the `app-services.properties` file")
+    public void use_the_app_services_properties_file() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("a topic is created in the Kafka instance")
+    public void a_topic_is_created_in_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("you have created a topic")
+    public void you_have_created_a_topic() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you produce messages to the topic you created using `kafka-console-producer.sh`")
+    public void you_produce_messages_to_the_topic_you_created_using_kafka_console_producer_sh() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("use the bootstrap server address as a parameter")
+    public void use_the_bootstrap_server_address_as_a_parameter() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("use the `app-services.properties` file as a parameter")
+    public void use_the_app_services_properties_file_as_a_parameter() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("messages are produced to the topic in the Kafka instance")
+    public void messages_are_produced_to_the_topic_in_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("you are set up to consume messages")
+    public void you_are_set_up_to_consume_messages() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("The Kafka consumer creation script `kafka-console-consumer.sh` is available in the `\\/bin` directory of the Kafka binaries")
+    public void the_kafka_consumer_creation_script_kafka_console_consumer_sh_is_available_in_the_bin_directory_of_the_kafka_binaries() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Given("A topic contains the messages you produced in the Kafka instance")
+    public void a_topic_contains_the_messages_you_produced_in_the_kafka_instance() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @When("you consume messages from the topic you created using `kafka-console-consumer.sh`")
+    public void you_consume_messages_from_the_topic_you_created_using_kafka_console_consumer_sh() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("messages are consumed from the topic")
+    public void messages_are_consumed_from_the_topic() {
+        // Write code here that turns the phrase above into concrete actions
+        throw new io.cucumber.java.PendingException();
+    }
+
+    @Then("displayed on the command line")
+    public void displayed_on_the_command_line() {
         // Write code here that turns the phrase above into concrete actions
         throw new io.cucumber.java.PendingException();
     }

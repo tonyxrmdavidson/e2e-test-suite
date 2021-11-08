@@ -23,8 +23,8 @@ public class KafkaAccessSteps {
         this.serviceAccountContext = serviceAccountContext;
     }
 
-    @Given("you have set the permissions for your service account to access the Kafka instance resources")
-    public void you_have_set_the_permissions_for_your_service_account_to_access_the_kafka_instance_resources() throws Throwable {
+    @Given("you have set the permissions for your service account to access your Kafka instance resources")
+    public void you_have_set_the_permissions_for_your_service_account_to_access_your_kafka_instance_resources() throws Throwable {
         var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
         var serviceAccount = serviceAccountContext.requireServiceAccount();
 

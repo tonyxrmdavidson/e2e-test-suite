@@ -80,7 +80,7 @@ public class KafkaInstanceSteps {
         kafkaInstanceContext.setKafkaInstance(kafkaInstance);
     }
 
-    @Given("you’ve created a Kafka instance in OpenShift Streams for Apache Kafka")
+    @Given("you have created a Kafka instance in OpenShift Streams for Apache Kafka")
     public void you_ve_created_a_kafka_instance_in_open_shift_streams_for_apache_kafka() {
         assertNotNull(kafkaInstanceContext.getKafkaInstance());
     }

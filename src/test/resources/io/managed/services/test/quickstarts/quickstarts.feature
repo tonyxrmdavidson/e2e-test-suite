@@ -12,7 +12,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     And the Kafka instance is shown as Ready
 
     # 2. Creating a service account to connect to a Kafka instance in OpenShift Streams for Apache Kafka
-    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    Given you have created a Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
     * the Kafka instance has a generated bootstrap server
     When you create a service account with a unique name
@@ -20,19 +20,20 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     And the service account is listed in the service accounts table
 
     # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
-    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    Given you have created a Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
     When you create a Kafka topic with a unique name
     Then the Kafka topic is listed in the topics table
 
   Scenario: Using Quarkus applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * you are logged in to the OpenShift Streams for Apache Kafka web console
+    * you have a running Kafka instance in OpenShift Streams for Apache Kafka
     * Git is installed
     * You have an IDE such as IntelliJ IDEA, Eclipse, or VSCode
     * JDK 11 or later is installed
     * Apache Maven 3.6.2 or later is installed
-    * For Windows, the latest version of Oracle JDK is installed
+    * for Windows the latest version of Oracle JDK is installed
 
     # 1. Importing the Quarkus sample code
     When you clone the `app-services-guides` repository from GitHub
@@ -45,21 +46,22 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
     # 3. Creating the prices Kafka topic in OpenShift Streams for Apache Kafka
     Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     When you create a Kafka topic called `prices`
     Then the `prices` Kafka topic is listed in the topics table
 
     #4. Running the Quarkus example application
     Given you've configured the Quarkus example application to connect to the Kafka instance
     * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     When you navigate to the `code-examples/quarkus-kafka-quickstart` of the Quarkus example application and run the applications
     Then the application is running and the `Last price` is updated at http://localhost:8080/prices.html
 
   Scenario: Using Node.js applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * you are logged in to the OpenShift Streams for Apache Kafka web console
+    * you have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * the Kafka instance is in Ready state
     * Git is installed
     * You have an IDE such as IntelliJ IDEA, Eclipse, or VSCode
     * Node.js 14 is installed
@@ -77,14 +79,14 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
     # 3. Creating a Kafka topic in OpenShift Streams for Apache Kafka
     Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     When you create a Kafka topic called `countries`
     Then the `countries` Kafka topic is listed in the topics table
 
     #4. Running the Node.js example application
     Given you've configured the Node.js example application to connect to the Kafka instance
     * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance is in Ready state
+    * the Kafka instance is in Ready state
     * You've created the `countries` topic
     When you navigate to the `reactive-example/consumer-backend` directory of the cloned repository
     And you install the dependencies for the consumer component
@@ -106,7 +108,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     # 1. Configuring Kcat to connect to a Kafka instance
     Given you have the bootstrap server endpoint for your Kafka instance
     * you have the generated credentials for your service account
-    * you have set the permissions for your service account to access the Kafka instance resources
+    * you have set the permissions for your service account to access your Kafka instance resources
     When you set the Kafka instance bootstrap server endpoint and service account credentials as environment variables
 
     # 2. Producing messages in Kcat
@@ -130,11 +132,12 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
 
   Scenario: Using Kafka scripts to connect with Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
-    * You have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * you are logged in to the OpenShift Streams for Apache Kafka web console
+    * you have a running Kafka instance in OpenShift Streams for Apache Kafka
     * The Kafka instance has a generated bootstrap server
     * You created a service account for the Kafka instance
     * JDK 11 or later is installed
-    * For Windows, the latest version of Oracle JDK is installed
+    * for Windows the latest version of Oracle JDK is installed
     * You have downloaded and verified the latest supported binary version of the Apache Kafka distribution
 
     # 1. Configuring Kafka scripts to connect to a Kafka instance
