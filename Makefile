@@ -55,6 +55,7 @@ image/build:
 container/test: image/build
 	mkdir -p test-results/failsafe-reports
 	mkdir -p test-results/logs
+	mkdir -p target
 	$(DOCKER_RUN) \
 		--dns '1.1.1.1' \
 		--dns '10.5.30.45' \
