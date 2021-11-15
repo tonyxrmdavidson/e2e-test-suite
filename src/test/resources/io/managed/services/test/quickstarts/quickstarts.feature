@@ -136,7 +136,7 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
     * you are logged in to the OpenShift Streams for Apache Kafka web console
     * you have a running Kafka instance in OpenShift Streams for Apache Kafka
-    * The Kafka instance has a generated bootstrap server
+    * the Kafka instance has a generated bootstrap server
     * You created a service account for the Kafka instance
     * JDK 11 or later is installed
     * for Windows the latest version of Oracle JDK is installed

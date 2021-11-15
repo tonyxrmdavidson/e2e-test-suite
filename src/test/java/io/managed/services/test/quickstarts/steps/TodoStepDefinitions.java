@@ -512,16 +512,10 @@ public class TodoStepDefinitions {
         throw new io.cucumber.java.PendingException();
     }
 
-    @Given("The Kafka instance has a generated bootstrap server")
-    public void the_kafka_instance_has_a_generated_bootstrap_server() {
-        // Write code here that turns the phrase above into concrete actions
-        throw new io.cucumber.java.PendingException();
-    }
-
     @Given("You created a service account for the Kafka instance")
     public void you_created_a_service_account_for_the_kafka_instance() {
         // Write code here that turns the phrase above into concrete actions
-        throw new io.cucumber.java.PendingException();
+        throw new SkipException("TODO");
     }
 
     @Given("You have downloaded and verified the latest supported binary version of the Apache Kafka distribution")
