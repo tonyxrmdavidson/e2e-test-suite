@@ -1,6 +1,7 @@
 package io.managed.services.test.cli;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.log4j.Log4j2;
@@ -156,6 +157,7 @@ public class AsyncProcess {
     public <T> T asJson(Class<T> c) {
         try {
             return new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .registerModule(new JavaTimeModule())
                 .readValue(stdoutAsString(), c);
         } catch (JsonProcessingException e) {
