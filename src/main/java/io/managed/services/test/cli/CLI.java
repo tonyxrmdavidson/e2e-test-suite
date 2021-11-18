@@ -73,7 +73,7 @@ public class CLI {
      * This method only starts the CLI login, use CLIUtils.login() instead of this method
      * to login using username and password
      */
-    public AsyncProcess login(String apiGateway, String authURL, String masAuthURL) {
+    public AsyncProcess login(String apiGateway, String authURL, String masAuthURL, boolean insecure) {
 
         List<String> cmd = new ArrayList<>();
         cmd.add("login");
@@ -88,6 +88,10 @@ public class CLI {
 
         if (masAuthURL != null) {
             cmd.addAll(List.of("--mas-auth-url", masAuthURL));
+        }
+
+        if (insecure) {
+            cmd.add("--insecure");
         }
 
         cmd.add("--print-sso-url");
@@ -106,7 +110,7 @@ public class CLI {
     }
 
     public KafkaRequest createKafka(String name) throws CliGenericException {
-        return retry(() -> exec("kafka", "create", "--name", name))
+        return retry(() -> exec("kafka", "create", "--bypass-terms-check", "--name", name))
             .asJson(KafkaRequest.class);
     }
 

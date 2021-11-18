@@ -46,12 +46,13 @@ public class Environment {
     private static final String REDHAT_SSO_REALM_ENV = "REDHAT_SSO_REALM";
     private static final String REDHAT_SSO_CLIENT_ID_ENV = "REDHAT_SSO_CLIENT_ID";
     private static final String REDHAT_SSO_REDIRECT_URI_ENV = "REDHAT_SSO_REDIRECT_URI";
+    private static final String REDHAT_SSO_LOGIN_FORM_ID_ENV = "REDHAT_SSO_LOGIN_FORM_ID";
 
     private static final String OPENSHIFT_IDENTITY_URI_ENV = "OPENSHIFT_IDENTITY_URI";
     private static final String OPENSHIFT_IDENTITY_REALM_ENV = "OPENSHIFT_IDENTITY_REALM_ENV";
     private static final String OPENSHIFT_IDENTITY_CLIENT_ID_ENV = "OPENSHIFT_IDENTITY_CLIENT_ID_ENV";
     private static final String OPENSHIFT_IDENTITY_REDIRECT_URI_ENV = "OPENSHIFT_IDENTITY_REDIRECT_URI_ENV";
-
+    private static final String OPENSHIFT_IDENTITY_LOGIN_FORM_ID_ENV = "OPENSHIFT_IDENTITY_LOGIN_FORM_ID";
 
     private static final String DEV_CLUSTER_SERVER_ENV = "DEV_CLUSTER_SERVER";
     private static final String DEV_CLUSTER_NAMESPACE_ENV = "DEV_CLUSTER_NAMESPACE";
@@ -72,6 +73,7 @@ public class Environment {
 
     private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
     private static final String DEFAULT_KAFKA_REGION_ENV = "DEFAULT_KAFKA_REGION";
+    private static final String KAFKA_API_TLS_ENV = "KAFKA_API_TLS";
 
     private static final String PROMETHEUS_PUSH_GATEWAY_ENV = "PROMETHEUS_PUSH_GATEWAY";
 
@@ -101,12 +103,14 @@ public class Environment {
     public static final String REDHAT_SSO_REALM = getOrDefault(REDHAT_SSO_REALM_ENV, "redhat-external");
     public static final String REDHAT_SSO_CLIENT_ID = getOrDefault(REDHAT_SSO_CLIENT_ID_ENV, "cloud-services");
     public static final String REDHAT_SSO_REDIRECT_URI = getOrDefault(REDHAT_SSO_REDIRECT_URI_ENV, "https://console.redhat.com");
+    public static final String REDHAT_SSO_LOGIN_FORM_ID = getOrDefault(REDHAT_SSO_LOGIN_FORM_ID_ENV, "#rh-password-verification-form");
 
     // identity.api.openshift.com OAuth ENVs
     public static final String OPENSHIFT_IDENTITY_URI = getOrDefault(OPENSHIFT_IDENTITY_URI_ENV, "https://identity.api.stage.openshift.com");
     public static final String OPENSHIFT_IDENTITY_REALM = getOrDefault(OPENSHIFT_IDENTITY_REALM_ENV, "rhoas");
     public static final String OPENSHIFT_IDENTITY_CLIENT_ID = getOrDefault(OPENSHIFT_IDENTITY_CLIENT_ID_ENV, "strimzi-ui");
     public static final String OPENSHIFT_IDENTITY_REDIRECT_URI = getOrDefault(OPENSHIFT_IDENTITY_REDIRECT_URI_ENV, "https://console.redhat.com/beta/application-services");
+    public static final String OPENSHIFT_IDENTITY_LOGIN_FORM_ID = getOrDefault(OPENSHIFT_IDENTITY_LOGIN_FORM_ID_ENV, "#rh-password-verification-form");
 
     public static final String DEV_CLUSTER_SERVER = getOrDefault(DEV_CLUSTER_SERVER_ENV, null);
     public static final String DEV_CLUSTER_NAMESPACE = getOrDefault(DEV_CLUSTER_NAMESPACE_ENV, "mk-e2e-tests");
@@ -133,6 +137,8 @@ public class Environment {
 
     // Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise
     public static final String DEFAULT_KAFKA_REGION = getOrDefault(DEFAULT_KAFKA_REGION_ENV, "us-east-1");
+
+    public static final String KAFKA_API_TLS = getOrDefault(KAFKA_API_TLS_ENV, "https");
 
     public static final String PROMETHEUS_PUSH_GATEWAY = getOrDefault(PROMETHEUS_PUSH_GATEWAY_ENV, null);
 

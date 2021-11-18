@@ -14,8 +14,17 @@ import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.testng.ITestContext;
 import org.testng.SkipException;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
@@ -65,6 +74,9 @@ public class TestUtils {
         "0KL0owSTYBWvFDkROI-ymDXfcRvEMVKyOdhljQNPZew4Ux4apBi9t-ncB9XabDo1" +
         "1eddbbmcV05FWDb8X4opshptnWDzAw4ZPhbjoTBhNEI2JbFssOSYpskNnkB4kKQb" +
         "BjVxAPldBNFwRKLOfvJNdY1jNurMY1xVMl2dbEpFBkqJf1lByU";
+
+    private static final String BEGIN_CERT = "-----BEGIN CERTIFICATE-----";
+    private static final String END_CERT = "-----END CERTIFICATE-----";
 
     /**
      * Wait until the passed async lambda function return true
@@ -274,5 +286,63 @@ public class TestUtils {
         if (Environment.SKIP_TEARDOWN) {
             throw new SkipException("skip teardown");
         }
+    }
+
+    public static String getCertificateChain(String hostAndPort) {
+        int portIndex = hostAndPort.indexOf(':');
+        int port = Integer.parseInt(hostAndPort.substring(portIndex + 1));
+        String hostname = hostAndPort.substring(0, portIndex);
+        StringBuilder certChain = new StringBuilder();
+        SSLContext context = TestUtils.getInsecureSSLContext("TLS");
+        SSLSocketFactory factory = context.getSocketFactory();
+
+        try (SSLSocket socket = (SSLSocket) factory.createSocket(hostname, port)) {
+            socket.startHandshake();
+            SSLSession session = socket.getSession();
+            java.security.cert.Certificate[] servercerts = session.getPeerCertificates();
+
+            for (var cert : servercerts) {
+                certChain.append(BEGIN_CERT);
+                certChain.append('\n');
+                certChain.append(Base64.getEncoder().encodeToString(cert.getEncoded()));
+                certChain.append('\n');
+                certChain.append(END_CERT);
+                certChain.append('\n');
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return certChain.toString();
+    }
+
+    public static SSLContext getInsecureSSLContext(String protocol) {
+        TrustManager[] noopTrustManager = new TrustManager[] {
+            new X509TrustManager() {
+                @Override
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+
+                @Override
+                public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                }
+
+                @Override
+                public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                }
+            }
+        };
+
+        SSLContext context;
+
+        try {
+            context = SSLContext.getInstance(protocol);
+            context.init(null, noopTrustManager, null);
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            throw new RuntimeException(e);
+        }
+
+        return context;
     }
 }

@@ -11,7 +11,9 @@ import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
+import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
+import io.managed.services.test.TestUtils;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.exception.ApiGenericException;
@@ -26,6 +28,10 @@ import io.vertx.core.Vertx;
 import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.javatuples.Pair;
+import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
+
+import javax.ws.rs.client.ClientBuilder;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +50,10 @@ public class KafkaInstanceApiUtils {
     }
 
     public static String kafkaInstanceApiUri(String bootstrapServerHost) {
-        return String.format("https://admin-server-%s/rest", bootstrapServerHost);
+        String scheme = Environment.KAFKA_API_TLS.contains("https") ? "https" : "http";
+        int portIndex = bootstrapServerHost.indexOf(':');
+        String hostname = portIndex >= 0 ? bootstrapServerHost.substring(0, portIndex) : bootstrapServerHost;
+        return String.format("%s://admin-server-%s/rest", scheme, hostname);
     }
 
     public static Future<KafkaInstanceApi> kafkaInstanceApi(KafkaRequest kafka, String username, String password) {
@@ -61,7 +70,20 @@ public class KafkaInstanceApiUtils {
     }
 
     public static KafkaInstanceApi kafkaInstanceApi(String uri, KeycloakUser user) {
-        return new KafkaInstanceApi(new ApiClient().setBasePath(uri), user);
+        boolean insecure = Environment.KAFKA_API_TLS.contains("insecure");
+        ApiClient client = new ApiClient();
+
+        if (insecure) {
+            ClientConfiguration clientConfig = new ClientConfiguration(ResteasyProviderFactory.getInstance());
+            clientConfig.register(client.getJSON());
+
+            client.setHttpClient(ClientBuilder.newBuilder()
+                    .sslContext(TestUtils.getInsecureSSLContext("TLS"))
+                    .withConfig(clientConfig)
+                    .build());
+        }
+
+        return new KafkaInstanceApi(client.setBasePath(uri), user);
     }
 
     public static Future<KafkaConsumerClient<String, String>> startConsumerGroup(

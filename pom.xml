@@ -106,6 +106,11 @@
             <version>4.1.5</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.javatuples</groupId>
             <artifactId>javatuples</artifactId>
             <version>1.2</version>
@@ -165,7 +170,7 @@
         <dependency>
             <groupId>com.redhat.cloud</groupId>
             <artifactId>kafka-instance-sdk</artifactId>
-            <version>0.7.0</version>
+            <version>0.10.0</version>
         </dependency>
         <dependency>
             <groupId>io.apicurio</groupId>

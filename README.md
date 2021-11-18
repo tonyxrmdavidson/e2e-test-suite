@@ -61,18 +61,21 @@ Environment variables can also be configured in the [config.json](#config-file) 
 | `ALIEN_PASSWORD`              | ** alien user password                                                                                                                     |  |
 | `OPENSHIFT_API_URI`           | the base URI for the application services mgmt APIs (See [Test Environments](#test-environments))                                          | `https://api.stage.openshift.com` |
 | `REDHAT_SSO_URI`              | users authentication endpoint for application services mgmt APIs                                                                           | `https://sso.redhat.com` |
+| `REDHAT_SSO_LOGIN_FORM_ID`    | HTML `id` value of the login `<form>` the SSO application will present after redirect                                                      | `#rh-password-verification-form` |
 | `OPENSHIFT_IDENTITY_URI`      | users authentication endpoint for application services instances APIs (See [Test Environments](#test-environments))                        | `https://identity.api.stage.openshift.com` |
+| `OPENSHIFT_IDENTITY_LOGIN_FORM_ID` | HTML `id` value of the login `<form>` the SSO application will present after redirect                                                      | `#rh-password-verification-form` |
 | `DEV_CLUSTER_SERVER`          | ** the API server URI of a OpenShift cluster with the binding operator installed                                                           |  |
 | `DEV_CLUSTER_TOKEN`           | ** the cluster user or service account token                                                                                               |  |
 | `DEV_CLUSTER_NAMESPACE`       | the namespace where to create test resources (See [Create test namespace on the dev cluster](#create-test-namespace-on-the-dev-cluster))   | `mk-e2e-tests` |
 | `CLI_VERSION`                 | the CLI version to download from the app-services-cli repo                                                                                 | `latest` |
 | `CLI_PLATFORM`                | windows/macOS/linux                                                                                                                        | `auto-detect` |
 | `CLI_ARCH`                    | the CLI arch and os to download from the app-services-cli repo                                                                             | `amd64` |
-| `GITHUB_TOKEN`                | the github token used to download the CLI if needed                                                                                        |  | 
+| `GITHUB_TOKEN`                | the github token used to download the CLI if needed                                                                                        |  |
 | `LAUNCH_KEY`                  | A string key used to identify the current configuration and owner which is used to generate unique name and identify the launch            | `change-me` |
 | `SKIP_TEARDOWN`               | Skip the whole test teardown in most tests, although some of them will need top re-enable it to succeed                                    | `false` |
 | `SKIP_KAFKA_TEARDOWN`         | Skip only the Kafka instance cleanup teardown in the tests that don't require a new instance for each run to speed the local development   | `false` |
 | `DEFAULT_KAFKA_REGION`        | Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise                             | `us-east-1` |
+| `KAFKA_API_TLS`               | URL scheme + modifier for the Kafka Admin REST API. Supports `http`, `https`, and `https+insecure` (for self-signed certificates)          | `https` |
 
 ## Config File
 

@@ -75,7 +75,7 @@ public class KeycloakLoginSession {
 
         var redirectURI = "http://localhost";
 
-        return login(authURI, redirectURI)
+        return login(authURI, redirectURI, Environment.REDHAT_SSO_LOGIN_FORM_ID)
             .compose(r -> followRedirects(session, r))
             .compose(r -> BaseVertxClient.assertResponse(r, HttpURLConnection.HTTP_OK))
             .map(__ -> {
@@ -88,6 +88,7 @@ public class KeycloakLoginSession {
         return login(
             Environment.REDHAT_SSO_URI,
             Environment.REDHAT_SSO_REDIRECT_URI,
+            Environment.REDHAT_SSO_LOGIN_FORM_ID,
             Environment.REDHAT_SSO_REALM,
             Environment.REDHAT_SSO_CLIENT_ID);
     }
@@ -96,6 +97,7 @@ public class KeycloakLoginSession {
         return login(
             Environment.OPENSHIFT_IDENTITY_URI,
             Environment.OPENSHIFT_IDENTITY_REDIRECT_URI,
+            Environment.OPENSHIFT_IDENTITY_LOGIN_FORM_ID,
             Environment.OPENSHIFT_IDENTITY_REALM,
             Environment.OPENSHIFT_IDENTITY_CLIENT_ID);
     }
@@ -104,12 +106,12 @@ public class KeycloakLoginSession {
      * Login for the first time against the oauth realm using username and password and hook to the redirectURI
      * to retrieve the access code and complete the authentication to retrieve the access_token and refresh_token
      */
-    public Future<KeycloakUser> login(String keycloakURI, String redirectURI, String realm, String clientID) {
+    public Future<KeycloakUser> login(String keycloakURI, String redirectURI, String loginFormId, String realm, String clientID) {
 
         var oauth2 = createOAuth2(keycloakURI, realm, clientID, redirectURI);
         var authURI = oauth2.getAuthorizationUrl();
 
-        return login(authURI, redirectURI)
+        return login(authURI, redirectURI, loginFormId)
             .map(r -> authenticateUser(oauth2, r))
             .map(t -> {
                 LOGGER.info("authentication completed");
@@ -117,9 +119,9 @@ public class KeycloakLoginSession {
             });
     }
 
-    private Future<VertxHttpResponse> login(String authURI, String redirectURI) {
+    private Future<VertxHttpResponse> login(String authURI, String redirectURI, String loginFormId) {
         return retry(() -> startLogin(session, authURI)
-            .compose(r -> followAuthenticationRedirects(session, r, redirectURI))
+            .compose(r -> followAuthenticationRedirects(session, r, redirectURI, loginFormId))
             .compose(r -> VertxWebClientSession.assertResponse(r, HttpURLConnection.HTTP_MOVED_TEMP)));
     }
 
@@ -127,7 +129,8 @@ public class KeycloakLoginSession {
     private Future<VertxHttpResponse> followAuthenticationRedirects(
         VertxWebClientSession session,
         VertxHttpResponse response,
-        String redirectURI) {
+        String redirectURI,
+        String loginFormId) {
 
         if (response.statusCode() == HttpURLConnection.HTTP_MOVED_TEMP
             && response.getHeader("Location").contains(redirectURI)) {
@@ -145,14 +148,14 @@ public class KeycloakLoginSession {
                 return Future.failedFuture(new ResponseException(loginError, response));
             }
 
-            var loginForm = document.select("#rh-password-verification-form")
+            var loginForm = document.select(loginFormId)
                 .forms().stream().findAny();
             if (loginForm.isPresent()) {
                 // we are at the login page therefore we are going to post the username and password to proceed with the
                 // authentication
                 return postUsernamePassword(session, loginForm.get(), username, password)
                     .recover(t -> Future.failedFuture(new ResponseException(t.getMessage(), response)))
-                    .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
+                    .compose(r -> followAuthenticationRedirects(session, r, redirectURI, loginFormId));
             }
 
             // we should be at the Grant Access page
@@ -160,7 +163,7 @@ public class KeycloakLoginSession {
                 .orElseThrow(() -> new ResponseException("the response doesn't contain any <form>", response));
             return grantAccess(session, form, response.getRequest().getAbsoluteURI())
                 .recover(t -> Future.failedFuture(new ResponseException(t.getMessage(), response)))
-                .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
+                .compose(r -> followAuthenticationRedirects(session, r, redirectURI, loginFormId));
         }
 
         if (response.statusCode() >= 300 && response.statusCode() < 400) {
@@ -171,7 +174,7 @@ public class KeycloakLoginSession {
                     LOGGER.info("follow authentication redirect to: {}", l);
                     return session.getAbs(l).send();
                 })
-                .compose(r -> followAuthenticationRedirects(session, r, redirectURI));
+                .compose(r -> followAuthenticationRedirects(session, r, redirectURI, loginFormId));
         }
 
         return Future.succeededFuture(response);
