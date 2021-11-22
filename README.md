@@ -75,7 +75,8 @@ Environment variables can also be configured in the [config.json](#config-file) 
 | `SKIP_TEARDOWN`               | Skip the whole test teardown in most tests, although some of them will need top re-enable it to succeed                                    | `false` |
 | `SKIP_KAFKA_TEARDOWN`         | Skip only the Kafka instance cleanup teardown in the tests that don't require a new instance for each run to speed the local development   | `false` |
 | `DEFAULT_KAFKA_REGION`        | Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise                             | `us-east-1` |
-| `KAFKA_API_TLS`               | URL scheme + modifier for the Kafka Admin REST API. Supports `http`, `https`, and `https+insecure` (for self-signed certificates)          | `https` |
+| `KAFKA_INSECURE_TLS`          | Boolean value to indicate whether the Kafka and Admin REST API TLS is insecure (for self-signed certificates)                              | `false` |
+| `KAFKA_INSTANCE_API_TEMPLATE` | URL template for the Kafka Admin REST API. May be used to specify plain-text HTTP or an alternate port                                     | `https://admin-server-%s/rest` |
 
 ## Config File
 

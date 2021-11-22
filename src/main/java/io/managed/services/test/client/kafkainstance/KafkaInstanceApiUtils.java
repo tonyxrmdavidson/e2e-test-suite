@@ -50,10 +50,10 @@ public class KafkaInstanceApiUtils {
     }
 
     public static String kafkaInstanceApiUri(String bootstrapServerHost) {
-        String scheme = Environment.KAFKA_API_TLS.contains("https") ? "https" : "http";
         int portIndex = bootstrapServerHost.indexOf(':');
         String hostname = portIndex >= 0 ? bootstrapServerHost.substring(0, portIndex) : bootstrapServerHost;
-        return String.format("%s://admin-server-%s/rest", scheme, hostname);
+        String uriTemplate = Environment.KAFKA_INSTANCE_API_TEMPLATE;
+        return String.format(uriTemplate, hostname);
     }
 
     public static Future<KafkaInstanceApi> kafkaInstanceApi(KafkaRequest kafka, String username, String password) {
@@ -70,10 +70,9 @@ public class KafkaInstanceApiUtils {
     }
 
     public static KafkaInstanceApi kafkaInstanceApi(String uri, KeycloakUser user) {
-        boolean insecure = Environment.KAFKA_API_TLS.contains("insecure");
         ApiClient client = new ApiClient();
 
-        if (insecure) {
+        if (Environment.KAFKA_INSECURE_TLS) {
             ClientConfiguration clientConfig = new ClientConfiguration(ResteasyProviderFactory.getInstance());
             clientConfig.register(client.getJSON());
 

@@ -46,7 +46,7 @@ public enum KafkaAuthMethod {
     }
 
     static public void setTrustConfigs(String bootstrapHost, Map<String, String> config) {
-        if (Environment.KAFKA_API_TLS.contains("insecure")) {
+        if (Environment.KAFKA_INSECURE_TLS) {
             // Allow the Kafka client to trust an insecure self-signed certificate
             config.put(SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, TestUtils.getCertificateChain(bootstrapHost));
             config.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, "PEM");

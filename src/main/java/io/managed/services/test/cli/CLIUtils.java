@@ -84,7 +84,7 @@ public class CLIUtils {
 
         var authURL = String.format("%s/auth/realms/%s", Environment.REDHAT_SSO_URI, Environment.REDHAT_SSO_REALM);
         var masAuthURL = String.format("%s/auth/realms/%s", Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
-        boolean insecure = Environment.KAFKA_API_TLS.contains("insecure");
+        boolean insecure = Environment.KAFKA_INSECURE_TLS;
 
         LOGGER.info("start CLI login with username: {}", session.getUsername());
         var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL, insecure);
