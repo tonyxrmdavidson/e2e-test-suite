@@ -364,7 +364,7 @@ public class KafkaMgmtApiUtils {
 
     // TODO implement waiting for Rollout on Brokers (real application of this change)
     // TODO till real implementation of correct response only some workaround  like operation only new owner would be able to perform.
-    public static void changeKafkaInstanceOwner(KafkaMgmtApi api, String instanceId, String ownerName ) throws ApiGenericException {
+    public static void changeKafkaInstanceOwner(KafkaMgmtApi api, String instanceId, String ownerName) throws ApiGenericException {
         KafkaUpdateRequest kafkaUpdateRequest = new KafkaUpdateRequest();
         kafkaUpdateRequest.setOwner(ownerName);
         var x = api.updateKafka(instanceId, kafkaUpdateRequest);

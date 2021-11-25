@@ -3,6 +3,8 @@ package io.managed.services.test.kafka;
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
+import com.openshift.cloud.api.kas.models.MetricsInstantQueryList;
+import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
@@ -13,12 +15,9 @@ import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakUser;
-import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
-import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -30,6 +29,7 @@ import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -60,15 +60,8 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     private ApplicationServicesApi secondaryAPI;
     private ApplicationServicesApi alienAPI;
     private ApplicationServicesApi adminAPI;
-    //abstraction over access to <li> for specific user
-        // KafkaMgmtApi
-        // SecurityMgmtApi
-        // RegistryMgmtApi
-
-
 
     private KafkaRequest kafka;
-    // POJO of Kafka
 
     @BeforeClass
     @SneakyThrows
@@ -283,4 +276,51 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         var api = new ApplicationServicesApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(""));
         assertThrows(ApiUnauthorizedException.class, () -> api.kafkaMgmt().getKafkas(null, null, null, null));
     }
+
+    @SneakyThrows
+    @Test
+    public void testAdminUserCanResetTheServiceAccountCredentials() {
+        // Getting secret of Some service account within organization
+        ServiceAccount serviceAccountOriginal = SecurityMgmtAPIUtils.applyServiceAccount(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
+        String secretOriginal  = serviceAccountOriginal.getClientSecret();
+
+        // Resetting of secret
+        ServiceAccount serviceAccountNew = adminAPI.securityMgmt().resetServiceAccountCreds(serviceAccountOriginal.getId());
+        String secretNew = serviceAccountNew.getClientSecret();
+
+        assertNotEquals(secretNew, secretOriginal);
+    }
+
+    @SneakyThrows
+    @Test
+    public void testAdminUserCanDeleteTheServiceAccount() {
+        // Getting or creating
+        ServiceAccount serviceAccountOriginal = SecurityMgmtAPIUtils.applyServiceAccount(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
+
+        // Deletion of Service account
+        adminAPI.securityMgmt().deleteServiceAccountById(serviceAccountOriginal.getId());
+
+        // ServiceAccount should no exist by this time
+        assertThrows(
+                ApiNotFoundException.class,
+                () -> adminAPI.securityMgmt().getServiceAccountById(serviceAccountOriginal.getId())
+        );
+    }
+
+    @SneakyThrows
+    @Test
+    public void testAdminUserCanReadUserMetricsOfTheKafkaInstance() {
+        // No need to assert as ApiNotFoundException would be thrown
+        MetricsInstantQueryList x = adminAPI.kafkaMgmt().getMetricsByInstantQuery(kafka.getId(), null);
+    }
+
+
+    @SneakyThrows
+    @Test (priority = 2)
+    // test is should be executed as last one.
+    public void testAdminUserCanDeleteTheKafkaInstance() {
+        KafkaMgmtApiUtils.cleanKafkaInstance(adminAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+    }
+
 }
+

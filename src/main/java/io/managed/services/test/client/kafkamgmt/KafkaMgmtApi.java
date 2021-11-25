@@ -70,6 +70,6 @@ public class KafkaMgmtApi extends BaseApi {
     }
 
     public KafkaRequest updateKafka(String instanceId, KafkaUpdateRequest kafkaUpdateRequest) throws ApiGenericException {
-        return retry(() -> api.updateKafkaById( instanceId,  kafkaUpdateRequest ));
+        return retry(() -> api.updateKafkaById(instanceId,  kafkaUpdateRequest));
     }
 }
