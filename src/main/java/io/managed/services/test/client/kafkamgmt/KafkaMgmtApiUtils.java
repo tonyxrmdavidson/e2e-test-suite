@@ -7,6 +7,7 @@ import com.openshift.cloud.api.kas.invoker.ApiClient;
 import com.openshift.cloud.api.kas.models.Error;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
+import com.openshift.cloud.api.kas.models.KafkaUpdateRequest;
 import io.managed.services.test.DNSUtils;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
@@ -359,5 +360,13 @@ public class KafkaMgmtApiUtils {
         } catch (TimeoutException e) {
             throw new KafkaNotDeletedException(kafkaAtom.get(), e);
         }
+    }
+
+    // TODO implement waiting for Rollout on Brokers (real application of this change)
+    // TODO till real implementation of correct response only some workaround  like operation only new owner would be able to perform.
+    public static void changeKafkaInstanceOwner(KafkaMgmtApi api, String instanceId, String ownerName ) throws ApiGenericException {
+        KafkaUpdateRequest kafkaUpdateRequest = new KafkaUpdateRequest();
+        kafkaUpdateRequest.setOwner(ownerName);
+        var x = api.updateKafka(instanceId, kafkaUpdateRequest);
     }
 }

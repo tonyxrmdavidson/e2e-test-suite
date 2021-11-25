@@ -13,9 +13,12 @@ import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakUser;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -50,16 +53,28 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-up-" + Environment.LAUNCH_KEY;
     private static final String SECONDARY_SERVICE_ACCOUNT_NAME = "mk-e2e-up-secondary-sa-" + Environment.LAUNCH_KEY;
     private static final String ALIEN_SERVICE_ACCOUNT_NAME = "mk-e2e-up-alien-sa-" + Environment.LAUNCH_KEY;
+    private static final String ADMIN_SERVICE_ACCOUNT_NAME = "mk-e2e-up-admin-sa-" + Environment.LAUNCH_KEY;
+
 
     private ApplicationServicesApi mainAPI;
     private ApplicationServicesApi secondaryAPI;
     private ApplicationServicesApi alienAPI;
+    private ApplicationServicesApi adminAPI;
+    //abstraction over access to <li> for specific user
+        // KafkaMgmtApi
+        // SecurityMgmtApi
+        // RegistryMgmtApi
+
+
 
     private KafkaRequest kafka;
+    // POJO of Kafka
 
     @BeforeClass
     @SneakyThrows
     public void bootstrap() {
+        assertNotNull(Environment.ADMIN_USERNAME, "the ADMIN_USERNAME env is null");
+        assertNotNull(Environment.ADMIN_PASSWORD, "the ADMIN_PASSWORD env is null");
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
         assertNotNull(Environment.SECONDARY_USERNAME, "the SECONDARY_USERNAME env is null");
@@ -71,6 +86,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
             Environment.PRIMARY_USERNAME,
             Environment.PRIMARY_PASSWORD);
 
+
         secondaryAPI = ApplicationServicesApi.applicationServicesApi(
             Environment.SECONDARY_USERNAME,
             Environment.SECONDARY_PASSWORD);
@@ -78,6 +94,10 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         alienAPI = ApplicationServicesApi.applicationServicesApi(
             Environment.ALIEN_USERNAME,
             Environment.ALIEN_PASSWORD);
+
+        adminAPI = ApplicationServicesApi.applicationServicesApi(
+                Environment.ADMIN_USERNAME,
+                Environment.ADMIN_PASSWORD);
 
         LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
         kafka = KafkaMgmtApiUtils.applyKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
@@ -105,6 +125,13 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("clean alien service account error: ", t);
         }
+
+        try {
+            SecurityMgmtAPIUtils.cleanServiceAccount(adminAPI.securityMgmt(), ADMIN_SERVICE_ACCOUNT_NAME);
+        } catch (Throwable t) {
+            LOGGER.error("clean alien service account error: ", t);
+        }
+
     }
 
     @Test

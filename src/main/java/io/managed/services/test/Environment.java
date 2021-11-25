@@ -39,6 +39,8 @@ public class Environment {
     private static final String SECONDARY_PASSWORD_ENV = "SECONDARY_PASSWORD";
     private static final String ALIEN_USERNAME_ENV = "ALIEN_USERNAME";
     private static final String ALIEN_PASSWORD_ENV = "ALIEN_PASSWORD";
+    private static final String ADMIN_USERNAME_ENV = "ADMIN_USERNAME";
+    private static final String ADMIN_PASSWORD_ENV = "ADMIN_PASSWORD";
 
     private static final String OPENSHIFT_API_URI_ENV = "OPENSHIFT_API_URI";
 
@@ -95,6 +97,9 @@ public class Environment {
     // sso.redhat.com alien user (See README.md)
     public static final String ALIEN_USERNAME = getOrDefault(ALIEN_USERNAME_ENV, null);
     public static final String ALIEN_PASSWORD = getOrDefault(ALIEN_PASSWORD_ENV, null);
+
+    public static final String ADMIN_USERNAME = getOrDefault(ADMIN_USERNAME_ENV, null);
+    public static final String ADMIN_PASSWORD = getOrDefault(ADMIN_PASSWORD_ENV, null);
 
     // app-services APIs base URI
     public static final String OPENSHIFT_API_URI = getOrDefault(OPENSHIFT_API_URI_ENV, "https://api.stage.openshift.com");
