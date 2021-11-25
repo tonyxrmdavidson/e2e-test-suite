@@ -52,6 +52,7 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
 
     private final Vertx vertx = Vertx.vertx();
 
+    private RegistryMgmtApi adminRegistryMgmtApi;
     private RegistryMgmtApi registryMgmtApi;
     private RegistryMgmtApi secondaryRegistryMgmtApi;
     private RegistryMgmtApi alienRegistryMgmtApi;
@@ -60,6 +61,8 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
 
     @BeforeClass
     public void bootstrap() throws Throwable {
+        assertNotNull(Environment.ADMIN_USERNAME, "the ADMIN_USERNAME env is null");
+        assertNotNull(Environment.ADMIN_PASSWORD, "the ADMIN_PASSWORD env is null");
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
         assertNotNull(Environment.SECONDARY_USERNAME, "the SECONDARY_USERNAME env is null");
@@ -67,10 +70,13 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         assertNotNull(Environment.ALIEN_USERNAME, "the ALIEN_USERNAME env is null");
         assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
 
+        adminRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
+                Environment.ADMIN_USERNAME,
+                Environment.ADMIN_PASSWORD));
+
         registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
             Environment.PRIMARY_USERNAME,
             Environment.PRIMARY_PASSWORD));
-        registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
 
         secondaryRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
             Environment.SECONDARY_USERNAME,
@@ -79,6 +85,8 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         alienRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
             Environment.ALIEN_USERNAME,
             Environment.ALIEN_PASSWORD));
+
+        registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
     }
 
     @AfterClass(alwaysRun = true)
@@ -142,5 +150,21 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
     public void testUnauthenticatedUserWithoutToken() {
         var api = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(""));
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
+    }
+
+    @Test
+    public void testAdminUserCanCreateArtifactOnTheRegistry() throws Throwable {
+        var registryClient = bwait(registryClient(vertx, registry.getRegistryUrl(),
+                Environment.ADMIN_USERNAME,
+                Environment.ADMIN_PASSWORD));
+        registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8));
+    }
+
+    @Test (priority = 2)
+    public void testAdminUserCanDeleteTheRegistry() throws Throwable {
+        // deletion of register by admin
+        adminRegistryMgmtApi.deleteRegistry(registry.getId());
+
+
     }
 }
