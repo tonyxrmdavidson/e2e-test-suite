@@ -51,9 +51,10 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtAPIPermissionsTest.class);
 
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-up-" + Environment.LAUNCH_KEY;
+    private static final String PRIMARY_SERVICE_ACCOUNT_NAME = "mk-e2e-up-primary-sa-" + Environment.LAUNCH_KEY;
     private static final String SECONDARY_SERVICE_ACCOUNT_NAME = "mk-e2e-up-secondary-sa-" + Environment.LAUNCH_KEY;
     private static final String ALIEN_SERVICE_ACCOUNT_NAME = "mk-e2e-up-alien-sa-" + Environment.LAUNCH_KEY;
-    private static final String ADMIN_SERVICE_ACCOUNT_NAME = "mk-e2e-up-admin-sa-" + Environment.LAUNCH_KEY;
+
 
 
     private ApplicationServicesApi mainAPI;
@@ -106,6 +107,11 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         } catch (Throwable t) {
             LOGGER.error("clan kafka error: ", t);
         }
+        try {
+            SecurityMgmtAPIUtils.cleanServiceAccount(mainAPI.securityMgmt(), PRIMARY_SERVICE_ACCOUNT_NAME);
+        } catch (Throwable t) {
+            LOGGER.error("clean main (primary) service account error: ", t);
+        }
 
         try {
             SecurityMgmtAPIUtils.cleanServiceAccount(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
@@ -115,12 +121,6 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
 
         try {
             SecurityMgmtAPIUtils.cleanServiceAccount(alienAPI.securityMgmt(), ALIEN_SERVICE_ACCOUNT_NAME);
-        } catch (Throwable t) {
-            LOGGER.error("clean alien service account error: ", t);
-        }
-
-        try {
-            SecurityMgmtAPIUtils.cleanServiceAccount(adminAPI.securityMgmt(), ADMIN_SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean alien service account error: ", t);
         }
@@ -281,7 +281,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     @Test
     public void testAdminUserCanResetTheServiceAccountCredentials() {
         // Getting secret of Some service account within organization
-        ServiceAccount serviceAccountOriginal = SecurityMgmtAPIUtils.applyServiceAccount(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
+        ServiceAccount serviceAccountOriginal = SecurityMgmtAPIUtils.applyServiceAccount(mainAPI.securityMgmt(), PRIMARY_SERVICE_ACCOUNT_NAME);
         String secretOriginal  = serviceAccountOriginal.getClientSecret();
 
         // Resetting of secret
@@ -310,13 +310,14 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     @SneakyThrows
     @Test
     public void testAdminUserCanReadUserMetricsOfTheKafkaInstance() {
-        // No need to assert as ApiNotFoundException would be thrown
-        MetricsInstantQueryList x = adminAPI.kafkaMgmt().getMetricsByInstantQuery(kafka.getId(), null);
+        MetricsInstantQueryList response = adminAPI.kafkaMgmt().getMetricsByInstantQuery(kafka.getId(), null);
+        assertNotNull(response);
     }
 
 
     @SneakyThrows
     @Test (priority = 2)
+
     // test is should be executed as last one.
     public void testAdminUserCanDeleteTheKafkaInstance() {
         KafkaMgmtApiUtils.cleanKafkaInstance(adminAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
