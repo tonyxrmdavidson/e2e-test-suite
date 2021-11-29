@@ -165,6 +165,5 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         // deletion of register by admin
         adminRegistryMgmtApi.deleteRegistry(registry.getId());
 
-
     }
 }
