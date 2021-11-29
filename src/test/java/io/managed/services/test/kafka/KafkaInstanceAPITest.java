@@ -107,7 +107,9 @@ public class KafkaInstanceAPITest extends TestBase {
         }
 
         try {
-            bwait(kafkaConsumer.asyncClose());
+            if (kafkaConsumer != null) {
+                bwait(kafkaConsumer.asyncClose());
+            }
         } catch (Throwable t) {
             LOGGER.error("failed to close consumer: ", t);
         }
