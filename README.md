@@ -6,6 +6,7 @@ TestNG based Java test suite focused on e2e testing application services running
 
 * java jdk 11
 * maven >= 3.3.1
+* kcat (only to run Kcat tests)
 
 ## Build and check checkstyle
 
