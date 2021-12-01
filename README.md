@@ -138,10 +138,10 @@ the `./hack/testrunner.sh` script and the following ENVs:
 
 | Name | Description | Default value |
 |------|-------------|---------------|
-| `REPORTPORTAL_ENDPOINT` | ReportPortal URL                            | `https://example.com` |
-| `REPORTPORTAL_UUID`     | The Access Token                            |  |
-| `REPORTPORTAL_LAUNCH`   | The launch name to user                     | `mk-e2e-test-suite` |
-| `REPORTPORTAL_PROJECT`  | The project where to report the result      | `rhosak` |
+| `REPORTPORTAL_ENDPOINT`     | ReportPortal URL                            | `https://example.com` |
+| `REPORTPORTAL_ACCESS_TOKEN` | The Access Token                            |  |
+| `REPORTPORTAL_LAUNCH`       | The launch name to user                     | `mk-e2e-test-suite` |
+| `REPORTPORTAL_PROJECT`      | The project where to report the result      | `rhosak` |
 
 ## Report to Prometheus
 
