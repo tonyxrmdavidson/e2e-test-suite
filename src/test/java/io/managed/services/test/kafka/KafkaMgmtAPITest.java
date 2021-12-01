@@ -82,7 +82,12 @@ public class KafkaMgmtAPITest extends TestBase {
         "kafka_controller_kafkacontroller_global_partition_count",
         "kafka_topic:kafka_log_log_size:sum",
         "kafka_namespace:haproxy_server_bytes_in_total:rate5m",
-        "kafka_namespace:haproxy_server_bytes_out_total:rate5m"
+        "kafka_namespace:haproxy_server_bytes_out_total:rate5m",
+        "kafka_topic:kafka_topic_partitions:sum",
+        "kafka_topic:kafka_topic_partitions:count",
+        "consumergroup:kafka_consumergroup_members:count",
+        "kafka_namespace:kafka_server_socket_server_metrics_connection_count:sum",
+        "kafka_namespace:kafka_server_socket_server_metrics_connection_creation_rate:sum"
     };
 
     private KafkaMgmtApi kafkaMgmtApi;
