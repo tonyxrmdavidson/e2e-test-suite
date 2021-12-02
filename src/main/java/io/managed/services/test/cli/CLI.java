@@ -10,6 +10,7 @@ import com.openshift.cloud.api.kas.models.KafkaRequestList;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountList;
 import com.openshift.cloud.api.srs.models.Registry;
+import com.openshift.cloud.api.srs.models.RegistryList;
 import io.managed.services.test.RetryUtils;
 import io.managed.services.test.ThrowingSupplier;
 import lombok.SneakyThrows;
@@ -214,13 +215,27 @@ public class CLI {
                 .asJson(Registry.class);
     }
 
-    public void deleteServiceRegistry(String name) throws CliGenericException {
-        retry(() -> exec("service-registry", "delete", "--id", name, "-y"));
+    public Registry describeServiceRegistry(String id) throws CliGenericException  {
+        return retry(() -> exec("service-registry", "describe", "--id", id))
+                .asJson(Registry.class);
     }
 
-    public Registry describeServiceRegistry(String name) throws CliGenericException  {
-        return retry(() -> exec("service-registry", "describe", "--name", name))
+    public Registry describeUsedServiceRegistry() throws CliGenericException {
+        return retry(() -> exec("service-registry", "describe"))
                 .asJson(Registry.class);
+    }
+
+    public RegistryList listServiceRegistry() throws CliGenericException {
+        return retry(() -> exec("service-registry", "list", "-o", "json"))
+                .asJson(RegistryList.class);
+    }
+
+    public void useServiceRegistry(String id) throws CliGenericException {
+        retry(() -> exec("service-registry", "use", "--id", id));
+    }
+
+    public void deleteServiceRegistry(String name) throws CliGenericException {
+        retry(() -> exec("service-registry", "delete", "--id", name, "-y"));
     }
 
     private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {
