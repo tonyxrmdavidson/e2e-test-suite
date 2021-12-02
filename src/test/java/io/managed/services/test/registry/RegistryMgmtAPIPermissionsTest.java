@@ -13,7 +13,6 @@ import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -42,6 +41,8 @@ import static org.testng.Assert.assertThrows;
  *     <li> SECONDARY_PASSWORD
  *     <li> ALIEN_USERNAME
  *     <li> ALIEN_PASSWORD
+ *     <li> ADMIN_USERNAME
+ *     <li> ADMIN_PASSWORD
  * </ul>
  */
 public class RegistryMgmtAPIPermissionsTest extends TestBase {
@@ -71,8 +72,8 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
 
         adminRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
-                Environment.ADMIN_USERNAME,
-                Environment.ADMIN_PASSWORD));
+            Environment.ADMIN_USERNAME,
+            Environment.ADMIN_PASSWORD));
 
         registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
             Environment.PRIMARY_USERNAME,
@@ -94,7 +95,9 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         assumeTeardown();
 
         try {
-            cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
+            if (registryMgmtApi != null) {
+                cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
+            }
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
@@ -127,7 +130,7 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
             Environment.ALIEN_USERNAME,
             Environment.ALIEN_PASSWORD));
 
-        assertThrows(ApiForbiddenException.class, () -> registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8)));
+        assertThrows(ApiForbiddenException.class, () -> registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test(priority = 1)
@@ -155,12 +158,13 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
     @Test
     public void testAdminUserCanCreateArtifactOnTheRegistry() throws Throwable {
         var registryClient = bwait(registryClient(vertx, registry.getRegistryUrl(),
-                Environment.ADMIN_USERNAME,
-                Environment.ADMIN_PASSWORD));
-        registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8));
+            Environment.ADMIN_USERNAME,
+            Environment.ADMIN_PASSWORD));
+
+        registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8));
     }
 
-    @Test (priority = 2)
+    @Test(priority = 2)
     public void testAdminUserCanDeleteTheRegistry() throws Throwable {
         // deletion of register by admin
         adminRegistryMgmtApi.deleteRegistry(registry.getId());

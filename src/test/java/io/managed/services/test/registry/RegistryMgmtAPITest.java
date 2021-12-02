@@ -9,7 +9,6 @@ import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -99,7 +98,7 @@ public class RegistryMgmtAPITest extends TestBase {
             Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
 
         LOGGER.info("create artifact on registry");
-        var artifactMetaData = registryClient.createArtifact(null, null, IOUtils.toInputStream(ARTIFACT_SCHEMA, StandardCharsets.UTF_8));
+        var artifactMetaData = registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8));
 
         assertEquals(artifactMetaData.getName(), "Greeting");
     }

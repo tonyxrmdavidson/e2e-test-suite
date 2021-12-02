@@ -13,7 +13,7 @@ import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
 import io.managed.services.test.client.oauth.KeycloakUser;
 
-import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.net.HttpURLConnection;
 import java.util.HashMap;
 
@@ -50,8 +50,8 @@ public class RegistryClientApi extends BaseApi {
         bearerAuth.setAccessToken(t);
     }
 
-    public ArtifactMetaData createArtifact(String groupId, String artifactId, InputStream data) throws ApiGenericException {
-        return retry(() -> registryClient.createArtifact(groupId, artifactId, data));
+    public ArtifactMetaData createArtifact(String groupId, String artifactId, byte[] data) throws ApiGenericException {
+        return retry(() -> registryClient.createArtifact(groupId, artifactId, new ByteArrayInputStream(data)));
     }
 
     public void createRoleMapping(RoleMapping data) throws ApiGenericException {
