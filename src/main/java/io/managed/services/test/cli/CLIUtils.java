@@ -3,6 +3,7 @@ package io.managed.services.test.cli;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
+import com.openshift.cloud.api.srs.models.Registry;
 import io.fabric8.kubernetes.api.model.AuthInfo;
 import io.fabric8.kubernetes.api.model.Cluster;
 import io.fabric8.kubernetes.api.model.Config;
@@ -18,6 +19,8 @@ import io.managed.services.test.client.kafkamgmt.KafkaNotDeletedException;
 import io.managed.services.test.client.kafkamgmt.KafkaNotReadyException;
 import io.managed.services.test.client.kafkamgmt.KafkaUnknownHostsException;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
+import io.managed.services.test.client.registrymgmt.RegistryNotReadyException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
@@ -39,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import io.managed.services.test.cli.CliGenericException;
 
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
@@ -176,6 +180,12 @@ public class CLIUtils {
     @SneakyThrows
     public static ConsumerGroup waitForConsumerGroup(CLI cli, String name) {
         return KafkaInstanceApiUtils.waitForConsumerGroup(() -> getConsumerGroupByName(cli, name));
+    }
+
+    public static Registry waitUntilServiceRegistryIsReady(CLI cli, String name)
+            throws InterruptedException, CliGenericException, RegistryNotReadyException {
+
+        return RegistryMgmtApiUtils.waitUntilRegistryIsReady(() -> cli.describeServiceRegistry(name));
     }
 
     public static Config kubeConfig(String server, String token, String namespace) {
