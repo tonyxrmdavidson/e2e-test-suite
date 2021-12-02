@@ -9,6 +9,7 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestList;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountList;
+import com.openshift.cloud.api.srs.models.Registry;
 import io.managed.services.test.RetryUtils;
 import io.managed.services.test.ThrowingSupplier;
 import lombok.SneakyThrows;
@@ -206,6 +207,20 @@ public class CLI {
     public AclBindingListPage listACLs() throws CliGenericException {
         return retry(() -> exec("kafka", "acl", "list", "-o", "json"))
             .asJson(AclBindingListPage.class);
+    }
+
+    public Registry createServiceRegistry(String name) throws CliGenericException {
+        return retry(() -> exec("service-registry", "create", "--name", name))
+                .asJson(Registry.class);
+    }
+
+    public void deleteServiceRegistry(String name) throws CliGenericException {
+        retry(() -> exec("service-registry", "delete", "--id", name, "-y"));
+    }
+
+    public Registry describeServiceRegistry(String name) throws CliGenericException  {
+        return retry(() -> exec("service-registry", "describe", "--name", name))
+                .asJson(Registry.class);
     }
 
     private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {

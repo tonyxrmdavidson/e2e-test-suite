@@ -1,5 +1,6 @@
 package io.managed.services.test.client.registrymgmt;
 
+import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.srs.invoker.ApiClient;
 import com.openshift.cloud.api.srs.models.Registry;
 import com.openshift.cloud.api.srs.models.RegistryCreate;
@@ -7,8 +8,11 @@ import com.openshift.cloud.api.srs.models.RegistryList;
 import com.openshift.cloud.api.srs.models.RegistryStatusValue;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
+import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
+import io.managed.services.test.client.kafkamgmt.KafkaNotReadyException;
+import io.managed.services.test.client.kafkamgmt.KafkaUnknownHostsException;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.oauth.KeycloakUser;
 import io.vertx.core.Future;
@@ -104,6 +108,33 @@ public class RegistryMgmtApiUtils {
         waitFor("registry to be ready", ofSeconds(3), ofMinutes(1), isReady);
 
         return registryReference.get();
+    }
+
+    public static <T extends Throwable> Registry waitUntilRegistryIsReady(ThrowingSupplier<Registry, T> supplier)
+            throws T, InterruptedException, RegistryNotReadyException {
+
+        var registryAtom = new AtomicReference<Registry>();
+        ThrowingFunction<Boolean, Boolean, T> ready = last -> {
+            var registry = supplier.get();
+            registryAtom.set(registry);
+
+            LOGGER.debug(registry);
+            return "ready".equals(registry.getStatus().getValue());
+        };
+
+        try {
+            waitFor("Registry to be ready", ofSeconds(5), ofMinutes(1), ready);
+        } catch (TimeoutException e) {
+            // throw a more accurate error
+            throw new RegistryNotReadyException(registryAtom.get(), e);
+        }
+
+        var registry = registryAtom.get();
+        LOGGER.info("service registry '{}' is ready", registry.getName());
+        LOGGER.debug(registry);
+
+
+        return registry;
     }
 
     public static boolean isRegistryReady(Registry registry, AtomicReference<Registry> reference, boolean last) {
