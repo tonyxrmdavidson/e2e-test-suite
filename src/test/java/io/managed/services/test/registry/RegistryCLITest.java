@@ -1,14 +1,11 @@
 package io.managed.services.test.registry;
 
+import com.openshift.cloud.api.srs.models.Registry;
 import io.managed.services.test.Environment;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
-import io.managed.services.test.cli.CliGenericException;
-import io.managed.services.test.client.ApplicationServicesApi;
-import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
-import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
-import io.managed.services.test.devexp.KafkaCLITest;
+import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
@@ -23,9 +20,20 @@ import java.io.File;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
+/**
+ * Test the application services CLI[1] service-registry commands.
+ * <p>
+ * The tests download the CLI from GitHub to the local machine where the test suite is running
+ * and perform all operations using the CLI.
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ * </ul>
+ */
 @Test
 public class RegistryCLITest {
     private static final Logger LOGGER = LogManager.getLogger(RegistryCLITest.class);
@@ -36,9 +44,10 @@ public class RegistryCLITest {
 
     private CLI cli;
 
+    private Registry registry;
+
     @BeforeClass
     public void bootstrap() throws Throwable {
-
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
 
@@ -49,12 +58,17 @@ public class RegistryCLITest {
 
         LOGGER.info("login to RHOAS");
         CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
-
     }
 
     @AfterClass(alwaysRun = true)
     @SneakyThrows
     public void clean() {
+        try {
+            LOGGER.info("delete service registry");
+            cli.deleteServiceRegistry(registry.getId());
+        } catch (Throwable t) {
+            LOGGER.error("logoutCLI error: ", t);
+        }
 
         try {
             LOGGER.info("logout user from rhoas");
@@ -74,66 +88,54 @@ public class RegistryCLITest {
     }
 
     @Test
-    public void testLogin(){
+    @SneakyThrows
+    public void testCreateServiceRegistry() {
+        LOGGER.info("create service registry instance with name {}", SERVICE_REGISTRY_NAME);
+        var r = cli.createServiceRegistry(SERVICE_REGISTRY_NAME);
+        LOGGER.debug(r);
 
-        LOGGER.info("Hello test");
-
+        LOGGER.info("wait for service registry instance with name: {}, with id: {}", r.getName(), r.getId());
+        registry = CLIUtils.waitUntilServiceRegistryIsReady(cli, r.getId());
+        LOGGER.debug(registry);
     }
 
-    @Test(enabled=false)
+    @Test(dependsOnMethods = "testCreateServiceRegistry")
     @SneakyThrows
-    public void testDescribeKafkaInstance() {
+    public void testDescribeServiceRegistry() {
+        LOGGER.info("describe service registry instance with with name {}", SERVICE_REGISTRY_NAME);
+        var r = cli.describeServiceRegistry(registry.getId());
+        LOGGER.debug(r);
 
-        LOGGER.info("get kafka instance with name {}", "KAFKA_INSTANCE_NAME");
-        var k = cli.describeKafka("id");
-        LOGGER.debug(k);
-
-        assertEquals("ready", k.getStatus());
+        assertEquals("ready", r.getStatus().getValue());
     }
 
-    @Test(enabled=false)
+    @Test(dependsOnMethods = "testCreateServiceRegistry")
     @SneakyThrows
-    public void testListKafkaInstances() {
-
-        var list = cli.listKafka();
+    public void testListServiceRegistry() {
+        var list = cli.listServiceRegistry();
         LOGGER.debug(list);
 
         var exists = list.getItems().stream()
-                .filter(k -> "lol".equals(k.getName()))
+                .filter(r -> SERVICE_REGISTRY_NAME.equals(r.getName()))
                 .findAny();
         assertTrue(exists.isPresent());
     }
 
-    @Test
+    @Test(dependsOnMethods = "testCreateServiceRegistry")
     @SneakyThrows
-    public void testCreateServiceRegistry() {
-
-        LOGGER.info("create service registry with name {}", SERVICE_REGISTRY_NAME);
-        var r = cli.createServiceRegistry(SERVICE_REGISTRY_NAME);
-        LOGGER.debug(r);
-
-        LOGGER.info("wait for service registry with name: {}, with id: {}", r.getName(), r.getId());
-        var registry = CLIUtils.waitUntilServiceRegistryIsReady(cli, r.getName());
-        LOGGER.debug(registry);
+    public void testUseServiceRegistry() {
+        LOGGER.info("use service registry instance with id {}", registry.getId());
+        cli.useServiceRegistry(registry.getId());
+        var r = cli.describeUsedServiceRegistry();
+        assertEquals(r.getId(), registry.getId());
     }
 
-//TODO testCreateServiceRegistry:
-// Description: Create and wait for the service registry using the CLI
+    @Test(dependsOnMethods = "testCreateServiceRegistry", priority = 1)
+    @SneakyThrows
+    public void testDeleteServiceRegistry() {
+        LOGGER.info("delete service registry instance with id {}", registry.getId());
 
-
-// TODO  testDescribeServiceRegistry:
-//  Description: Retrieve the previously created service registry by id
-
-
-// TODO testListServiceRegistry:
-//  Description: Retrieve all service registries and assert that the previously created registry is in the list
-
-// (optional) TODO testDescribeServiceRegistryWithoutIdShouldFail
-
-// TODO testUseServiceRegistry:
-//  Description: Use the previously created registry by id, then describe the currently active registry (without using the id)
-
-
-// TODO testDeleteServiceRegistry:
-//  Description: Delete the previously created registry by id and then try to retrieve it and assert that it fails
+        cli.deleteServiceRegistry(registry.getId());
+        RegistryMgmtApiUtils.waitUntilRegistryIsDeleted(cli, registry.getId());
+    }
 }

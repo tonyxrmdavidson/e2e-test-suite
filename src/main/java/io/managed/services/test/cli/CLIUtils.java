@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import io.managed.services.test.cli.CliGenericException;
 
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
@@ -182,10 +181,10 @@ public class CLIUtils {
         return KafkaInstanceApiUtils.waitForConsumerGroup(() -> getConsumerGroupByName(cli, name));
     }
 
-    public static Registry waitUntilServiceRegistryIsReady(CLI cli, String name)
+    public static Registry waitUntilServiceRegistryIsReady(CLI cli, String id)
             throws InterruptedException, CliGenericException, RegistryNotReadyException {
 
-        return RegistryMgmtApiUtils.waitUntilRegistryIsReady(() -> cli.describeServiceRegistry(name));
+        return RegistryMgmtApiUtils.waitUntilRegistryIsReady(() -> cli.describeServiceRegistry(id));
     }
 
     public static Config kubeConfig(String server, String token, String namespace) {
