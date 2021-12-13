@@ -50,34 +50,34 @@ required variables in the test sourcecode javadoc.
 
 Environment variables can also be configured in the [config.json](#config-file) file.
 
-| Name        | Description   |  Default value |
-|-------------|---------------|----------------|
-| `CONFIG_FILE`                 | relative or absolute path to the [config.json](#config-file)                                                                               | $(pwd)/config.json |
-| `LOG_DIR`                     | path where the test suite will store additional collected logs and artifacts                                                               | $(pwd)/target/logs |
-| `PRIMARY_USERNAME`            | ** https://sso.redhat.com username with quota to provision the tested service (See [Create test users](#create-test-users) if you don't have one)  |  |
-| `PRIMARY_PASSWORD`            | ** primary user password                                                                                                                   |  |
-| `SECONDARY_USERNAME`          | ** https://sso.redhat.com username in the same organization as the primary user                                                            |  |
-| `SECONDARY_PASSWORD`          | ** secondary user password                                                                                                                 |  |
-| `ALIEN_USERNAME`              | ** https://sso.redhat.com username in a different organization respect the primary user                                                    |  |
-| `ALIEN_PASSWORD`              | ** alien user password                                                                                                                     |  |
-| `OPENSHIFT_API_URI`           | the base URI for the application services mgmt APIs (See [Test Environments](#test-environments))                                          | `https://api.stage.openshift.com` |
-| `REDHAT_SSO_URI`              | users authentication endpoint for application services mgmt APIs                                                                           | `https://sso.redhat.com` |
-| `REDHAT_SSO_LOGIN_FORM_ID`    | HTML `id` value of the login `<form>` the SSO application will present after redirect                                                      | `#rh-password-verification-form` |
-| `OPENSHIFT_IDENTITY_URI`      | users authentication endpoint for application services instances APIs (See [Test Environments](#test-environments))                        | `https://identity.api.stage.openshift.com` |
-| `OPENSHIFT_IDENTITY_LOGIN_FORM_ID` | HTML `id` value of the login `<form>` the SSO application will present after redirect                                                      | `#rh-password-verification-form` |
-| `DEV_CLUSTER_SERVER`          | ** the API server URI of a OpenShift cluster with the binding operator installed                                                           |  |
-| `DEV_CLUSTER_TOKEN`           | ** the cluster user or service account token                                                                                               |  |
-| `DEV_CLUSTER_NAMESPACE`       | the namespace where to create test resources (See [Create test namespace on the dev cluster](#create-test-namespace-on-the-dev-cluster))   | `mk-e2e-tests` |
-| `CLI_VERSION`                 | the CLI version to download from the app-services-cli repo                                                                                 | `latest` |
-| `CLI_PLATFORM`                | windows/macOS/linux                                                                                                                        | `auto-detect` |
-| `CLI_ARCH`                    | the CLI arch and os to download from the app-services-cli repo                                                                             | `amd64` |
-| `GITHUB_TOKEN`                | the github token used to download the CLI if needed                                                                                        |  |
-| `LAUNCH_KEY`                  | A string key used to identify the current configuration and owner which is used to generate unique name and identify the launch            | `change-me` |
-| `SKIP_TEARDOWN`               | Skip the whole test teardown in most tests, although some of them will need top re-enable it to succeed                                    | `false` |
-| `SKIP_KAFKA_TEARDOWN`         | Skip only the Kafka instance cleanup teardown in the tests that don't require a new instance for each run to speed the local development   | `false` |
-| `DEFAULT_KAFKA_REGION`        | Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise                             | `us-east-1` |
-| `KAFKA_INSECURE_TLS`          | Boolean value to indicate whether the Kafka and Admin REST API TLS is insecure (for self-signed certificates)                              | `false` |
-| `KAFKA_INSTANCE_API_TEMPLATE` | URL template for the Kafka Admin REST API. May be used to specify plain-text HTTP or an alternate port                                     | `https://admin-server-%s/rest` |
+| Name                               | Description                                                                                                                                       | Default value                              |
+|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| `CONFIG_FILE`                      | relative or absolute path to the [config.json](#config-file)                                                                                      | $(pwd)/config.json                         |
+| `LOG_DIR`                          | path where the test suite will store additional collected logs and artifacts                                                                      | $(pwd)/target/logs                         |
+| `PRIMARY_USERNAME`                 | ** https://sso.redhat.com username with quota to provision the tested service (See [Create test users](#create-test-users) if you don't have one) |                                            |
+| `PRIMARY_PASSWORD`                 | ** primary user password                                                                                                                          |                                            |
+| `SECONDARY_USERNAME`               | ** https://sso.redhat.com username in the same organization as the primary user                                                                   |                                            |
+| `SECONDARY_PASSWORD`               | ** secondary user password                                                                                                                        |                                            |
+| `ALIEN_USERNAME`                   | ** https://sso.redhat.com username in a different organization respect the primary user                                                           |                                            |
+| `ALIEN_PASSWORD`                   | ** alien user password                                                                                                                            |                                            |
+| `OPENSHIFT_API_URI`                | the base URI for the application services mgmt APIs (See [Test Environments](#test-environments))                                                 | `https://api.stage.openshift.com`          |
+| `REDHAT_SSO_URI`                   | users authentication endpoint for application services mgmt APIs                                                                                  | `https://sso.redhat.com`                   |
+| `REDHAT_SSO_LOGIN_FORM_ID`         | HTML `id` value of the login `<form>` the SSO application will present after redirect                                                             | `#rh-password-verification-form`           |
+| `OPENSHIFT_IDENTITY_URI`           | users authentication endpoint for application services instances APIs (See [Test Environments](#test-environments))                               | `https://identity.api.stage.openshift.com` |
+| `OPENSHIFT_IDENTITY_LOGIN_FORM_ID` | HTML `id` value of the login `<form>` the SSO application will present after redirect                                                             | `#rh-password-verification-form`           |
+| `DEV_CLUSTER_SERVER`               | ** the API server URI of a OpenShift cluster with the binding operator installed                                                                  |                                            |
+| `DEV_CLUSTER_TOKEN`                | ** the cluster user or service account token                                                                                                      |                                            |
+| `DEV_CLUSTER_NAMESPACE`            | the namespace where to create test resources (See [Create test namespace on the dev cluster](#create-test-namespace-on-the-dev-cluster))          | `mk-e2e-tests`                             |
+| `CLI_VERSION`                      | the CLI version to download from the app-services-cli repo                                                                                        | `latest`                                   |
+| `CLI_PLATFORM`                     | windows/macOS/linux                                                                                                                               | `auto-detect`                              |
+| `CLI_ARCH`                         | the CLI arch and os to download from the app-services-cli repo                                                                                    | `amd64`                                    |
+| `GITHUB_TOKEN`                     | the github token used to download the CLI if needed                                                                                               |                                            |
+| `LAUNCH_KEY`                       | A string key used to identify the current configuration and owner which is used to generate unique name and identify the launch                   | `change-me`                                |
+| `SKIP_TEARDOWN`                    | Skip the whole test teardown in most tests, although some of them will need top re-enable it to succeed                                           | `false`                                    |
+| `SKIP_KAFKA_TEARDOWN`              | Skip only the Kafka instance cleanup teardown in the tests that don't require a new instance for each run to speed the local development          | `false`                                    |
+| `DEFAULT_KAFKA_REGION`             | Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise                                    | `us-east-1`                                |
+| `KAFKA_INSECURE_TLS`               | Boolean value to indicate whether the Kafka and Admin REST API TLS is insecure (for self-signed certificates)                                     | `false`                                    |
+| `KAFKA_INSTANCE_API_TEMPLATE`      | URL template for the Kafka Admin REST API. May be used to specify plain-text HTTP or an alternate port                                            | `https://admin-server-%s/rest`             |
 
 ## Config File
 
@@ -112,37 +112,37 @@ The default targeted environment is the application services stage env.
 
 #### Stage
 
-| Env | Value |
-|-----|-------|
-| `OPENSHIFT_API_URI`        | `https://api.stage.openshift.com` |
-| `OPENSHIFT_IDENTITY_URI`   | `https://identity.api.stage.openshift.com` |
+| Env                      | Value                                      |
+|--------------------------|--------------------------------------------|
+| `OPENSHIFT_API_URI`      | `https://api.stage.openshift.com`          |
+| `OPENSHIFT_IDENTITY_URI` | `https://identity.api.stage.openshift.com` |
 
 #### Production
 
-| Env | Value |
-|-----|-------|
-| `OPENSHIFT_API_URI`        | `https://api.openshift.com` |
-| `OPENSHIFT_IDENTITY_URI`   | `https://identity.api.openshift.com` |
+| Env                      | Value                                |
+|--------------------------|--------------------------------------|
+| `OPENSHIFT_API_URI`      | `https://api.openshift.com`          |
+| `OPENSHIFT_IDENTITY_URI` | `https://identity.api.openshift.com` |
 
 ## Profiles
 
-| Name | Description |
-|------|-------------|
-| default       | run kafka, registry, devexp and quickstarts test suites |
-| sandbox       | run the sandbox test suite to test the openshift sandbox cluster |
-| quickstarts   | run the cucumber quickstarts test suite  |
+| Name        | Description                                                      |
+|-------------|------------------------------------------------------------------|
+| default     | run kafka, registry, devexp and quickstarts test suites          |
+| sandbox     | run the sandbox test suite to test the openshift sandbox cluster |
+| quickstarts | run the cucumber quickstarts test suite                          |
 
 ## Report to ReportPortal
 
 When executing the tests is possible to send the results and logs in real time to ReportPortal using
 the `./hack/testrunner.sh` script and the following ENVs:
 
-| Name | Description | Default value |
-|------|-------------|---------------|
-| `REPORTPORTAL_ENDPOINT`     | ReportPortal URL                            | `https://example.com` |
-| `REPORTPORTAL_ACCESS_TOKEN` | The Access Token                            |  |
-| `REPORTPORTAL_LAUNCH`       | The launch name to user                     | `mk-e2e-test-suite` |
-| `REPORTPORTAL_PROJECT`      | The project where to report the result      | `rhosak` |
+| Name                        | Description                            | Default value         |
+|-----------------------------|----------------------------------------|-----------------------|
+| `REPORTPORTAL_ENDPOINT`     | ReportPortal URL                       | `https://example.com` |
+| `REPORTPORTAL_ACCESS_TOKEN` | The Access Token                       |                       |
+| `REPORTPORTAL_LAUNCH`       | The launch name to user                | `mk-e2e-test-suite`   |
+| `REPORTPORTAL_PROJECT`      | The project where to report the result | `rhosak`              |
 
 ## Report to Prometheus
 
@@ -150,9 +150,9 @@ Tests can report metrics to Prometheus to analyze or monitor behaviours, like th
 requests that are retried automatically. A push gateway is required to send the metrics to prometheus, and it is
 configured with the following ENVs:
 
-| Name | Description | Default value |
-|------|-------------|---------------|
-| `PROMETHEUS_PUSH_GATEWAY` | Prometheus Push Gateway URL               | `https://example.com` |
+| Name                      | Description                 | Default value         |
+|---------------------------|-----------------------------|-----------------------|
+| `PROMETHEUS_PUSH_GATEWAY` | Prometheus Push Gateway URL | `https://example.com` |
 
 ## Short guides
 
