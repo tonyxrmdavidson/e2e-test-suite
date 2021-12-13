@@ -220,7 +220,10 @@ public class CLI {
                 .asJson(Registry.class);
     }
 
-    public Registry describeUsedServiceRegistry() throws CliGenericException {
+    /**
+     * Return the Registry in use from the CLI
+     */
+    public Registry describeServiceRegistry() throws CliGenericException {
         return retry(() -> exec("service-registry", "describe"))
                 .asJson(Registry.class);
     }

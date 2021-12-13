@@ -5,6 +5,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.cli.CLI;
 import io.managed.services.test.cli.CLIDownloader;
 import io.managed.services.test.cli.CLIUtils;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
@@ -63,25 +64,30 @@ public class RegistryCLITest {
     @AfterClass(alwaysRun = true)
     @SneakyThrows
     public void clean() {
+
+
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var user = bwait(auth.loginToRedHatSSO());
+        var registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
+
         try {
-            LOGGER.info("delete service registry");
-            cli.deleteServiceRegistry(registry.getId());
+            RegistryMgmtApiUtils.deleteRegistryByNameIfExists(registryMgmtApi, SERVICE_REGISTRY_NAME);
         } catch (Throwable t) {
-            LOGGER.error("logoutCLI error: ", t);
+            LOGGER.error("delete registry instance error: ", t);
         }
 
         try {
             LOGGER.info("logout user from rhoas");
             cli.logout();
         } catch (Throwable t) {
-            LOGGER.error("logoutCLI error: ", t);
+            LOGGER.error("CLI logout error: ", t);
         }
 
         try {
             LOGGER.info("delete workdir: {}", cli.getWorkdir());
             FileUtils.deleteDirectory(new File(cli.getWorkdir()));
         } catch (Throwable t) {
-            LOGGER.error("cleanWorkdir error: ", t);
+            LOGGER.error("clean workdir error: ", t);
         }
 
         bwait(vertx.close());
@@ -116,8 +122,8 @@ public class RegistryCLITest {
         LOGGER.debug(list);
 
         var exists = list.getItems().stream()
-                .filter(r -> SERVICE_REGISTRY_NAME.equals(r.getName()))
-                .findAny();
+            .filter(r -> SERVICE_REGISTRY_NAME.equals(r.getName()))
+            .findAny();
         assertTrue(exists.isPresent());
     }
 
@@ -126,7 +132,7 @@ public class RegistryCLITest {
     public void testUseServiceRegistry() {
         LOGGER.info("use service registry instance with id {}", registry.getId());
         cli.useServiceRegistry(registry.getId());
-        var r = cli.describeUsedServiceRegistry();
+        var r = cli.describeServiceRegistry();
         assertEquals(r.getId(), registry.getId());
     }
 
@@ -136,6 +142,6 @@ public class RegistryCLITest {
         LOGGER.info("delete service registry instance with id {}", registry.getId());
 
         cli.deleteServiceRegistry(registry.getId());
-        RegistryMgmtApiUtils.waitUntilRegistryIsDeleted(cli, registry.getId());
+        CLIUtils.waitUntilRegistryIsDeleted(cli, registry.getId());
     }
 }

@@ -11,9 +11,9 @@ import io.managed.services.test.cli.CLIUtils;
 import io.managed.services.test.cli.CliGenericException;
 import io.managed.services.test.cli.CliNotFoundException;
 import io.managed.services.test.cli.ServiceAccountSecret;
-import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
@@ -82,18 +82,20 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void clean() {
 
-        var apis = ApplicationServicesApi.applicationServicesApi(
-            Environment.PRIMARY_USERNAME,
-            Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var user = bwait(auth.loginToRedHatSSO());
+
+        var kafkaMgmtApi =  KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        var securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.OPENSHIFT_API_URI, user);
 
         try {
-            KafkaMgmtApiUtils.deleteKafkaByNameIfExists(apis.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.deleteKafkaByNameIfExists(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("delete kafka instance error: ", t);
         }
 
         try {
-            SecurityMgmtAPIUtils.cleanServiceAccount(apis.securityMgmt(), SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("delete service account error: ", t);
         }
@@ -102,14 +104,14 @@ public class KafkaCLITest extends TestBase {
             LOGGER.info("logout user from rhoas");
             cli.logout();
         } catch (Throwable t) {
-            LOGGER.error("logoutCLI error: ", t);
+            LOGGER.error("CLI logout error: ", t);
         }
 
         try {
             LOGGER.info("delete workdir: {}", cli.getWorkdir());
             FileUtils.deleteDirectory(new File(cli.getWorkdir()));
         } catch (Throwable t) {
-            LOGGER.error("cleanWorkdir error: ", t);
+            LOGGER.error("clean workdir error: ", t);
         }
 
         bwait(vertx.close());

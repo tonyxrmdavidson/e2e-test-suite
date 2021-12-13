@@ -20,6 +20,7 @@ import io.managed.services.test.client.kafkamgmt.KafkaNotReadyException;
 import io.managed.services.test.client.kafkamgmt.KafkaUnknownHostsException;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
+import io.managed.services.test.client.registrymgmt.RegistryNotDeletedException;
 import io.managed.services.test.client.registrymgmt.RegistryNotReadyException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -155,6 +156,18 @@ public class CLIUtils {
         KafkaMgmtApiUtils.waitUntilKafkaIsDeleted(() -> {
             try {
                 return Optional.of(cli.describeKafka(id));
+            } catch (CliNotFoundException e) {
+                return Optional.empty();
+            }
+        });
+    }
+
+    public static void waitUntilRegistryIsDeleted(CLI cli, String registryId)
+        throws InterruptedException, RegistryNotDeletedException, CliGenericException {
+
+        RegistryMgmtApiUtils.waitUntilRegistryIsDeleted(() -> {
+            try {
+                return Optional.of(cli.describeServiceRegistry(registryId));
             } catch (CliNotFoundException e) {
                 return Optional.empty();
             }
