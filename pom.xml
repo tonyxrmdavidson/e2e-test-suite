@@ -187,7 +187,7 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.0.0</version>
+            <version>7.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
