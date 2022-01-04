@@ -119,10 +119,6 @@
             <groupId>com.epam.reportportal</groupId>
             <artifactId>client-java</artifactId>
             <version>5.1.3</version>
-            <scope>system</scope>
-            <!-- Workaround for: https://github.com/reportportal/client-java/issues/147 -->
-            <!-- Built from https://github.com/b1zzu/client-java/tree/5.0.18-b1zzu1 -->
-            <systemPath>${basedir}/lib/client-java-5.0.18-b1zzu1.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>io.reactivex.rxjava2</groupId>
