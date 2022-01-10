@@ -224,8 +224,8 @@ tests.
 
 1. Clone the operator the bf2/operator from here:https://github.com/bf2fc6cc711aee1a0c2a/operator
     ```
-   git clone https://github.com/bf2fc6cc711aee1a0c2a/operator.git
-   cd operator
+   git clone https://github.com/redhat-developer/app-services-operator.git
+   cd app-services-operator
    ```
 
 2. Checkout the right version you want to update to
@@ -244,7 +244,7 @@ tests.
 
    **Example:**
    ```
-   cp source/model/target/rhoas-model-1.0.0-SNAPSHOT.jar ../e2e-test-suite/lib
+   cp source/model/target/rhoas-model-1.0.0-SNAPSHOT.jar path/to/e2e-test-suite/lib
    ```
 
 6. If the rhoas-model version has changed you need to update the pom.xml in the e2e-test-suite repository
