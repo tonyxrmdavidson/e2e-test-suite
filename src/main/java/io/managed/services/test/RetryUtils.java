@@ -17,7 +17,7 @@ public class RetryUtils {
 
     private static final Counter ERRORS = Counter.build()
         .name("test_skipped_errors")
-        .labelNames("launch", "class", "method", "exception", "message")
+        .labelNames("launch", "class", "method", "exception")
         .help("Test retry errors counter.").register();
 
     public static <T> Future<T> retry(
@@ -152,7 +152,7 @@ public class RetryUtils {
 
     private static void logSkip(StackWalker.StackFrame caller, Throwable t) {
         log.error("{}.{}(): skip error: ", caller.getClassName(), caller.getMethodName(), t);
-        ERRORS.labels(Environment.LAUNCH_KEY, caller.getClassName(), caller.getMethodName(), t.getClass().getName(), t.getMessage()).inc();
+        ERRORS.labels(Environment.LAUNCH_KEY, caller.getClassName(), caller.getMethodName(), t.getClass().getName()).inc();
     }
 
     private static StackWalker.StackFrame caller(int backtrace) {
