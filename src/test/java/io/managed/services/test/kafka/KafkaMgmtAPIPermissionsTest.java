@@ -103,7 +103,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         assumeTeardown();
 
         try {
-            KafkaMgmtApiUtils.cleanKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(adminAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("clan kafka error: ", t);
         }
@@ -314,10 +314,38 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         assertNotNull(response);
     }
 
+    @SneakyThrows
+    @Test
+    public void testAdminUserCanChangeTheKafkaInstanceOwner() {
+
+        var authorizationTopicName = "authorization-topic-name";
+        LOGGER.info("initialize kafka admin api for kafka instance: {}", kafka.getBootstrapServerHost());
+        var kafkaInstanceAPISecondaryUser = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+                Environment.SECONDARY_USERNAME,
+                Environment.SECONDARY_PASSWORD));
+
+        // verify that user who is not the owner of instance can not perform operation (e.g., create topic)
+        assertThrows(
+                ApiForbiddenException.class,
+                () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
+        );
+
+        LOGGER.info("change of owner of instance");
+        KafkaMgmtApiUtils.changeKafkaInstanceOwner(mainAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME, Environment.SECONDARY_PASSWORD);
+
+        // try to perform operation (i.e., delete topic) without Authorization exception
+        LOGGER.info("deletion of topic should now pass authorization phase");
+        assertThrows(
+                ApiNotFoundException.class,
+                () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
+        );
+
+        // owner is changed back to primary user in order for other test to run properly
+        KafkaMgmtApiUtils.changeKafkaInstanceOwner(secondaryAPI.kafkaMgmt(), kafka, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+    }
 
     @SneakyThrows
     @Test (priority = 2)
-
     // test is should be executed as last one.
     public void testAdminUserCanDeleteTheKafkaInstance() {
         KafkaMgmtApiUtils.cleanKafkaInstance(adminAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);

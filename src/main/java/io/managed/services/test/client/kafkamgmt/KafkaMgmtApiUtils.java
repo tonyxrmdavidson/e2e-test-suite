@@ -15,6 +15,8 @@ import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.exception.ApiForbiddenException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.oauth.KeycloakUser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,11 +25,13 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofDays;
 import static java.time.Duration.ofMinutes;
@@ -362,11 +366,38 @@ public class KafkaMgmtApiUtils {
         }
     }
 
-    // TODO implement waiting for Rollout on Brokers (real application of this change)
-    // TODO till real implementation of correct response only some workaround  like operation only new owner would be able to perform.
-    public static void changeKafkaInstanceOwner(KafkaMgmtApi api, String instanceId, String ownerName) throws ApiGenericException {
+    // TODO till real implementation of correct response only workaround.
+    public static void waitUntilOwnerIsChanged(KafkaInstanceApi api, String topicName) throws Exception {
+
+        ThrowingFunction<Boolean, Boolean, ApiNotFoundException> ready = l -> {
+            try {
+                KafkaInstanceApiUtils.applyTopic(api, topicName);
+                // temporary topic is cleaned afterwards
+                api.deleteTopic(topicName);
+                return true;
+            } catch (ApiGenericException ignored) {
+            }
+            return false;
+        };
+
+        try {
+            waitFor("kafka owner to be changed", ofSeconds(10), ofMinutes(5), ready);
+        } catch (TimeoutException e) {
+            throw new Exception("kafka instance did not switch the owner (waiting for rollback), within expected time");
+        }
+    }
+
+    public static void changeKafkaInstanceOwner(KafkaMgmtApi mgmtApi,  KafkaRequest kafka, String newOwnerName, String newOwnerPassword) throws Throwable {
+        KafkaInstanceApi instanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+                newOwnerName,
+                newOwnerPassword));
+
         KafkaUpdateRequest kafkaUpdateRequest = new KafkaUpdateRequest();
-        kafkaUpdateRequest.setOwner(ownerName);
-        var x = api.updateKafka(instanceId, kafkaUpdateRequest);
+        var lowerCasedName = newOwnerName.toLowerCase(Locale.ROOT);
+        kafkaUpdateRequest.setOwner(lowerCasedName);
+        mgmtApi.updateKafka(kafka.getId(), kafkaUpdateRequest);
+
+        // wait until owner is changed (waiting for Rollout on Brokers)
+        waitUntilOwnerIsChanged(instanceApi, "topic-used-to-wait");
     }
 }
