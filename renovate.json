@@ -1,3 +1,41 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json"
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "^io.fabric8:"
+      ],
+      "groupName": "fabric8"
+    },
+    {
+      "matchPackagePatterns": [
+        "^org.apache.logging.log4j:"
+      ],
+      "groupName": "log4j"
+    },
+    {
+      "matchPackagePatterns": [
+        "^io.vertx:"
+      ],
+      "groupName": "vertx"
+    },
+    {
+      "matchPackagePatterns": [
+        "^com.redhat.cloud:"
+      ],
+      "groupName": "app-services-sdk"
+    },
+    {
+      "matchPackagePatterns": [
+        "^io.apicurio:"
+      ],
+      "groupName": "apicurio"
+    },
+    {
+      "matchPackagePatterns": [
+        "^io.cucumber:"
+      ],
+      "groupName": "cucumber"
+    }
+  ]
 }
