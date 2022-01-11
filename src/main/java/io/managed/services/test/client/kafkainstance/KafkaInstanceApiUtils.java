@@ -196,7 +196,7 @@ public class KafkaInstanceApiUtils {
             log.debug(topic);
             return topic;
         } else {
-            log.info("create kafka instance '{}'", payload.getName());
+            log.info("create topic '{}'", payload.getName());
             var topic = api.createTopic(payload);
             log.debug(topic);
             return topic;

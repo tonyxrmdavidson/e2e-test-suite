@@ -315,7 +315,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
     }
 
     @SneakyThrows
-    @Test
+    @Test (priority = 2)
     public void testAdminUserCanChangeTheKafkaInstanceOwner() {
 
         var authorizationTopicName = "authorization-topic-name";
@@ -331,7 +331,9 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         );
 
         LOGGER.info("change of owner of instance");
-        KafkaMgmtApiUtils.changeKafkaInstanceOwner(mainAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME, Environment.SECONDARY_PASSWORD);
+        KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME);
+        // wait until owner is changed (waiting for Rollout on Brokers)
+        KafkaMgmtApiUtils.waitUntilOwnerIsChanged(kafkaInstanceAPISecondaryUser);
 
         // try to perform operation (i.e., delete topic) without Authorization exception
         LOGGER.info("deletion of topic should now pass authorization phase");
@@ -339,13 +341,10 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
                 ApiNotFoundException.class,
                 () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
         );
-
-        // owner is changed back to primary user in order for other test to run properly
-        KafkaMgmtApiUtils.changeKafkaInstanceOwner(secondaryAPI.kafkaMgmt(), kafka, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
     }
 
     @SneakyThrows
-    @Test (priority = 2)
+    @Test (priority = 3)
     // test is should be executed as last one.
     public void testAdminUserCanDeleteTheKafkaInstance() {
         KafkaMgmtApiUtils.cleanKafkaInstance(adminAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);

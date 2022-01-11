@@ -30,8 +30,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofDays;
 import static java.time.Duration.ofMinutes;
@@ -366,38 +364,36 @@ public class KafkaMgmtApiUtils {
         }
     }
 
-    // TODO till real implementation of correct response only workaround.
-    public static void waitUntilOwnerIsChanged(KafkaInstanceApi api, String topicName) throws Exception {
-
-        ThrowingFunction<Boolean, Boolean, ApiNotFoundException> ready = l -> {
+    // TODO till real implementation of correct response when changing owner of kafka instance, only workaround.
+    public static void waitUntilOwnerIsChanged(KafkaInstanceApi newOwnerKafkaInstanceApi) throws Exception {
+        var topicName = "topic-used-to-wait";
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> ready = l -> {
+            // catches (ApiForbiddenException) while waiting for becoming Authorized (i.e., Owner), and also problem with replication factor when Rollout takes place.
             try {
-                KafkaInstanceApiUtils.applyTopic(api, topicName);
+                KafkaInstanceApiUtils.applyTopic(newOwnerKafkaInstanceApi, topicName);
                 // temporary topic is cleaned afterwards
-                api.deleteTopic(topicName);
+                newOwnerKafkaInstanceApi.deleteTopic(topicName);
                 return true;
             } catch (ApiGenericException ignored) {
+                return false;
             }
-            return false;
         };
 
         try {
             waitFor("kafka owner to be changed", ofSeconds(10), ofMinutes(5), ready);
         } catch (TimeoutException e) {
+            // When the owner change all the Kafka brokers need to be redeployed and this could take some time but we expect it to be completed within 5 minutes
             throw new Exception("kafka instance did not switch the owner (waiting for rollback), within expected time");
         }
     }
 
-    public static void changeKafkaInstanceOwner(KafkaMgmtApi mgmtApi,  KafkaRequest kafka, String newOwnerName, String newOwnerPassword) throws Throwable {
-        KafkaInstanceApi instanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-                newOwnerName,
-                newOwnerPassword));
+    // function does not wait for change of owner, to be reflected on cluster. waitUntilOwnerIsChanged can be called to wait for that
+    public static void changeKafkaInstanceOwner(KafkaMgmtApi mgmtApi,  KafkaRequest kafka, String newOwnerName) throws Throwable {
 
         KafkaUpdateRequest kafkaUpdateRequest = new KafkaUpdateRequest();
         var lowerCasedName = newOwnerName.toLowerCase(Locale.ROOT);
         kafkaUpdateRequest.setOwner(lowerCasedName);
         mgmtApi.updateKafka(kafka.getId(), kafkaUpdateRequest);
 
-        // wait until owner is changed (waiting for Rollout on Brokers)
-        waitUntilOwnerIsChanged(instanceApi, "topic-used-to-wait");
     }
 }
