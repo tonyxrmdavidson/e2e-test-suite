@@ -29,7 +29,7 @@ public class OperatorUtils {
         return client.resources(CloudServicesRequest.class, CloudServicesRequestList.class);
     }
 
-    public static MixedOperation<KafkaConnection, KafkaConnectionList, Resource<KafkaConnection>> kafkaConnection(KubernetesClient client) {
+    public static MixedOperation<KafkaConnection, KafkaConnectionList, Resource<KafkaConnection>>kafkaConnection(KubernetesClient client) {
         return client.resources(KafkaConnection.class, KafkaConnectionList.class);
     }
 
