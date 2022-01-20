@@ -11,6 +11,11 @@
             <class name="io.managed.services.test.devexp.KafkaOperatorTest"/>
         </classes>
     </test>
+    <test name="ServiceRegistryOperatorTest">
+        <classes>
+            <class name="io.managed.services.test.devexp.ServiceRegistryOperatorTest"/>
+        </classes>
+    </test>
     <test name="QuarkusApplicationTest">
         <classes>
             <class name="io.managed.services.test.quickstarts.QuarkusApplicationTest"/>

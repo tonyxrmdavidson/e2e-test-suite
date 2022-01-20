@@ -6,6 +6,8 @@ import com.openshift.cloud.v1alpha.models.CloudServicesRequest;
 import com.openshift.cloud.v1alpha.models.CloudServicesRequestList;
 import com.openshift.cloud.v1alpha.models.KafkaConnection;
 import com.openshift.cloud.v1alpha.models.KafkaConnectionList;
+import com.openshift.cloud.v1alpha.models.ServiceRegistryConnection;
+import com.openshift.cloud.v1alpha.models.ServiceRegistryConnectionList;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -29,8 +31,12 @@ public class OperatorUtils {
         return client.resources(CloudServicesRequest.class, CloudServicesRequestList.class);
     }
 
-    public static MixedOperation<KafkaConnection, KafkaConnectionList, Resource<KafkaConnection>>kafkaConnection(KubernetesClient client) {
+    public static MixedOperation<KafkaConnection, KafkaConnectionList, Resource<KafkaConnection>> kafkaConnection(KubernetesClient client) {
         return client.resources(KafkaConnection.class, KafkaConnectionList.class);
+    }
+
+    public static MixedOperation<ServiceRegistryConnection, ServiceRegistryConnectionList, Resource<ServiceRegistryConnection>> serviceRegistryConnection(KubernetesClient client) {
+        return client.resources(ServiceRegistryConnection.class, ServiceRegistryConnectionList.class);
     }
 
     public static MixedOperation<ServiceBinding, ServiceBindingList, Resource<ServiceBinding>> serviceBinding(KubernetesClient client) {
