@@ -127,38 +127,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
 
     }
 
-    @Test
-    @SneakyThrows
-    public void testSecondaryUserCanReadTheKafkaInstance() {
 
-        // Get kafka instance list by another user with same org
-        LOGGER.info("fetch list of kafka instance from the secondary user in the same org");
-        var kafkas = secondaryAPI.kafkaMgmt().getKafkas(null, null, null, null);
-
-        LOGGER.debug(kafkas);
-
-        var o = kafkas.getItems().stream()
-            .filter(k -> KAFKA_INSTANCE_NAME.equals(k.getName()))
-            .findAny();
-        assertTrue(o.isPresent());
-    }
-
-
-    @Test
-    @SneakyThrows
-    public void testAlienUserCanNotReadTheKafkaInstance() {
-
-        // Get list of kafka Instance in org 1 and test it should be there
-        LOGGER.info("fetch list of kafka instance from the alin user in a different org");
-        var kafkas = alienAPI.kafkaMgmt().getKafkas(null, null, null, null);
-
-        LOGGER.debug(kafkas);
-
-        var o = kafkas.getItems().stream()
-            .filter(k -> KAFKA_INSTANCE_NAME.equals(k.getName()))
-            .findAny();
-        assertTrue(o.isEmpty());
-    }
 
     @Test
     @SneakyThrows
