@@ -307,45 +307,7 @@ public class KafkaAdminPermissionTest extends TestBase {
         assertThrows(TopicAuthorizationException.class, () -> admin.deleteRecords(TOPIC_NAME_FOR_GROUPS));
     }
 
-    @Test
-    public void testForbiddenToUncleanLeaderElection() {
 
-        log.info("kafka-leader-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_FOR_GROUPS));
-    }
 
-    @Test
-    public void testForbiddenToDescribeLogDirs() {
 
-        log.info("kafka-log-dirs.sh --describe <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> admin.logDirs());
-    }
-
-    @Test
-    public void testForbiddenToAlterPreferredReplicaElection() {
-
-        log.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_FOR_GROUPS));
-    }
-
-    @Test
-    public void testForbiddenToReassignPartitions() {
-
-        log.info("kafka-reassign-partitions.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> admin.reassignPartitions(TOPIC_NAME_FOR_GROUPS));
-    }
-
-    @Test
-    public void testForbiddenToCreateDelegationToken() {
-
-        log.info("kafka-delegation-tokens.sh create <forbidden>, script representation test");
-        assertThrows(DelegationTokenDisabledException.class, () -> admin.createDelegationToken());
-    }
-
-    @Test
-    public void testForbiddenToDescribeDelegationToken() {
-
-        log.info("kafka-delegation-tokens.sh describe <forbidden>, script representation test");
-        assertThrows(DelegationTokenDisabledException.class, () -> admin.describeDelegationToken());
-    }
 }
