@@ -2,29 +2,32 @@ package io.managed.services.test.kafka;
 
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
-import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
-import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
+import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.DelegationTokenDisabledException;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.resource.ResourceType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -57,14 +60,14 @@ public class KafkaAccessControlTest extends TestBase {
     private static final String SECONDARY_SERVICE_ACCOUNT_NAME = "mk-e2e-ac-secondary-sa-" + Environment.LAUNCH_KEY;
     private static final String ALIEN_SERVICE_ACCOUNT_NAME = "mk-e2e-ac-alien-sa-" + Environment.LAUNCH_KEY;
 
-    private static final String TOPIC_NAME_FOR_GROUPS = "temporary-topic-name";
+    private static final String TOPIC_NAME_EXISTING_TOPIC = "existing-topic-name";
 
-    private ApplicationServicesApi mainAPI;
+    private ApplicationServicesApi primaryAPI;
     private ApplicationServicesApi secondaryAPI;
     private ApplicationServicesApi alienAPI;
     private ApplicationServicesApi adminAPI;
 
-    private ServiceAccount mainServiceAccount;
+    private ServiceAccount primaryServiceAccount;
     private ServiceAccount secondaryServiceAccount;
     private ServiceAccount alienServiceAccount;
 
@@ -88,7 +91,7 @@ public class KafkaAccessControlTest extends TestBase {
         assertNotNull(Environment.ALIEN_USERNAME, "the ALIEN_USERNAME env is null");
         assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
 
-        mainAPI = ApplicationServicesApi.applicationServicesApi(
+        primaryAPI = ApplicationServicesApi.applicationServicesApi(
                 Environment.PRIMARY_USERNAME,
                 Environment.PRIMARY_PASSWORD);
 
@@ -105,23 +108,32 @@ public class KafkaAccessControlTest extends TestBase {
                 Environment.ADMIN_PASSWORD);
 
         LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
-        kafka = KafkaMgmtApiUtils.applyKafkaInstance(mainAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(primaryAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
 
 
-        kafkaMgmtApi = mainAPI.kafkaMgmt();
+        kafkaMgmtApi = primaryAPI.kafkaMgmt();
         //securityMgmtApi = mainAPI.securityMgmt();
 
-        ServiceAccount secondaryServiceAccount =
+        secondaryServiceAccount =
                 SecurityMgmtAPIUtils.applyServiceAccount(secondaryAPI.securityMgmt(), SECONDARY_SERVICE_ACCOUNT_NAME);
-        ServiceAccount serviceAccount =
-                SecurityMgmtAPIUtils.applyServiceAccount(mainAPI.securityMgmt(), SERVICE_ACCOUNT_NAME);
+        primaryServiceAccount =
+                SecurityMgmtAPIUtils.applyServiceAccount(primaryAPI.securityMgmt(), SERVICE_ACCOUNT_NAME);
 
         // create the kafka admin
         admin = new KafkaAdmin(
                 kafka.getBootstrapServerHost(),
-                serviceAccount.getClientId(),
-                serviceAccount.getClientSecret());
+                primaryServiceAccount.getClientId(),
+                primaryServiceAccount.getClientSecret());
         LOGGER.info("kafka admin api initialized for instance: {}", kafka.getBootstrapServerHost());
+
+        // login to get access to Kafka Instance API for primary user.
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+        var masUser = bwait(auth.loginToOpenshiftIdentity());
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, masUser);
+
+        // create topic that is needed to perform some permission test (e.g., messages consumption)
+        KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME_EXISTING_TOPIC);
     }
 
 
@@ -140,7 +152,7 @@ public class KafkaAccessControlTest extends TestBase {
             LOGGER.error("clan kafka error: ", t);
         }
         try {
-            SecurityMgmtAPIUtils.cleanServiceAccount(mainAPI.securityMgmt(), PRIMARY_SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(primaryAPI.securityMgmt(), PRIMARY_SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean main (primary) service account error: ", t);
         }
@@ -210,7 +222,7 @@ public class KafkaAccessControlTest extends TestBase {
     public void testForbiddenToUncleanLeaderElection() {
 
         LOGGER.info("kafka-leader-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_FOR_GROUPS));
+        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_EXISTING_TOPIC));
     }
 
     @Test
@@ -224,14 +236,47 @@ public class KafkaAccessControlTest extends TestBase {
     public void testForbiddenToAlterPreferredReplicaElection() {
 
         LOGGER.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_FOR_GROUPS));
+        assertThrows(ClusterAuthorizationException.class, () -> admin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_EXISTING_TOPIC));
     }
 
     @Test
     public void testForbiddenToReassignPartitions() {
 
         LOGGER.info("kafka-reassign-partitions.sh <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> admin.reassignPartitions(TOPIC_NAME_FOR_GROUPS));
+        assertThrows(ClusterAuthorizationException.class, () -> admin.reassignPartitions(TOPIC_NAME_EXISTING_TOPIC));
     }
+
+    // default permission of SA
+    @Test
+    @SneakyThrows
+    public void testDefaultServiceAccountCanListTopic() {
+        LOGGER.info("Test default service account ability to list topics");
+        admin.listTopics();
+    }
+
+    @Test
+    @SneakyThrows
+    public void testDefaultServiceAccountCannotProduceAndConsumeMessages() {
+        LOGGER.info("Test default service account inability to produce and consume data from topic {}", TOPIC_NAME_EXISTING_TOPIC);
+        assertThrows(GroupAuthorizationException.class, () -> bwait(testTopic(
+                Vertx.vertx(),
+                kafka.getBootstrapServerHost(),
+                primaryServiceAccount.getClientId(),
+                primaryServiceAccount.getClientSecret(),
+                TOPIC_NAME_EXISTING_TOPIC,
+                1000,
+                10,
+                100,
+                KafkaAuthMethod.PLAIN)));
+    }
+
+    @Test
+    @SneakyThrows
+    public void testDefaultServiceAccountCannotCreateACLs() {
+        LOGGER.info("Test default service account inability to create ACL");
+        assertThrows(ClusterAuthorizationException.class, () -> admin.addAclResource(ResourceType.TOPIC));
+    }
+
+
 
 }
