@@ -6,11 +6,13 @@ import com.openshift.cloud.api.kas.auth.models.AclOperation;
 import com.openshift.cloud.api.kas.auth.models.AclPatternType;
 import com.openshift.cloud.api.kas.auth.models.AclPermissionType;
 import com.openshift.cloud.api.kas.auth.models.AclResourceType;
+import com.openshift.cloud.api.kas.auth.models.AclResourceTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
+import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.Environment;
 import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
@@ -263,6 +265,40 @@ public class KafkaInstanceApiUtils {
         createReadAnyTopicACL(api, principal);
         createWriteAnyTopicACL(api, principal);
     }
+
+    /**
+     * Allow the Service account all operations on Topics, Transactions, Groups. In other words grant all ACLs for service account
+     *
+     * @param api       KafkaInstanceApi
+     * @param serviceAccount The serviceAccount instance to be granted permissions
+     */
+    public static void applyAllowAllACLs(KafkaInstanceApi api, ServiceAccount serviceAccount) throws ApiGenericException {
+        //createReadAnyGroupACL(api, principal);
+        //createReadAnyTopicACL(api, principal);
+        //createWriteAnyTopicACL(api, principal);
+        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
+
+        var aclPage = api.getAcls(null, null, null, principal, null, null, null, null, null, null);
+        var acls = aclPage.getItems();
+
+        // Grant all permission on Topics, groups, and transactions if they are not present
+        if (!hasAllowAnyACL(acls, principal, AclResourceType.GROUP, AclOperation.ALL)){
+            KafkaInstanceApiUtils.createAllowAnyACL(api, principal, AclResourceType.GROUP, AclOperation.ALL);
+        }
+        if (!hasAllowAnyACL(acls, principal, AclResourceType.TOPIC, AclOperation.ALL)){
+            KafkaInstanceApiUtils.createAllowAnyACL(api, principal, AclResourceType.TOPIC, AclOperation.ALL);
+        }
+        if (!hasAllowAnyACL(acls, principal, AclResourceType.TRANSACTIONAL_ID, AclOperation.ALL)) {
+            KafkaInstanceApiUtils.createAllowAnyACL(api, principal, AclResourceType.TRANSACTIONAL_ID, AclOperation.ALL);
+        }
+    }
+
+    public static void removeIfExistAllowAllTypeOfACLs(KafkaInstanceApi api, ServiceAccount serviceAccount) throws ApiGenericException {
+        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
+        api.deleteAcls(null,null, null, principal,null,null );
+    }
+
+
 
     public static boolean hasAllowAnyACL(List<AclBinding> acls, String principal, AclResourceType resourceType, AclOperation operation) {
         return acls.stream().anyMatch(a -> principal.equals(a.getPrincipal())
