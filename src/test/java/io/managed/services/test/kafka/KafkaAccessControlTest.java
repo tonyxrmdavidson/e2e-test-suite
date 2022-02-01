@@ -1,6 +1,9 @@
 package io.managed.services.test.kafka;
 
+import com.openshift.cloud.api.kas.auth.models.AclBinding;
 import com.openshift.cloud.api.kas.auth.models.AclOperation;
+import com.openshift.cloud.api.kas.auth.models.AclPatternType;
+import com.openshift.cloud.api.kas.auth.models.AclPermissionType;
 import com.openshift.cloud.api.kas.auth.models.AclResourceType;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
@@ -11,6 +14,7 @@ import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
@@ -18,14 +22,17 @@ import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.vertx.core.Vertx;
+import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.ElectionType;
+import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.DelegationTokenDisabledException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.protocol.types.Field;
 import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.BeforeClass;
@@ -198,7 +205,7 @@ public class KafkaAccessControlTest extends TestBase {
         }
 
     }
-
+    @Ignore
     @Test
     @SneakyThrows
     public void testSecondaryUserCanReadTheKafkaInstance() {
@@ -286,7 +293,7 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("Test default service account ability to list topics");
         defaultAdmin.listTopics();
     }
-    @Ignore
+    //@Ignore
     @Test
     @SneakyThrows
     public void testDefaultServiceAccountCannotProduceAndConsumeMessages() {
@@ -332,7 +339,7 @@ public class KafkaAccessControlTest extends TestBase {
         // remove all additional ACLs
         KafkaInstanceApiUtils.removeIfExistAllowAllTypeOfACLs(kafkaInstanceApi,defaultServiceAccount);
     }
-    @Ignore
+    //@Ignore
     @Test
     @SneakyThrows
     public void testServiceAccountCanProduceAndConsumeMessagesWithACLs() {
@@ -371,12 +378,12 @@ public class KafkaAccessControlTest extends TestBase {
         // remove all additional ACLs
         KafkaInstanceApiUtils.removeIfExistAllowAllTypeOfACLs(kafkaInstanceApi,defaultServiceAccount);
     }
-
+    @Ignore
     @Test
     @SneakyThrows
     public void testServiceAccountCanDeleteConsumerGroupsWithACLs() {
 
-        LOGGER.info("Test ability of default service account with additional ACLs to list consumer groups");
+        LOGGER.info("Test ability of default service account with additional ACLs to delete consumer groups");
         final String groupId = "cg-3";
 
         // add ACLs on all resources for default account
@@ -401,6 +408,76 @@ public class KafkaAccessControlTest extends TestBase {
     }
 
 
+
+    @Test
+    @SneakyThrows
+    public void testDenyTopicReadOnConnectedConsumer() {
+
+        LOGGER.info("Test ability of default service account with additional ACLs to list consumer groups");
+
+        // add ACLs on all resources for default account
+        KafkaInstanceApiUtils.removeIfExistAllowAllTypeOfACLs(kafkaInstanceApi,defaultServiceAccount);
+        KafkaInstanceApiUtils.applyAllowAllACLs(kafkaInstanceApi, defaultServiceAccount);
+
+        // create producer
+        var producer = new KafkaProducerClient<String, String>(
+            Vertx.vertx(),
+            kafka.getBootstrapServerHost(),
+            defaultServiceAccount.getClientId(), defaultServiceAccount.getClientSecret(),
+            KafkaAuthMethod.OAUTH,
+            StringSerializer.class,
+            StringSerializer.class
+            );
+
+        // create consumer
+        var consumerClient = new KafkaConsumerClient<>(
+                Vertx.vertx(),
+                kafka.getBootstrapServerHost(),
+                defaultServiceAccount.getClientId(), defaultServiceAccount.getClientSecret(),
+                KafkaAuthMethod.OAUTH,
+                "groupId",
+                "earliest",
+                StringDeserializer.class,
+                StringDeserializer.class);
+
+
+        // produce message
+        LOGGER.info("Producer produce single message");
+        bwait(producer.send(KafkaProducerRecord.create(TOPIC_NAME_EXISTING_TOPIC, "message 1")));
+
+        // consume messages
+        LOGGER.info("Consumer reads single message");
+        bwait(consumerClient.receiveAsync(TOPIC_NAME_EXISTING_TOPIC, 1));
+
+        // deny rights
+        LOGGER.info("new ACL that deny right to read Topics for tested service account is to be applied");
+        var principal = KafkaInstanceApiUtils.toPrincipal(defaultServiceAccount.getClientId());
+        var acl = new AclBinding()
+                .principal(principal)
+                .resourceType(AclResourceType.TOPIC)
+                .patternType(AclPatternType.LITERAL)
+                .resourceName("*")
+                .permission(AclPermissionType.DENY)
+                .operation(AclOperation.READ);
+        kafkaInstanceApi.createAcl(acl);
+
+        LOGGER.info("ACL is applied");
+
+        // produce one more message
+        LOGGER.info("Producer produce another message (after ACL to DENY TOPIC READ is applied)");
+        bwait(producer.send(KafkaProducerRecord.create(TOPIC_NAME_EXISTING_TOPIC, "message 2")));
+
+        // fail while consuming message
+        LOGGER.info("Consumer wants to  read another message (after ACL to DENY TOPIC READ is applied)");
+
+        //bwait(consumerClient.receiveAsync(TOPIC_NAME_EXISTING_TOPIC, 1));
+        assertThrows(AuthorizationException.class, () -> bwait(consumerClient.tryConsumingMessages(1)));
+
+        //close consumer
+        consumerClient.close();
+        // remove all additional ACLs
+        KafkaInstanceApiUtils.removeIfExistAllowAllTypeOfACLs(kafkaInstanceApi,defaultServiceAccount);
+    }
 
 
 }

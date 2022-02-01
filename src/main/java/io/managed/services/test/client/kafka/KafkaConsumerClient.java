@@ -16,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static io.managed.services.test.TestUtils.forEach;
@@ -140,6 +141,31 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
             .compose(__ -> consumer.unsubscribe());
     }
 
+    // Method is almost exactly like consumeMessages but in this case it is public, does not care about data, and is used mostly
+    // due to fact that it needs to fail on first sign of fail, it would crash most of other tests (e.g., those that use TestTopic)
+    public Future<Void> tryConsumingMessages(int expectedMessages) {
+        Promise<Void> promise = Promise.promise();
+        AtomicInteger counter = new AtomicInteger();
+
+        // set the fetch batch to the expected messages
+        consumer.fetch(expectedMessages);
+
+        consumer.exceptionHandler(e ->{
+            LOGGER.error("error while consuming data {}", e.getMessage());
+            promise.fail(e);
+        });
+
+        consumer.handler(record -> {
+            counter.getAndIncrement();
+            if (counter.get() == expectedMessages) {
+                LOGGER.info("successfully received {} messages", expectedMessages);
+                consumer.commit()
+                    .onComplete(promise);
+            }
+        });
+
+        return promise.future();
+    }
 
     private Future<List<ConsumerRecord<K, V>>> consumeMessages(int expectedMessages) {
         Promise<List<ConsumerRecord<K, V>>> promise = Promise.promise();
