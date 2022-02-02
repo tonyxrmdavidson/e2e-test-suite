@@ -31,7 +31,6 @@ import org.apache.kafka.common.ElectionType;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.DelegationTokenDisabledException;
-import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -95,9 +94,9 @@ public class KafkaAccessControlTest extends TestBase {
     private ServiceAccount alienServiceAccount;
 
     private KafkaRequest kafka;
-    private KafkaInstanceApi kafkaInstanceApi;
-    private KafkaInstanceApi kafkaInstanceApiSecondary;
-    private KafkaInstanceApi kafkaInstanceApiAdmin;
+    private KafkaInstanceApi kafkaInstanceAPIPrimaryUser;
+    private KafkaInstanceApi kafkaInstanceAPISecondaryUser;
+    private KafkaInstanceApi kafkaInstanceAPIAdminUser;
 
     private KafkaAdmin primaryAdmin;
     private KafkaAdmin secondaryAdmin;
@@ -167,23 +166,23 @@ public class KafkaAccessControlTest extends TestBase {
         var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
         var kafka = KafkaMgmtApiUtils.applyKafkaInstance(primaryAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
         var masUser = bwait(auth.loginToOpenshiftIdentity());
-        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, masUser);
+        kafkaInstanceAPIPrimaryUser = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, masUser);
 
         // login to get access to Kafka Instance API for secondary user
-        kafkaInstanceApiSecondary = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+        kafkaInstanceAPISecondaryUser = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
                 Environment.SECONDARY_USERNAME,
                 Environment.SECONDARY_PASSWORD));
 
         // login to get access to Kafka Instance API for admin user
-        kafkaInstanceApiAdmin = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+        kafkaInstanceAPIAdminUser = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
                 Environment.ADMIN_USERNAME,
                 Environment.ADMIN_PASSWORD));
 
         // get default ACLs for Kafka Instance
-        defaultPermissionsList = KafkaInstanceApiUtils.getDefaultACLs(kafkaInstanceApi);
+        defaultPermissionsList = KafkaInstanceApiUtils.getDefaultACLs(kafkaInstanceAPIPrimaryUser);
 
         // create topic that is needed to perform some permission test (e.g., messages consumption)
-        KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME_EXISTING_TOPIC);
+        KafkaInstanceApiUtils.applyTopic(kafkaInstanceAPIPrimaryUser, TOPIC_NAME_EXISTING_TOPIC);
     }
 
     @AfterClass(alwaysRun = true)
@@ -197,7 +196,7 @@ public class KafkaAccessControlTest extends TestBase {
 
         //Clear all but default ACLs....
         try {
-            KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+            KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
         } catch (Throwable t){
             LOGGER.error("clean extra ACLs error: ", t);
         }
@@ -230,7 +229,7 @@ public class KafkaAccessControlTest extends TestBase {
 
     }
 
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testSecondaryUserCanReadTheKafkaInstance() {
@@ -246,7 +245,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .findAny();
         assertTrue(o.isPresent());
     }
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testAlienUserCanNotReadTheKafkaInstance() {
@@ -262,7 +261,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .findAny();
         assertTrue(o.isEmpty());
     }
-    //@Ignore
+    @Ignore
     // always denied operations
     @Test
     public void testForbiddenToCreateDelegationToken() {
@@ -270,35 +269,35 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("kafka-delegation-tokens.sh create <forbidden>, script representation test");
         assertThrows(DelegationTokenDisabledException.class, () -> primaryAdmin.createDelegationToken());
     }
-    //@Ignore
+    @Ignore
     @Test
     public void testForbiddenToDescribeDelegationToken() {
 
         LOGGER.info("kafka-delegation-tokens.sh describe <forbidden>, script representation test");
         assertThrows(DelegationTokenDisabledException.class, () -> primaryAdmin.describeDelegationToken());
     }
-    //@Ignore
+    @Ignore
     @Test
     public void testForbiddenToUncleanLeaderElection() {
 
         LOGGER.info("kafka-leader-election.sh <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> primaryAdmin.electLeader(ElectionType.UNCLEAN, TOPIC_NAME_EXISTING_TOPIC));
     }
-    //@Ignore
+    @Ignore
     @Test
     public void testForbiddenToDescribeLogDirs() {
 
         LOGGER.info("kafka-log-dirs.sh --describe <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> primaryAdmin.logDirs());
     }
-    //@Ignore
+    @Ignore
     @Test
     public void testForbiddenToAlterPreferredReplicaElection() {
 
         LOGGER.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
         assertThrows(ClusterAuthorizationException.class, () -> primaryAdmin.electLeader(ElectionType.PREFERRED, TOPIC_NAME_EXISTING_TOPIC));
     }
-    //@Ignore
+    @Ignore
     @Test
     public void testForbiddenToReassignPartitions() {
 
@@ -307,24 +306,24 @@ public class KafkaAccessControlTest extends TestBase {
     }
 
     // default permission of SA
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsDefaultServiceAccountCanListTopic() {
 
         // removal of possibly existing additional ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
 
         LOGGER.info("Test default service account ability to list topics");
         defaultAdmin.listTopics();
     }
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsDefaultServiceAccountCannotProduceAndConsumeMessages() {
 
         // removal of possibly existing additional ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
 
         LOGGER.info("Test default service account inability to produce and consume data from topic {}", TOPIC_NAME_EXISTING_TOPIC);
         assertThrows(GroupAuthorizationException.class, () -> bwait(testTopic(
@@ -338,17 +337,17 @@ public class KafkaAccessControlTest extends TestBase {
                 100,
                 KafkaAuthMethod.PLAIN)));
     }
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsDefaultServiceAccountCannotCreateACLs() {
 
         // removal of possibly existing additional ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
         LOGGER.info("Test default service account inability to create ACL");
         assertThrows(ClusterAuthorizationException.class, () -> primaryAdmin.addAclResource(ResourceType.TOPIC));
     }
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsAllowAllTopicServiceAccountCanCreateTopic() {
@@ -356,9 +355,8 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("Test ability of default service account with additional ACLs to create topic");
 
         // clean and add ACLs on all resources for default account
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
-        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(
-                kafkaInstanceApi, defaultServiceAccount,
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(kafkaInstanceAPIPrimaryUser, defaultServiceAccount,
                 List.of(AclResourceType.TOPIC)
         );
 
@@ -369,12 +367,12 @@ public class KafkaAccessControlTest extends TestBase {
 
         // teardown
         try{
-            kafkaInstanceApi.deleteTopic(topicName);
+            kafkaInstanceAPIPrimaryUser.deleteTopic(topicName);
         } catch (Exception e){
             LOGGER.error("error while deleting topic {}, {}",topicName, e.getMessage());
         }
     }
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsServiceAccountCanProduceAndConsumeMessages() {
@@ -382,9 +380,8 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("Test ability of default service account with additional ACLs to create topic");
 
         // removal of possibly existing additional ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
-        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(
-                kafkaInstanceApi, defaultServiceAccount,
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(kafkaInstanceAPIPrimaryUser, defaultServiceAccount,
                 List.of(AclResourceType.TOPIC, AclResourceType.GROUP, AclResourceType.TRANSACTIONAL_ID)
         );
 
@@ -401,23 +398,22 @@ public class KafkaAccessControlTest extends TestBase {
                 KafkaAuthMethod.PLAIN));
 
     }
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsServiceAccountCanListConsumerGroups() {
 
         LOGGER.info("Test ability of default service account with additional ACLs to list consumer groups");
         // removal of possibly existing additional ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
-        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(
-                kafkaInstanceApi, defaultServiceAccount,
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(kafkaInstanceAPIPrimaryUser, defaultServiceAccount,
                 List.of(AclResourceType.TOPIC, AclResourceType.GROUP, AclResourceType.TRANSACTIONAL_ID)
         );
 
         defaultAdmin.listConsumerGroups();
 
     }
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsServiceAccountCanDeleteConsumerGroups() {
@@ -426,9 +422,8 @@ public class KafkaAccessControlTest extends TestBase {
         final String groupId = "cg-3";
 
         // add ACLs on all resources for default account
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
-        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(
-                kafkaInstanceApi, defaultServiceAccount,
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(kafkaInstanceAPIPrimaryUser, defaultServiceAccount,
                 List.of(AclResourceType.TOPIC, AclResourceType.GROUP, AclResourceType.TRANSACTIONAL_ID)
         );
 
@@ -449,7 +444,7 @@ public class KafkaAccessControlTest extends TestBase {
     }
 
 
-    //@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsDenyTopicReadConnectedConsumerCannotReadMoreMessages() {
@@ -457,9 +452,8 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("Test ability of default service account with additional ACLs to list consumer groups");
 
         // add ACLs on all resources for default account
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
-        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(
-                kafkaInstanceApi, defaultServiceAccount,
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(kafkaInstanceAPIPrimaryUser, defaultServiceAccount,
                 List.of(AclResourceType.TOPIC, AclResourceType.GROUP, AclResourceType.TRANSACTIONAL_ID)
         );
 
@@ -502,7 +496,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .resourceName("*")
                 .permission(AclPermissionType.DENY)
                 .operation(AclOperation.READ);
-        kafkaInstanceApi.createAcl(acl);
+        kafkaInstanceAPIPrimaryUser.createAcl(acl);
 
         LOGGER.info("ACL is applied");
 
@@ -518,7 +512,7 @@ public class KafkaAccessControlTest extends TestBase {
         //close consumer
         consumerClient.close();
     }
-    ////@Ignore
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsDenyTopicDeletionWithPrefix() {
@@ -530,9 +524,8 @@ public class KafkaAccessControlTest extends TestBase {
         final String topicNamePrefixed = prefix + topicName;
 
         // add ACLs on all resources for default account
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
-        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(
-                kafkaInstanceApi, defaultServiceAccount,
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(kafkaInstanceAPIPrimaryUser, defaultServiceAccount,
                 List.of(AclResourceType.TOPIC)
         );
         // add ACL to Deny deletion of topic with prefix for all of users
@@ -543,7 +536,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .resourceName(prefix)
                 .permission(AclPermissionType.DENY)
                 .operation(AclOperation.DELETE);
-        kafkaInstanceApi.createAcl(acl);
+        kafkaInstanceAPIPrimaryUser.createAcl(acl);
 
         LOGGER.info("create topic: {}, that does not match prefix: {}",topicName, prefix);
         defaultAdmin.createTopic(topicName, 1, (short) 3);
@@ -560,12 +553,12 @@ public class KafkaAccessControlTest extends TestBase {
         // clean up
         LOGGER.info("fail to delete topic: {}, that matches prefix: {}", topicNamePrefixed, prefix);
         try{
-            kafkaInstanceApi.deleteTopic(topicNamePrefixed);
+            kafkaInstanceAPIPrimaryUser.deleteTopic(topicNamePrefixed);
         } catch (Exception e){
             LOGGER.error("error while deleting prefixed topic {}, {}",topicNamePrefixed, e.getMessage());
         }
     }
-    //@Ignore
+    @Ignore
     @Test( dependsOnMethods = "testACLsDenyTopicReadConnectedConsumerCannotReadMoreMessages")
     @SneakyThrows
     public void testACLsDenyTopicDescribeConsumerGroupAll() {
@@ -573,9 +566,8 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("Test ACL ability to deny rights to work with consumer group (i.e., read )");
 
         // add ACLs on all resources for default account
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
-        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(
-                kafkaInstanceApi, defaultServiceAccount,
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+        KafkaInstanceApiUtils.applyAllowAllACLsOnResources(kafkaInstanceAPIPrimaryUser, defaultServiceAccount,
                 List.of( AclResourceType.GROUP, AclResourceType.TOPIC)
         );
 
@@ -591,7 +583,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .permission(AclPermissionType.DENY)
                 .operation(AclOperation.DESCRIBE);
 
-        kafkaInstanceApi.createAcl(acl);
+        kafkaInstanceAPIPrimaryUser.createAcl(acl);
 
         // deny rights
         LOGGER.info("ACL: deny read Topic for default service account");
@@ -604,7 +596,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .permission(AclPermissionType.DENY)
                 .operation(AclOperation.READ);
 
-        kafkaInstanceApi.createAcl(acl);
+        kafkaInstanceAPIPrimaryUser.createAcl(acl);
 
         LOGGER.info("ACL: deny all groups for default service account");
         acl = new AclBinding()
@@ -615,7 +607,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .permission(AclPermissionType.DENY)
                 .operation(AclOperation.ALL);
 
-        kafkaInstanceApi.createAcl(acl);
+        kafkaInstanceAPIPrimaryUser.createAcl(acl);
 
         LOGGER.info("try to list topics");
         assertTrue(defaultAdmin.listTopics().isEmpty(),"Unauthorized SA should request empty list of topics");
@@ -626,7 +618,7 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("try to delete consumer groups");
         assertThrows(AuthorizationException.class, () -> defaultAdmin.deleteConsumerGroups("something"));
     }
-
+    @Ignore
     @Test
     @SneakyThrows
     public void testDefaultSecondaryUserCanListACLs() {
@@ -634,25 +626,23 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("Test ACL default setting, secondary user can list ACLs");
 
         // clean ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
 
-        kafkaInstanceApiSecondary.getAcls(null,null,null,null,null,null, null, null, null,null);
-        //
-        //secondaryAdmin.listAclResource(ResourceType.ANY);
+        kafkaInstanceAPISecondaryUser.getAcls(null,null,null,null,null,null, null, null, null,null);
     }
-
+    @Ignore
     @Test
     @SneakyThrows
     public void testDefaultSecondaryUserCannotDeleteACLs() {
 
         LOGGER.info("Test ACL default setting, secondary user cannot delete ACLs");
         // clean ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
 
         assertThrows(ApiForbiddenException.class, () ->
-                kafkaInstanceApiSecondary.deleteAcls(null, null, null, null, null, null));
+                kafkaInstanceAPISecondaryUser.deleteAcls(null, null, null, null, null, null));
     }
-
+    @Ignore
     @Test
     @SneakyThrows
     public void testACLsTopicsAllowAllForSecondaryUser() {
@@ -660,7 +650,7 @@ public class KafkaAccessControlTest extends TestBase {
         LOGGER.info("Test default setting, secondary user cannot delete ACLs");
         final String topicName = "topic-name-acl-secondary-acc";
         // clean ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
 
         assertThrows(AuthorizationException.class, () -> defaultAdmin.deleteAclResource(ResourceType.ANY));
 
@@ -672,7 +662,7 @@ public class KafkaAccessControlTest extends TestBase {
                 .resourceName("*")
                 .permission(AclPermissionType.ALLOW)
                 .operation(AclOperation.ALL);
-        kafkaInstanceApi.createAcl(acl);
+        kafkaInstanceAPIPrimaryUser.createAcl(acl);
 
         // topic create
         LOGGER.info("Secondary user creates topic {}", topicName);
@@ -680,20 +670,20 @@ public class KafkaAccessControlTest extends TestBase {
                 .name(topicName)
                 .settings(new TopicSettings().numPartitions(1));
 
-        kafkaInstanceApiSecondary.createTopic(payload);
+        kafkaInstanceAPISecondaryUser.createTopic(payload);
 
         // topic delete
         LOGGER.info("Secondary user deletes topic {}", topicName);
-        kafkaInstanceApiSecondary.deleteTopic(topicName);
+        kafkaInstanceAPISecondaryUser.deleteTopic(topicName);
     }
-
+    @Ignore
     @Test
     @SneakyThrows
     public void testDefaultAdminUserCannotCreateACLs() {
 
         LOGGER.info("Test ACL default setting, secondary user cannot delete ACLs");
         // clean ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
 
         // add ACL to Deny deletion of topic with prefix for all of users
         var acl = new AclBinding()
@@ -704,50 +694,109 @@ public class KafkaAccessControlTest extends TestBase {
                 .permission(AclPermissionType.ALLOW)
                 .operation(AclOperation.ALL);
 
-        assertThrows(ApiForbiddenException.class, () ->  kafkaInstanceApiAdmin.createAcl(acl));
+        assertThrows(ApiForbiddenException.class, () ->  kafkaInstanceAPIAdminUser.createAcl(acl));
     }
-
+    @Ignore
     @Test
     @SneakyThrows
     public void testDefaultAdminUserCannotDeleteACLs() {
 
         LOGGER.info("Test ACL default setting, secondary user cannot delete ACLs");
         // clean ACLs
-        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceApi, defaultPermissionsList);
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
 
-        assertThrows(ApiForbiddenException.class, () -> kafkaInstanceApiAdmin.deleteAcls(
+        assertThrows(ApiForbiddenException.class, () -> kafkaInstanceAPIAdminUser.deleteAcls(
             AclResourceTypeFilter.TOPIC, "xx", null, null, null, null));
     }
+    @Ignore
+    @SneakyThrows
+    @Test (priority = 1)
+    public void testAdminUserCanChangeTheKafkaInstanceOwner() {
 
-    //@SneakyThrows
-    //@Test (priority = 1)
-    //public void testAdminUserCanChangeTheKafkaInstanceOwner() {
-    //
-    //    var authorizationTopicName = "authorization-topic-name";
-    //    LOGGER.info("initialize kafka admin api for kafka instance: {}", kafka.getBootstrapServerHost());
-    //    var kafkaInstanceAPISecondaryUser = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-    //            Environment.SECONDARY_USERNAME,
-    //            Environment.SECONDARY_PASSWORD));
-    //
-    //    // verify that user who is not the owner of instance can not perform operation (e.g., create topic)
-    //    assertThrows(
-    //            ApiForbiddenException.class,
-    //            () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
-    //    );
-    //
-    //    LOGGER.info("change of owner of instance");
-    //    KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME);
-    //    // wait until owner is changed (waiting for Rollout on Brokers)
-    //    KafkaMgmtApiUtils.waitUntilOwnerIsChanged(kafkaInstanceAPISecondaryUser);
-    //
-    //    // try to perform operation (i.e., delete topic) without Authorization exception
-    //    LOGGER.info("deletion of topic should now pass authorization phase");
-    //    assertThrows(
-    //            ApiNotFoundException.class,
-    //            () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
-    //    );
-    //}
-    //
+        LOGGER.info("Test switch owner (admin) of kafka instance from primary user to secondary");
+        // clean ACLs
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPIPrimaryUser, defaultPermissionsList);
+
+        var authorizationTopicName = "authorization-topic-name";
+
+        // verify that user who is not the owner of instance can not perform operation (e.g., create topic)
+        assertThrows(
+                ApiForbiddenException.class,
+                () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
+        );
+
+        LOGGER.info("change of owner of instance");
+        KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME);
+        // wait until owner is changed (waiting for Rollout on Brokers)
+        KafkaMgmtApiUtils.waitUntilOwnerIsChanged(kafkaInstanceAPISecondaryUser);
+
+        // try to perform operation (i.e., delete topic) without Authorization exception
+        LOGGER.info("deletion of topic should now pass authorization phase");
+        assertThrows(
+                ApiNotFoundException.class,
+                () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
+        );
+    }
+
+    @SneakyThrows
+    //@Test (dependsOnMethods = "testAdminUserCanChangeTheKafkaInstanceOwner")
+    @Test
+    public void testNewInstanceOwnerCanCreateACLs() {
+
+        LOGGER.info("Test ACL default setting, new Instance owner (Secondary User) can create ACLs");
+        // clean ACLs
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPISecondaryUser, defaultPermissionsList);
+
+        // add ACL to Deny deletion of topic with prefix for all of users
+        var acl = new AclBinding()
+                .principal(KafkaInstanceApiUtils.toPrincipal(Environment.PRIMARY_USERNAME))
+                .resourceType(AclResourceType.TOPIC)
+                .patternType(AclPatternType.LITERAL)
+                .resourceName("*")
+                .permission(AclPermissionType.ALLOW)
+                .operation(AclOperation.ALL);
+
+        kafkaInstanceAPISecondaryUser.createAcl(acl);
+    }
+
+    @SneakyThrows
+    //@Test (dependsOnMethods = "testAdminUserCanChangeTheKafkaInstanceOwner")
+    @Test
+    public void testNewInstanceOwnerCanDeleteACLs() {
+
+        LOGGER.info("Test  new Instance owner (Secondary User) can create ACLs");
+        // clean ACLs
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPISecondaryUser, defaultPermissionsList);
+
+        kafkaInstanceAPISecondaryUser.deleteAcls(
+            AclResourceTypeFilter.TOPIC, "xx", null, null, null, null);
+    }
+
+    @Test
+    @SneakyThrows
+    public void testOldInstanceOwnerCanListACLs() {
+
+        LOGGER.info("Test old instance owner (primary user) can list ACLs");
+
+        // clean ACLs
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPISecondaryUser, defaultPermissionsList);
+
+        kafkaInstanceAPIPrimaryUser.getAcls(null,null,null,null,null,null, null, null, null,null);
+    }
+
+    @Test
+    @SneakyThrows
+    public void testOldInstanceOwnerCannotDeleteACLs() {
+
+        LOGGER.info("Test old instance owner (primary user) can list ACLs");
+        // clean ACLs
+        KafkaInstanceApiUtils.removeAllButDefaultACLs(kafkaInstanceAPISecondaryUser, defaultPermissionsList);
+
+        assertThrows(ApiForbiddenException.class, () ->
+                kafkaInstanceAPIPrimaryUser.deleteAcls(null, null, null, null, null, null));
+    }
+
+
     //@SneakyThrows
     //@Test (priority = 3)
     //// test is should be executed as last one.
