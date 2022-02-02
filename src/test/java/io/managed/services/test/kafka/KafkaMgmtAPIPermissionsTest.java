@@ -283,41 +283,5 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         assertNotNull(response);
     }
 
-    @SneakyThrows
-    @Test (priority = 2)
-    public void testAdminUserCanChangeTheKafkaInstanceOwner() {
-
-        var authorizationTopicName = "authorization-topic-name";
-        LOGGER.info("initialize kafka admin api for kafka instance: {}", kafka.getBootstrapServerHost());
-        var kafkaInstanceAPISecondaryUser = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-                Environment.SECONDARY_USERNAME,
-                Environment.SECONDARY_PASSWORD));
-
-        // verify that user who is not the owner of instance can not perform operation (e.g., create topic)
-        assertThrows(
-                ApiForbiddenException.class,
-                () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
-        );
-
-        LOGGER.info("change of owner of instance");
-        KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME);
-        // wait until owner is changed (waiting for Rollout on Brokers)
-        KafkaMgmtApiUtils.waitUntilOwnerIsChanged(kafkaInstanceAPISecondaryUser);
-
-        // try to perform operation (i.e., delete topic) without Authorization exception
-        LOGGER.info("deletion of topic should now pass authorization phase");
-        assertThrows(
-                ApiNotFoundException.class,
-                () -> kafkaInstanceAPISecondaryUser.deleteTopic(authorizationTopicName)
-        );
-    }
-
-    @SneakyThrows
-    @Test (priority = 3)
-    // test is should be executed as last one.
-    public void testAdminUserCanDeleteTheKafkaInstance() {
-        KafkaMgmtApiUtils.cleanKafkaInstance(adminAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
-    }
-
 }
 
