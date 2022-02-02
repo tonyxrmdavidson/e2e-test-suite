@@ -272,28 +272,16 @@ public class KafkaInstanceApiUtils {
      * @param api       KafkaInstanceApi
      * @param serviceAccount The serviceAccount instance to be granted permissions
      */
-    public static void applyAllowAllACLs(KafkaInstanceApi api, ServiceAccount serviceAccount) throws ApiGenericException {
-        //createReadAnyGroupACL(api, principal);
-        //createReadAnyTopicACL(api, principal);
-        //createWriteAnyTopicACL(api, principal);
+    public static void applyAllowAllACLsOnResources(KafkaInstanceApi api, ServiceAccount serviceAccount, List<AclResourceType> resources) throws ApiGenericException {
         var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
 
-        var aclPage = api.getAcls(null, null, null, principal, null, null, null, null, null, null);
-        var acls = aclPage.getItems();
-
-        // Grant all permission on Topics, groups, and transactions if they are not present
-        if (!hasAllowAnyACL(acls, principal, AclResourceType.GROUP, AclOperation.ALL)){
-            KafkaInstanceApiUtils.createAllowAnyACL(api, principal, AclResourceType.GROUP, AclOperation.ALL);
-        }
-        if (!hasAllowAnyACL(acls, principal, AclResourceType.TOPIC, AclOperation.ALL)){
-            KafkaInstanceApiUtils.createAllowAnyACL(api, principal, AclResourceType.TOPIC, AclOperation.ALL);
-        }
-        if (!hasAllowAnyACL(acls, principal, AclResourceType.TRANSACTIONAL_ID, AclOperation.ALL)) {
-            KafkaInstanceApiUtils.createAllowAnyACL(api, principal, AclResourceType.TRANSACTIONAL_ID, AclOperation.ALL);
+        // because ACLs that already exist are simply not created again, we do not need to check if the permission already exist.
+        for ( AclResourceType resourceType : resources ) {
+            KafkaInstanceApiUtils.createAllowAnyACL(api, principal, resourceType, AclOperation.ALL);
         }
     }
 
-    public static void removeIfExistAllowAllTypeOfACLs(KafkaInstanceApi api, ServiceAccount serviceAccount) throws ApiGenericException {
+    public static void removeAllACLsBindToServiceAccountExclusively(KafkaInstanceApi api, ServiceAccount serviceAccount) throws ApiGenericException {
         var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
         api.deleteAcls(null,null, null, principal,null,null );
     }
