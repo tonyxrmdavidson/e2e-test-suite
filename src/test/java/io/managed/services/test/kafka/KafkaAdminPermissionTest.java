@@ -207,7 +207,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     }
 
     @Test
-    //@Ignore
+    @Ignore
     public void testAllowedToDescribeUserConfiguration() {
 
         log.info("kafka-configs.sh --describe --entity-type brokerLogger <permitted>, script representation test");
@@ -255,7 +255,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     }
 
     @Test
-    //@Ignore
+    @Ignore
     public void testForbiddenToAlterUserConfig() {
 
         log.info("kafka-configs.sh --alter --entity-type brokerLogger <permitted>, script representation test");
