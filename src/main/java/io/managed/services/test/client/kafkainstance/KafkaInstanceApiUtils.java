@@ -3,8 +3,11 @@ package io.managed.services.test.client.kafkainstance;
 import com.openshift.cloud.api.kas.auth.invoker.ApiClient;
 import com.openshift.cloud.api.kas.auth.models.AclBinding;
 import com.openshift.cloud.api.kas.auth.models.AclOperation;
+import com.openshift.cloud.api.kas.auth.models.AclOperationFilter;
 import com.openshift.cloud.api.kas.auth.models.AclPatternType;
+import com.openshift.cloud.api.kas.auth.models.AclPatternTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.AclPermissionType;
+import com.openshift.cloud.api.kas.auth.models.AclPermissionTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.AclResourceType;
 import com.openshift.cloud.api.kas.auth.models.AclResourceTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
@@ -35,6 +38,7 @@ import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import javax.ws.rs.client.ClientBuilder;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
@@ -281,9 +285,45 @@ public class KafkaInstanceApiUtils {
         }
     }
 
-    public static void removeAllACLsBindToServiceAccountExclusively(KafkaInstanceApi api, ServiceAccount serviceAccount) throws ApiGenericException {
-        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
-        api.deleteAcls(null,null, null, principal,null,null );
+    /**
+     * return list of ACLs currently created on instance
+     *
+     * @param api       KafkaInstanceApi
+     */
+    public static List<AclBinding> getDefaultACLs(KafkaInstanceApi api) throws ApiGenericException {
+        var aclPage = api.getAcls(null, null, null, null, null, null, null, null, null, null);
+        var acls = aclPage.getItems();
+        List<AclBinding> defaultPermissionsList = new LinkedList<>();
+        for ( AclBinding aclItem  : acls){
+            defaultPermissionsList.add(aclItem);
+        }
+        return defaultPermissionsList;
+    }
+
+    /**
+     * remove all ACLs different from those provided in defaultACLsList
+     *
+     * @param api       KafkaInstanceApi
+     * @param defaultACLsList The list of ACLs which are not to be deleted
+     */
+    public static void removeAllButDefaultACLs(KafkaInstanceApi api, List<AclBinding> defaultACLsList) throws ApiGenericException {
+        // get difference of ACLs that are default from ACLs that are currently present
+        var aclPage = api.getAcls(null, null, null, null, null, null, null, null, null, null);
+        var acls = aclPage.getItems();
+        List<AclBinding> differences = acls;
+        differences.removeAll(defaultACLsList);
+
+        // remove extra ACLs one by one
+        for ( AclBinding aclItem  : differences){
+            api.deleteAcls(
+                    AclResourceTypeFilter.valueOf(aclItem.getResourceType().getValue()),
+                    null,
+                    AclPatternTypeFilter.valueOf(aclItem.getPatternType().getValue()),
+                    aclItem.getPrincipal(),
+                    AclOperationFilter.valueOf(aclItem.getOperation().getValue()),
+                    AclPermissionTypeFilter.valueOf(aclItem.getPermission().getValue())
+            );
+        }
     }
 
 
