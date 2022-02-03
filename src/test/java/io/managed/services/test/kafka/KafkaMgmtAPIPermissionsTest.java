@@ -222,17 +222,7 @@ public class KafkaMgmtAPIPermissionsTest extends TestBase {
         }
     }
 
-    @Test(priority = 1)
-    public void testSecondaryUserCanNotDeleteTheKafkaInstance() {
-        // should failKafkaControlManagerAPIPermissionsTestKafkaControlManagerAPIPermissionsTest
-        assertThrows(ApiNotFoundException.class, () -> secondaryAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
-    }
 
-    @Test(priority = 1)
-    public void testAlienUserCanNotDeleteTheKafkaInstance() {
-        // should fail
-        assertThrows(ApiNotFoundException.class, () -> alienAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
-    }
 
     @Test
     public void testUnauthenticatedUserWithFakeToken() {
