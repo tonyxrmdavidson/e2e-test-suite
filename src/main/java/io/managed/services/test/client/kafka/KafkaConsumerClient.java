@@ -150,7 +150,7 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
         // set the fetch batch to the expected messages
         consumer.fetch(expectedMessages);
 
-        consumer.exceptionHandler(e ->{
+        consumer.exceptionHandler(e -> {
             LOGGER.error("error while consuming data {}", e.getMessage());
             promise.fail(e);
         });

@@ -32,7 +32,7 @@ import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
-import static org.testng.Assert.assertTrue;
+
 
 /**
  * Test the User authn and authz for the Kafka Mgmt API.

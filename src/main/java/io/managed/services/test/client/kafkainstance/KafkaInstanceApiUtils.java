@@ -280,7 +280,7 @@ public class KafkaInstanceApiUtils {
         var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
 
         // because ACLs that already exist are simply not created again, we do not need to check if the permission already exist.
-        for ( AclResourceType resourceType : resources ) {
+        for (AclResourceType resourceType : resources) {
             KafkaInstanceApiUtils.createAllowAnyACL(api, principal, resourceType, AclOperation.ALL);
         }
     }
@@ -294,7 +294,7 @@ public class KafkaInstanceApiUtils {
         var aclPage = api.getAcls(null, null, null, null, null, null, null, null, null, null);
         var acls = aclPage.getItems();
         List<AclBinding> defaultPermissionsList = new LinkedList<>();
-        for ( AclBinding aclItem  : acls){
+        for (AclBinding aclItem  : acls) {
             defaultPermissionsList.add(aclItem);
         }
         return defaultPermissionsList;
@@ -314,7 +314,7 @@ public class KafkaInstanceApiUtils {
         differences.removeAll(defaultACLsList);
 
         // remove extra ACLs one by one
-        for ( AclBinding aclItem  : differences){
+        for (AclBinding aclItem  : differences) {
             api.deleteAcls(
                     AclResourceTypeFilter.valueOf(aclItem.getResourceType().getValue()),
                     null,
