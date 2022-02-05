@@ -23,6 +23,7 @@ import org.apache.kafka.common.resource.ResourceType;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
@@ -204,7 +205,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     }
 
     @Test
-    //@Ignore
+    @Ignore
     public void testAllowedToDescribeUserConfiguration() {
 
         log.info("kafka-configs.sh --describe --entity-type brokerLogger <permitted>, script representation test");
@@ -252,7 +253,7 @@ public class KafkaAdminPermissionTest extends TestBase {
     }
 
     @Test
-    //@Ignore
+    @Ignore
     public void testForbiddenToAlterUserConfig() {
 
         log.info("kafka-configs.sh --alter --entity-type brokerLogger <permitted>, script representation test");

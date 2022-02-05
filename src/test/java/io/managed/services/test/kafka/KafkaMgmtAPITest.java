@@ -16,6 +16,7 @@ import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
@@ -173,11 +174,11 @@ public class KafkaMgmtAPITest extends TestBase {
     @SneakyThrows
     public void testCreateProducerAndConsumerACLs() {
 
-        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
+        var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccount.getClientId());
         log.info("create topic and group read and topic write ACLs for the principal '{}'", principal);
 
         // Create ACLs to consumer and produce messages
-        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
+        KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance")
@@ -365,9 +366,9 @@ public class KafkaMgmtAPITest extends TestBase {
         var serviceAccountForDeletion = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME_FOR_DELETION));
 
         // ACLs
-        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccountForDeletion.getClientId());
+        var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccountForDeletion.getClientId());
         log.info("create topic and group read and topic write ACLs for the principal '{}'", principal);
-        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
+        KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
 
         // working Communication (Producing & Consuming) using  SA (serviceAccountForDeletion)
         var bootstrapHost = kafka.getBootstrapServerHost();

@@ -2,7 +2,7 @@ package io.managed.services.test.quickstarts.steps;
 
 import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
-import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.quickstarts.contexts.KafkaInstanceContext;
 import io.managed.services.test.quickstarts.contexts.ServiceAccountContext;
 import lombok.extern.log4j.Log4j2;
@@ -28,9 +28,9 @@ public class KafkaAccessSteps {
         var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
         var serviceAccount = serviceAccountContext.requireServiceAccount();
 
-        var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
+        var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccount.getClientId());
         log.info("apply producer and consumer ACLs for principal '{}'", principal);
-        KafkaInstanceApiUtils.applyProducerAndConsumerACLs(kafkaInstanceApi, principal);
+        KafkaInstanceApiAccessUtils.applyProducerAndConsumerACLs(kafkaInstanceApi, principal);
 
         this.principal = principal;
     }
