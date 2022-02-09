@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
+import java.util.regex.Pattern;
 
 public class GitHub implements AutoCloseable {
 
@@ -36,19 +37,26 @@ public class GitHub implements AutoCloseable {
         return List.of(r);
     }
 
-    public Release getLatestRelease(String org, String repo) {
+    public Release getLatestRelease(String org, String repo, Pattern exclude) {
         var releases = this.getReleases(org, repo);
 
         // get the first release that is not a draft
         return releases.stream()
             .filter(r -> !r.getDraft())
+
+            // ignore releases without assets because the release pipeline hasn't yet finished building them
+            .filter(r -> !r.getAssets().isEmpty())
+
+            // exclude releases matching the exclude regex
+            .filter(r -> !exclude.matcher(r.getName()).find())
+
             .findFirst()
             .orElseThrow(() -> new NoSuchElementException(String.format("latest release not found in repository: %s/%s", org, repo)));
     }
 
-    public Release getReleaseByTagName(String org, String repo, String name) {
+    public Release getReleaseByTagName(String org, String repo, String name, String exclude) {
         if (name.toLowerCase(Locale.ROOT).equals("latest")) {
-            return getLatestRelease(org, repo);
+            return getLatestRelease(org, repo, Pattern.compile(exclude));
         }
 
         var path = String.format("/repos/%s/%s/releases/tags/%s", org, repo, name);

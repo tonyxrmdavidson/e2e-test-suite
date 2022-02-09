@@ -32,6 +32,7 @@ public class CLIDownloader {
     private final String platform;
     private final String arch;
     private final String archiveExt;
+    private final String excludeVersions;
 
     public CLIDownloader(
         String token,
@@ -39,7 +40,8 @@ public class CLIDownloader {
         String repository,
         String version,
         String platform,
-        String arch) {
+        String arch,
+        String excludeVersions) {
 
         this.github = new GitHub(token);
         this.organization = organization;
@@ -48,6 +50,7 @@ public class CLIDownloader {
         this.platform = platform;
         this.arch = arch;
         this.archiveExt = platformToArchiveExt(platform);
+        this.excludeVersions = excludeVersions;
     }
 
     public static CLIDownloader defaultDownloader() {
@@ -57,7 +60,8 @@ public class CLIDownloader {
             Environment.CLI_DOWNLOAD_REPO,
             Environment.CLI_VERSION,
             Environment.CLI_PLATFORM,
-            Environment.CLI_ARCH);
+            Environment.CLI_ARCH,
+            Environment.CLI_EXCLUDE_VERSIONS);
     }
 
     private String platformToArchiveExt(String platform) {
@@ -74,7 +78,7 @@ public class CLIDownloader {
         var workspace = Files.createTempDirectory(TMPDIR);
 
         LOGGER.info("download CLI in workspace: {}", workspace);
-        var release = github.getReleaseByTagName(organization, repository, version);
+        var release = github.getReleaseByTagName(organization, repository, version, excludeVersions);
 
         var asset = getDownloadAssetFromRelease(release);
 

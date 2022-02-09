@@ -67,6 +67,7 @@ public class Environment {
     private static final String CLI_VERSION_ENV = "CLI_VERSION";
     private static final String CLI_PLATFORM_ENV = "CLI_PLATFORM";
     private static final String CLI_ARCH_ENV = "CLI_ARCH";
+    private static final String CLI_EXCLUDE_VERSIONS_ENV = "CLI_EXCLUDE_VERSIONS";
     private static final String GITHUB_TOKEN_ENV = "GITHUB_TOKEN";
 
     private static final String LAUNCH_KEY_ENV = "LAUNCH_KEY";
@@ -131,6 +132,7 @@ public class Environment {
     public static final String CLI_VERSION = getOrDefault(CLI_VERSION_ENV, "latest");
     public static final String CLI_PLATFORM = getOrDefault(CLI_PLATFORM_ENV, Platform.getArch().toString());
     public static final String CLI_ARCH = getOrDefault(CLI_ARCH_ENV, "amd64");
+    public static final String CLI_EXCLUDE_VERSIONS = getOrDefault(CLI_EXCLUDE_VERSIONS_ENV, "alpha");
     public static final String GITHUB_TOKEN = getOrDefault(GITHUB_TOKEN_ENV, null);
 
     public static final String LAUNCH_KEY = getOrDefault(LAUNCH_KEY_ENV, "change-me");
