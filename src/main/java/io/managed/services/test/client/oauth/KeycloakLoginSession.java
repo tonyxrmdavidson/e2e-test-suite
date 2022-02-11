@@ -143,7 +143,7 @@ public class KeycloakLoginSession {
 
             var document = Jsoup.parse(response.bodyAsString());
 
-            var loginError = document.select("#rh-login-form-error-title").text();
+            var loginError = document.select("#rh-login-form-alert #rh-login-form-error-title").text();
             if (!loginError.isBlank()) {
                 return Future.failedFuture(new ResponseException(loginError, response));
             }
