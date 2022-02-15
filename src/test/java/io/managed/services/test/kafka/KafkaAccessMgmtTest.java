@@ -81,12 +81,12 @@ import static org.testng.Assert.assertTrue;
  *     <li> ALIEN_PASSWORD
  * </ul>
  */
-public class KafkaAccessControlTest extends TestBase {
+public class KafkaAccessMgmtTest extends TestBase {
     //TODO KafkaMgmtAPIPermissionTest (migrate completely)
     //TODO KafkaAdminPermissionTest (migrate completely)
     //TODO KafkaInstanceAPITest (migrate all permission tests)
 
-    private static final Logger LOGGER = LogManager.getLogger(KafkaAccessControlTest.class);
+    private static final Logger LOGGER = LogManager.getLogger(KafkaAccessMgmtTest.class);
 
     private static final String KAFKA_INSTANCE_NAME = "mk-e2e-ac-" + Environment.LAUNCH_KEY;
     private static final String PRIMARY_SERVICE_ACCOUNT_NAME = "mk-e2e-ac-primary-sa-" + Environment.LAUNCH_KEY;

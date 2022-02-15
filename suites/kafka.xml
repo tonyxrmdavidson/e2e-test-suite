@@ -31,4 +31,9 @@
             <class name="io.managed.services.test.kafka.KafkaAdminPermissionTest"/>
         </classes>
     </test>
+    <test name="KafkaAccessMgmtTest">
+        <classes>
+            <class name="io.managed.services.test.kafka.KafkaAccessMgmtTest"/>
+        </classes>
+    </test>
 </suite>
