@@ -15,6 +15,7 @@ import io.managed.services.test.client.kafka.AvroKafkaGenericSerializer;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
@@ -112,7 +113,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         // grant access to the service account to the kafka instance
         LOGGER.info("grant access to the kafka instance for service account: {}", serviceAccount.getClientId());
-        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId()));
+        KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, KafkaInstanceApiAccessUtils.toPrincipal(serviceAccount.getClientId()));
 
         // grant access to the service account to the registry
         LOGGER.info("grant access to the registry for service account: {}", serviceAccount.getClientId());

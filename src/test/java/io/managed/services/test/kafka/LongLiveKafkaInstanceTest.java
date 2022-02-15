@@ -12,6 +12,7 @@ import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
@@ -135,8 +136,8 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         if (Objects.isNull(serviceAccount)) {
             LOGGER.info("create service account '{}'", SERVICE_ACCOUNT_NAME);
             serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
-            var principal = KafkaInstanceApiUtils.toPrincipal(serviceAccount.getClientId());
-            KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
+            var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccount.getClientId());
+            KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
         }
     }
 

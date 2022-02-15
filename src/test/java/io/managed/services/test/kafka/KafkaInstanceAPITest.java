@@ -13,6 +13,7 @@ import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
+import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
@@ -207,7 +208,7 @@ public class KafkaInstanceAPITest extends TestBase {
         var account = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
 
         LOGGER.info("grant access to the service account '{}'", SERVICE_ACCOUNT_NAME);
-        KafkaInstanceApiUtils.createProducerAndConsumerACLs(kafkaInstanceApi, KafkaInstanceApiUtils.toPrincipal(account.getClientId()));
+        KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, KafkaInstanceApiAccessUtils.toPrincipal(account.getClientId()));
 
         kafkaConsumer = bwait(KafkaInstanceApiUtils.startConsumerGroup(vertx,
             TEST_GROUP_NAME,
