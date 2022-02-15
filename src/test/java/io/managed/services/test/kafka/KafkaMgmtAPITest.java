@@ -75,9 +75,6 @@ public class KafkaMgmtAPITest extends TestBase {
         "kubelet_volume_stats_used_bytes",
         "kafka_broker_quota_softlimitbytes",
         "kafka_broker_quota_totalstorageusedbytes",
-        "kafka_server_brokertopicmetrics_messages_in_total",
-        "kafka_server_brokertopicmetrics_bytes_in_total",
-        "kafka_server_brokertopicmetrics_bytes_out_total",
         "kafka_controller_kafkacontroller_offline_partitions_count",
         "kafka_controller_kafkacontroller_global_partition_count",
         "kafka_topic:kafka_log_log_size:sum",
@@ -87,7 +84,10 @@ public class KafkaMgmtAPITest extends TestBase {
         "kafka_topic:kafka_topic_partitions:count",
         "consumergroup:kafka_consumergroup_members:count",
         "kafka_namespace:kafka_server_socket_server_metrics_connection_count:sum",
-        "kafka_namespace:kafka_server_socket_server_metrics_connection_creation_rate:sum"
+        "kafka_namespace:kafka_server_socket_server_metrics_connection_creation_rate:sum",
+        "kafka_topic:kafka_server_brokertopicmetrics_messages_in_total:rate5m",
+        "kafka_topic:kafka_server_brokertopicmetrics_bytes_in_total:rate5m",
+        "kafka_topic:kafka_server_brokertopicmetrics_bytes_out_total:rate5m"
     };
 
     private KafkaMgmtApi kafkaMgmtApi;
