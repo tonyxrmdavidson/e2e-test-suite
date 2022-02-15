@@ -82,8 +82,6 @@ import static org.testng.Assert.assertTrue;
  * </ul>
  */
 public class KafkaAccessMgmtTest extends TestBase {
-    //TODO KafkaMgmtAPIPermissionTest (migrate completely)
-    //TODO KafkaAdminPermissionTest (migrate completely)
     //TODO KafkaInstanceAPITest (migrate all permission tests)
 
     private static final Logger LOGGER = LogManager.getLogger(KafkaAccessMgmtTest.class);

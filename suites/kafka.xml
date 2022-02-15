@@ -11,11 +11,6 @@
             <class name="io.managed.services.test.kafka.KafkaMgmtAPITest"/>
         </classes>
     </test>
-    <test name="KafkaMgmtAPIPermissionsTest">
-        <classes>
-            <class name="io.managed.services.test.kafka.KafkaMgmtAPIPermissionsTest"/>
-        </classes>
-    </test>
     <test name="LongLiveKafkaInstanceTest">
         <classes>
             <class name="io.managed.services.test.kafka.LongLiveKafkaInstanceTest"/>
@@ -24,11 +19,6 @@
     <test name="KafkaInstanceAPITest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaInstanceAPITest"/>
-        </classes>
-    </test>
-    <test name="KafkaAdminPermissionTest">
-        <classes>
-            <class name="io.managed.services.test.kafka.KafkaAdminPermissionTest"/>
         </classes>
     </test>
     <test name="KafkaAccessMgmtTest">
