@@ -114,6 +114,13 @@ public class KafkaMessagingUtils {
             StringSerializer.class);
 
         return produceAndConsumeMessages(vertx, producer, consumer, topicName, timeout, messages)
+
+            .eventually(__ -> {
+                // close the producer and consumer in any case
+                LOGGER.info("close the consumer and the producer for topic {}", topicName);
+                return CompositeFuture.join(producer.asyncClose(), consumer.asyncClose());
+            })
+
             .compose(records -> assertRecords(messages, records));
     }
 
@@ -176,6 +183,13 @@ public class KafkaMessagingUtils {
 
             // assert the records
             .compose(records -> assertRecords(messages, records)
+
+                .eventually(__ -> {
+                    // close the producer and consumer in any case
+                    LOGGER.info("close the consumer and the producer for topic {}", topicName);
+                    return CompositeFuture.join(producer.asyncClose(), consumer.asyncClose());
+                })
+
                 .compose(__ -> assertUnusedConsumers(consumer, records)));
     }
 
@@ -216,12 +230,6 @@ public class KafkaMessagingUtils {
 
                     return records;
                 });
-
-            })
-            .eventually(__ -> {
-                // close the producer and consumer in any case
-                LOGGER.info("close the consumer and the producer for topic {}", topicName);
-                return CompositeFuture.join(producer.asyncClose(), consumer.asyncClose());
             });
     }
 

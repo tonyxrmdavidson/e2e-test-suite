@@ -23,7 +23,7 @@ import static io.managed.services.test.TestUtils.forEach;
 
 public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
     private static final Logger LOGGER = LogManager.getLogger(KafkaConsumerClient.class);
-    private final KafkaConsumer<K, V> consumer;
+    public final KafkaConsumer<K, V> consumer;
 
     public KafkaConsumerClient(
         Vertx vertx,
@@ -110,8 +110,15 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
                 LOGGER.info("consumer successfully subscribed to topic: {}", topicName);
 
                 // set the handler and consume the expected messages
-                return consumeMessages(expectedMessages);
+                return consumeMessages(expectedMessages)
+
+                    // unsubscribe from the topic after consume all expected messages
+                    .compose(messages -> consumer.unsubscribe().map(___ -> messages));
             });
+    }
+
+    public Future<Void> resetToEnd(String topic) {
+        return resetToEnd(this.consumer, topic);
     }
 
     /**
@@ -151,7 +158,7 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
         consumer.fetch(expectedMessages);
 
         consumer.exceptionHandler(e -> {
-            LOGGER.error("error while consuming data {}", e.getMessage());
+            LOGGER.error("error while consuming {} messages", expectedMessages);
             promise.fail(e);
         });
 
@@ -167,19 +174,23 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
         return promise.future();
     }
 
-    private Future<List<ConsumerRecord<K, V>>> consumeMessages(int expectedMessages) {
+    public Future<List<ConsumerRecord<K, V>>> consumeMessages(int expectedMessages) {
         Promise<List<ConsumerRecord<K, V>>> promise = Promise.promise();
         List<ConsumerRecord<K, V>> messages = new LinkedList<>();
 
         // set the fetch batch to the expected messages
         consumer.fetch(expectedMessages);
 
+        consumer.exceptionHandler(e -> {
+            LOGGER.error("error while consuming {} messages", expectedMessages);
+            promise.fail(e);
+        });
+
         consumer.handler(record -> {
             messages.add(new ConsumerRecord<>(consumer.hashCode(), record));
             if (messages.size() == expectedMessages) {
                 LOGGER.info("successfully received {} messages", expectedMessages);
                 consumer.commit()
-                    .compose(__ -> consumer.unsubscribe())
                     .map(__ -> messages).onComplete(promise);
             }
         });
@@ -187,9 +198,12 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
         return promise.future();
     }
 
-    @SuppressWarnings("UnusedReturnValue")
     public Future<Void> subscribe(String topic) {
         return consumer.subscribe(topic);
+    }
+
+    public Future<Void> unsubscribe() {
+        return consumer.unsubscribe();
     }
 
     public void handler(Handler<KafkaConsumerRecord<K, V>> handler) {

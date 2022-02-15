@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofDays;
 import static java.time.Duration.ofMinutes;
@@ -364,8 +365,21 @@ public class KafkaMgmtApiUtils {
         }
     }
 
-    // TODO till real implementation of correct response when changing owner of kafka instance, only workaround.
-    public static void waitUntilOwnerIsChanged(KafkaInstanceApi newOwnerKafkaInstanceApi) throws Exception {
+    /**
+     * Wait for the new owner to be applied to all brokers.
+     *
+     * Attention: This method will try to create and delete a topic using the new owner, if the
+     * new owner has explicit deny or allow ACLs for topic creation and deletion, this method will
+     * fail in case of explicit deny or succeed without waiting in case of explicit allow.
+     *
+     * Note: This is a workaround until the KafkaResponse object will not expose the real owner or a
+     * status that can be used to determinate when the owner switch is completed.
+     *
+     * @param newOwnerKafkaInstanceApi The KafkaInstanceApi created for the new instance owner
+     */
+    public static void waitUntilOwnerIsChanged(KafkaInstanceApi newOwnerKafkaInstanceApi)
+        throws TimeoutException, ApiGenericException, InterruptedException {
+
         var topicName = "topic-used-to-wait";
         ThrowingFunction<Boolean, Boolean, ApiGenericException> ready = l -> {
             // catches (ApiForbiddenException) while waiting for becoming Authorized (i.e., Owner), and also problem with replication factor when Rollout takes place.
@@ -374,7 +388,8 @@ public class KafkaMgmtApiUtils {
                 // temporary topic is cleaned afterwards
                 newOwnerKafkaInstanceApi.deleteTopic(topicName);
                 return true;
-            } catch (ApiGenericException ignored) {
+            } catch (ApiGenericException e) {
+                LOGGER.debug(e);
                 return false;
             }
         };
@@ -382,18 +397,27 @@ public class KafkaMgmtApiUtils {
         try {
             waitFor("kafka owner to be changed", ofSeconds(10), ofMinutes(5), ready);
         } catch (TimeoutException e) {
-            // When the owner change all the Kafka brokers need to be redeployed and this could take some time but we expect it to be completed within 5 minutes
-            throw new Exception("kafka instance did not switch the owner (waiting for rollback), within expected time");
+            // When the owner change all the Kafka brokers need to be redeployed and this could take some time, but we expect it to be completed within 5 minutes
+            throw new TimeoutException("kafka instance did not switch the owner (waiting for rollback), within expected time");
         }
     }
 
-    // function does not wait for change of owner, to be reflected on cluster. waitUntilOwnerIsChanged can be called to wait for that
-    public static void changeKafkaInstanceOwner(KafkaMgmtApi mgmtApi,  KafkaRequest kafka, String newOwnerName) throws Throwable {
+    /**
+     * Change the owner of a Kafka instance.
+     * <p>
+     * Note: The change is async and the waitUntilOwnerIsChanged function should be used
+     * to make sure the new owner has been changed
+     *
+     * @param mgmtApi      KafkaMgmtApi
+     * @param kafka        Kafka instance to update
+     * @param newOwnerName The name of the new owner
+     * @return KafkaRequest
+     */
+    public static KafkaRequest changeKafkaInstanceOwner(KafkaMgmtApi mgmtApi, KafkaRequest kafka, String newOwnerName) throws Throwable {
 
-        KafkaUpdateRequest kafkaUpdateRequest = new KafkaUpdateRequest();
-        var lowerCasedName = newOwnerName.toLowerCase(Locale.ROOT);
-        kafkaUpdateRequest.setOwner(lowerCasedName);
-        mgmtApi.updateKafka(kafka.getId(), kafkaUpdateRequest);
+        var kafkaUpdateRequest = new KafkaUpdateRequest()
+            .owner(newOwnerName.toLowerCase(Locale.ROOT));
 
+        return mgmtApi.updateKafka(kafka.getId(), kafkaUpdateRequest);
     }
 }

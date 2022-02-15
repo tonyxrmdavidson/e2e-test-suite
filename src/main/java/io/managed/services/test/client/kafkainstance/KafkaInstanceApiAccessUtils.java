@@ -13,51 +13,60 @@ import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.client.exception.ApiGenericException;
 import lombok.extern.log4j.Log4j2;
 
-import java.util.LinkedList;
 import java.util.List;
 
 @Log4j2
 public class KafkaInstanceApiAccessUtils {
 
     /**
-     * remove all ACLs different from those provided in defaultACLsList
+     * Reset all ACLs to de desired stated provided by the desiredACLs param.
      *
-     * @param api       KafkaInstanceApi
-     * @param defaultACLsList The list of ACLs which are not to be deleted
+     * @param api           KafkaInstanceApi
+     * @param desiredACLs   The list of desired ACLs that will be created if they don't exist, and any other
+     *                      ACLs will be deleted
      */
-    public static void removeAllButDefaultACLs(KafkaInstanceApi api, List<AclBinding> defaultACLsList) throws ApiGenericException {
+    public static void resetACLsTo(KafkaInstanceApi api, List<AclBinding> desiredACLs) throws ApiGenericException {
         // get difference of ACLs that are default from ACLs that are currently present
-        var aclPage = api.getAcls(null, null, null, null, null, null, null, null, null, null);
-        var acls = aclPage.getItems();
-        List<AclBinding> differences = acls;
-        differences.removeAll(defaultACLsList);
+        var currentACLs = getAllACLs(api);
+
+        // create the missing ACLs
+        for (var desireACL : desiredACLs) {
+
+            // Remove the desired ACL from the list of current ACLs,
+            // if it was removed successfully move on to the next desired ACLs
+            // because it means that the desired ACL already exist on the
+            // Kafka instance, and that we want to keep it because after
+            // checking all desired ACLs the remaining current ACLs will be deleted.
+            if (!currentACLs.remove(desireACL)) {
+                api.createAcl(desireACL);
+            }
+        }
 
         // remove extra ACLs one by one
-        for (AclBinding aclItem  : differences) {
-            api.deleteAcls(
-                    AclResourceTypeFilter.valueOf(aclItem.getResourceType().getValue()),
-                    null,
-                    AclPatternTypeFilter.valueOf(aclItem.getPatternType().getValue()),
-                    aclItem.getPrincipal(),
-                    AclOperationFilter.valueOf(aclItem.getOperation().getValue()),
-                    AclPermissionTypeFilter.valueOf(aclItem.getPermission().getValue())
-            );
+        for (var currentACL  : currentACLs) {
+            deleteACL(api, currentACL);
         }
     }
 
+    public static void deleteACL(KafkaInstanceApi api, AclBinding aclBinding) throws ApiGenericException {
+
+        api.deleteAcls(
+            AclResourceTypeFilter.valueOf(aclBinding.getResourceType().getValue()),
+            aclBinding.getResourceName(), // TODO: Verify why it was `null`
+            AclPatternTypeFilter.valueOf(aclBinding.getPatternType().getValue()),
+            aclBinding.getPrincipal(),
+            AclOperationFilter.valueOf(aclBinding.getOperation().getValue()),
+            AclPermissionTypeFilter.valueOf(aclBinding.getPermission().getValue()));
+    }
+
     /**
-     * return list of ACLs currently created on instance
+     * Return the current list of ACLs for the Kafka instance.
      *
-     * @param api       KafkaInstanceApi
+     * @param api KafkaInstanceApi
+     * @return list of current ACLs for the Kafka instance
      */
-    public static List<AclBinding> getDefaultACLs(KafkaInstanceApi api) throws ApiGenericException {
-        var aclPage = api.getAcls(null, null, null, null, null, null, null, null, null, null);
-        var acls = aclPage.getItems();
-        List<AclBinding> defaultPermissionsList = new LinkedList<>();
-        for (AclBinding aclItem  : acls) {
-            defaultPermissionsList.add(aclItem);
-        }
-        return defaultPermissionsList;
+    public static List<AclBinding> getAllACLs(KafkaInstanceApi api) throws ApiGenericException {
+        return api.getAcls(null, null, null, null, null, null, null, null, null, null).getItems();
     }
 
     /**
