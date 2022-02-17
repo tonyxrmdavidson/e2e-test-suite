@@ -71,6 +71,9 @@ public class KafkaMgmtAPITest extends TestBase {
     static final String TOPIC_NAME = "test-topic";
     static final String METRIC_TOPIC_NAME = "metric-test-topic";
     static final String[] KAFKA_METRICS = {
+        "kafka_server_brokertopicmetrics_messages_in_total",
+        "kafka_server_brokertopicmetrics_bytes_in_total",
+        "kafka_server_brokertopicmetrics_bytes_out_total",
         "kubelet_volume_stats_available_bytes",
         "kubelet_volume_stats_used_bytes",
         "kafka_broker_quota_softlimitbytes",
