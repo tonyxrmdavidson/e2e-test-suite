@@ -47,7 +47,7 @@ public class GitHub implements AutoCloseable {
             // ignore releases without assets because the release pipeline hasn't yet finished building them
             .filter(r -> !r.getAssets().isEmpty())
 
-            // exclude releases matching the exclude regex
+            // exclude releases matching the `exclude` regex
             .filter(r -> !exclude.matcher(r.getName()).find())
 
             .findFirst()

@@ -41,7 +41,7 @@ import static org.testng.Assert.assertTrue;
  * The tests download the CLI from GitHub to the local machine where the test suite is running
  * and perform all operations using the CLI.
  * <p>
- * By default the latest version of the CLI is downloaded otherwise a specific version can be set using
+ * By default, the latest version of the CLI is downloaded otherwise a specific version can be set using
  * the CLI_VERSION env. The CLI platform (linux, mac, win) and arch (amd64, arm) is automatically detected,
  * or it can be enforced using the CLI_PLATFORM and CLI_ARCH env.
  * <p>

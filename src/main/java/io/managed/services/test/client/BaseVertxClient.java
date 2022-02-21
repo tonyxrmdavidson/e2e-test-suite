@@ -3,7 +3,6 @@ package io.managed.services.test.client;
 import io.managed.services.test.client.exception.ResponseException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -12,7 +11,6 @@ import java.net.URI;
 
 public abstract class BaseVertxClient {
 
-    protected final Vertx vertx;
     protected final WebClient client;
 
     public BaseVertxClient(Vertx vertx, String uri) {
@@ -24,11 +22,10 @@ public abstract class BaseVertxClient {
     }
 
     public BaseVertxClient(Vertx vertx, WebClientOptions options) {
-        this(vertx, WebClient.create(vertx, options));
+        this(WebClient.create(vertx, options));
     }
 
-    public BaseVertxClient(Vertx vertx, WebClient client) {
-        this.vertx = vertx;
+    public BaseVertxClient(WebClient client) {
         this.client = client;
     }
 
@@ -71,19 +68,4 @@ public abstract class BaseVertxClient {
         return Future.succeededFuture(response);
     }
 
-    public static String getRedirectLocation(HttpResponse<Buffer> response) throws ResponseException {
-        var l = response.getHeader("Location");
-        if (l == null) {
-            throw new ResponseException("Location header not found", response);
-        }
-        return l;
-    }
-
-    public static Future<String> getRedirectLocationAsFeature(HttpResponse<Buffer> response) {
-        try {
-            return Future.succeededFuture(getRedirectLocation(response));
-        } catch (ResponseException e) {
-            return Future.failedFuture(e);
-        }
-    }
 }
