@@ -8,8 +8,6 @@ import io.managed.services.test.RetryUtils;
 import io.managed.services.test.ThrowingSupplier;
 import io.managed.services.test.client.exception.ApacheResponseException;
 import io.managed.services.test.client.exception.AttributeNotFoundException;
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
@@ -44,10 +42,6 @@ public class KeycloakLoginSession {
     private final ClientSession session = new ClientSession();
 
     public KeycloakLoginSession(String username, String password) {
-        this(Vertx.vertx(), username, password);
-    }
-
-    public KeycloakLoginSession(Vertx vertx, String username, String password) {
         this.username = username;
         this.password = password;
     }
@@ -69,46 +63,33 @@ public class KeycloakLoginSession {
      * <p>
      * Generally used for CLI authentication.
      */
-    public Future<Void> login(String authURI) {
+    public void login(String authURI) throws ApacheResponseException {
 
         var redirectURI = "http://localhost";
 
-        try {
-            var response = login(authURI, redirectURI, Environment.REDHAT_SSO_LOGIN_FORM_ID);
-            response = followRedirects(response);
-            assertResponse(response, HttpURLConnection.HTTP_OK);
-        } catch (ApacheResponseException e) {
-            return Future.failedFuture(e);
-        }
+        var response = login(authURI, redirectURI, Environment.REDHAT_SSO_LOGIN_FORM_ID);
+        response = followRedirects(response);
+        assertResponse(response, HttpURLConnection.HTTP_OK);
 
         LOGGER.info("authentication completed; authURI={}", authURI);
-        return Future.succeededFuture();
     }
 
-    public Future<KeycloakUser> loginToRedHatSSO() {
-        try {
-            return Future.succeededFuture(login(
-                Environment.REDHAT_SSO_URI,
-                Environment.REDHAT_SSO_REDIRECT_URI,
-                Environment.REDHAT_SSO_LOGIN_FORM_ID,
-                Environment.REDHAT_SSO_REALM,
-                Environment.REDHAT_SSO_CLIENT_ID));
-        } catch (ApacheResponseException e) {
-            return Future.failedFuture(e);
-        }
+    public KeycloakUser loginToRedHatSSO() throws ApacheResponseException {
+        return login(
+            Environment.REDHAT_SSO_URI,
+            Environment.REDHAT_SSO_REDIRECT_URI,
+            Environment.REDHAT_SSO_LOGIN_FORM_ID,
+            Environment.REDHAT_SSO_REALM,
+            Environment.REDHAT_SSO_CLIENT_ID);
     }
 
-    public Future<KeycloakUser> loginToOpenshiftIdentity() {
-        try {
-            return Future.succeededFuture(login(
-                Environment.OPENSHIFT_IDENTITY_URI,
-                Environment.OPENSHIFT_IDENTITY_REDIRECT_URI,
-                Environment.OPENSHIFT_IDENTITY_LOGIN_FORM_ID,
-                Environment.OPENSHIFT_IDENTITY_REALM,
-                Environment.OPENSHIFT_IDENTITY_CLIENT_ID));
-        } catch (ApacheResponseException e) {
-            return Future.failedFuture(e);
-        }
+    public KeycloakUser loginToOpenshiftIdentity() throws ApacheResponseException {
+        return login(
+            Environment.OPENSHIFT_IDENTITY_URI,
+            Environment.OPENSHIFT_IDENTITY_REDIRECT_URI,
+            Environment.OPENSHIFT_IDENTITY_LOGIN_FORM_ID,
+            Environment.OPENSHIFT_IDENTITY_REALM,
+            Environment.OPENSHIFT_IDENTITY_CLIENT_ID);
     }
 
     /**

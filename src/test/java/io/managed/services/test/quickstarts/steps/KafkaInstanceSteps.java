@@ -12,7 +12,6 @@ import io.managed.services.test.quickstarts.contexts.OpenShiftAPIContext;
 import lombok.extern.log4j.Log4j2;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
-import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
@@ -103,7 +102,7 @@ public class KafkaInstanceSteps {
         assumeTeardown();
 
         var keycloakLoginSession = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
-        var redHatUser = bwait(keycloakLoginSession.loginToRedHatSSO());
+        var redHatUser = keycloakLoginSession.loginToRedHatSSO();
         var kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, redHatUser);
 
         log.info("clean kafka instance: {}", KAFKA_INSTANCE_UNIQUE_NAME);

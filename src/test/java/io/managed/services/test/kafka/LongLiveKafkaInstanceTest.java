@@ -110,8 +110,8 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         }
 
         LOGGER.info("initialize kafka instance api");
-        kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
     }
 
     @Test
@@ -251,7 +251,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
             bootstrapHost,
             clientID,
             clientSecret,
-                TOPIC_NAME,
+            TOPIC_NAME,
             10,
             7,
             10));

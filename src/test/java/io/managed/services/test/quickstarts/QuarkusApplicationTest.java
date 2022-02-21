@@ -125,7 +125,7 @@ public class QuarkusApplicationTest extends TestBase {
         LOGGER.info("initialize openshift client");
         oc = new DefaultOpenShiftClient(config);
 
-        var auth = new KeycloakLoginSession(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         // CLI
         var downloader = CLIDownloader.defaultDownloader();
@@ -139,7 +139,7 @@ public class QuarkusApplicationTest extends TestBase {
 
         // User
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
-        user = bwait(auth.loginToRedHatSSO());
+        user = auth.loginToRedHatSSO();
 
         // APIs
         LOGGER.info("initialize kafka and security mgmt apis");
@@ -153,7 +153,7 @@ public class QuarkusApplicationTest extends TestBase {
 
         // Topic
         LOGGER.info("create topic '{}'", TOPIC_NAME);
-        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka));
+        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka);
 
         var topicPayload = new NewTopicInput()
             .name(TOPIC_NAME)

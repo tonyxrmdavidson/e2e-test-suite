@@ -12,8 +12,6 @@ import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 
-import static io.managed.services.test.TestUtils.bwait;
-
 @Log4j2
 @Deprecated
 public class ApplicationServicesApi {
@@ -44,7 +42,7 @@ public class ApplicationServicesApi {
     public static ApplicationServicesApi applicationServicesApi(KeycloakLoginSession auth, String basePath) {
 
         log.info("authenticate user '{}' against RH SSO", auth.getUsername());
-        var user = bwait(auth.loginToRedHatSSO());
+        var user = auth.loginToRedHatSSO();
         return new ApplicationServicesApi(basePath, user);
     }
 

@@ -9,6 +9,7 @@ import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
 import io.managed.services.test.client.oauth.KeycloakUser;
+import io.managed.services.test.client.registry.RegistryClientUtils;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.vertx.core.Vertx;
@@ -23,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
 import static org.testng.Assert.assertEquals;
@@ -71,21 +71,21 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
         assertNotNull(Environment.ALIEN_USERNAME, "the ALIEN_USERNAME env is null");
         assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
 
-        adminRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
+        adminRegistryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
             Environment.ADMIN_USERNAME,
-            Environment.ADMIN_PASSWORD));
+            Environment.ADMIN_PASSWORD);
 
-        registryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
+        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
             Environment.PRIMARY_USERNAME,
-            Environment.PRIMARY_PASSWORD));
+            Environment.PRIMARY_PASSWORD);
 
-        secondaryRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
+        secondaryRegistryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
             Environment.SECONDARY_USERNAME,
-            Environment.SECONDARY_PASSWORD));
+            Environment.SECONDARY_PASSWORD);
 
-        alienRegistryMgmtApi = bwait(RegistryMgmtApiUtils.registryMgmtApi(
+        alienRegistryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
             Environment.ALIEN_USERNAME,
-            Environment.ALIEN_PASSWORD));
+            Environment.ALIEN_PASSWORD);
 
         registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
     }
@@ -126,9 +126,9 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
 
     @Test
     public void testAlienUserCanNotCreateArtifactOnTheRegistry() throws Throwable {
-        var registryClient = bwait(registryClient(vertx, registry.getRegistryUrl(),
+        var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(),
             Environment.ALIEN_USERNAME,
-            Environment.ALIEN_PASSWORD));
+            Environment.ALIEN_PASSWORD);
 
         assertThrows(ApiForbiddenException.class, () -> registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8)));
     }
@@ -157,9 +157,9 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
 
     @Test
     public void testAdminUserCanCreateArtifactOnTheRegistry() throws Throwable {
-        var registryClient = bwait(registryClient(vertx, registry.getRegistryUrl(),
+        var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(),
             Environment.ADMIN_USERNAME,
-            Environment.ADMIN_PASSWORD));
+            Environment.ADMIN_PASSWORD);
 
         registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8));
     }

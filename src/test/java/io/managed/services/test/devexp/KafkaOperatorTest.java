@@ -39,7 +39,6 @@ import java.util.Base64;
 import java.util.HashMap;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
-import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofMinutes;
@@ -95,7 +94,7 @@ public class KafkaOperatorTest extends TestBase {
         var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
-        user = bwait(auth.loginToRedHatSSO());
+        user = auth.loginToRedHatSSO();
 
         LOGGER.info("initialize kafka and security apis");
         kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, user);

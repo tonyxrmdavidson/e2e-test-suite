@@ -158,9 +158,9 @@ public class KafkaAccessMgmtTest extends TestBase {
         LOGGER.info("kafka admin api initialized for instance: {}", kafka.getBootstrapServerHost());
 
         // initialize the Kafka Instance API (rest) clients for all users
-        primaryKafkaInstanceAPI = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(primaryAuth, kafka));
-        secondaryKafkaInstanceAPI = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(secondaryAuth, kafka));
-        adminKafkaInstanceAPI = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(adminAuth, kafka));
+        primaryKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(primaryAuth, kafka);
+        secondaryKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(secondaryAuth, kafka);
+        adminKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(adminAuth, kafka);
 
         // get the default ACLs for the Kafka instance
         // (the current ACLs of an unmodified Kafka instance are the default ACLs)

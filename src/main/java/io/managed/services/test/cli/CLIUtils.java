@@ -13,6 +13,7 @@ import io.fabric8.kubernetes.api.model.NamedCluster;
 import io.fabric8.kubernetes.api.model.NamedContext;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestUtils;
+import io.managed.services.test.ThrowingVoid;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaNotDeletedException;
@@ -80,7 +81,7 @@ public class CLIUtils {
     }
 
     public static CompletableFuture<Void> login(Vertx vertx, CLI cli, String username, String password) {
-        var session = new KeycloakLoginSession(vertx, username, password);
+        var session = new KeycloakLoginSession(username, password);
         return login(vertx, cli, session);
     }
 
@@ -95,12 +96,12 @@ public class CLIUtils {
 
         LOGGER.info("start oauth login against CLI");
         var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI))
-            .compose(l -> session.login(l))
+            .map(l -> toFuture(() -> session.login(l)))
             .onSuccess(__ -> LOGGER.info("first oauth login completed"))
             .toCompletionStage().toCompletableFuture();
 
         var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.OPENSHIFT_IDENTITY_URI))
-            .compose(l -> session.login(l))
+            .compose(l -> toFuture(() -> session.login(l)))
             .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"))
             .toCompletionStage().toCompletableFuture();
 
@@ -134,6 +135,15 @@ public class CLIUtils {
                 }
             }
         });
+    }
+
+    private static Future<Void> toFuture(ThrowingVoid<Throwable> supplier) {
+        try {
+            supplier.call();
+            return Future.succeededFuture();
+        } catch (Throwable t) {
+            return Future.failedFuture(t);
+        }
     }
 
     public static Optional<ConsumerGroup> getConsumerGroupByName(CLI cli, String consumerName) throws CliGenericException {
@@ -195,7 +205,7 @@ public class CLIUtils {
     }
 
     public static Registry waitUntilServiceRegistryIsReady(CLI cli, String id)
-            throws InterruptedException, CliGenericException, RegistryNotReadyException {
+        throws InterruptedException, CliGenericException, RegistryNotReadyException {
 
         return RegistryMgmtApiUtils.waitUntilRegistryIsReady(() -> cli.describeServiceRegistry(id));
     }
@@ -234,5 +244,4 @@ public class CLIUtils {
 
         return c;
     }
-
 }

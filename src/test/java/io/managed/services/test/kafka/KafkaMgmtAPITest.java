@@ -157,8 +157,8 @@ public class KafkaMgmtAPITest extends TestBase {
 
         kafka = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
 
-        kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
     }
 
     @Test
@@ -185,8 +185,8 @@ public class KafkaMgmtAPITest extends TestBase {
     @SneakyThrows
     public void testCreateTopics() {
 
-        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
+        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
         var topicPayload = new NewTopicInput()
@@ -376,6 +376,22 @@ public class KafkaMgmtAPITest extends TestBase {
         var clientSecret = serviceAccountForDeletion.getClientSecret();
 
         bwait(testTopic(
+            Vertx.vertx(),
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            TOPIC_NAME,
+            1000,
+            10,
+            100,
+            KafkaAuthMethod.PLAIN));
+
+        // deletion of SA (serviceAccountForDeletion)
+        securityMgmtApi.deleteServiceAccountById(serviceAccountForDeletion.getId());
+
+        // fail to communicate due to service account being deleted using PLAIN & OAUTH
+        assertThrows(KafkaException.class, () -> {
+            bwait(testTopic(
                 Vertx.vertx(),
                 bootstrapHost,
                 clientID,
@@ -384,36 +400,20 @@ public class KafkaMgmtAPITest extends TestBase {
                 1000,
                 10,
                 100,
-                KafkaAuthMethod.PLAIN));
-
-        // deletion of SA (serviceAccountForDeletion)
-        securityMgmtApi.deleteServiceAccountById(serviceAccountForDeletion.getId());
-
-        // fail to communicate due to service account being deleted using PLAIN & OAUTH
-        assertThrows(KafkaException.class, () -> {
-            bwait(testTopic(
-                    Vertx.vertx(),
-                    bootstrapHost,
-                    clientID,
-                    clientSecret,
-                    TOPIC_NAME,
-                    1000,
-                    10,
-                    100,
-                    KafkaAuthMethod.PLAIN
+                KafkaAuthMethod.PLAIN
             ));
         });
         assertThrows(KafkaException.class, () -> {
             bwait(testTopic(
-                    Vertx.vertx(),
-                    bootstrapHost,
-                    clientID,
-                    clientSecret,
-                    TOPIC_NAME,
-                    1000,
-                    10,
-                    100,
-                    KafkaAuthMethod.OAUTH
+                Vertx.vertx(),
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                TOPIC_NAME,
+                1000,
+                10,
+                100,
+                KafkaAuthMethod.OAUTH
             ));
         });
     }

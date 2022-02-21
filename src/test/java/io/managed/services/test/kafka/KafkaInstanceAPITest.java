@@ -85,7 +85,7 @@ public class KafkaInstanceAPITest extends TestBase {
 
         kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
-        kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka));
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka);
         LOGGER.info("kafka instance api client initialized");
     }
 
@@ -126,8 +126,8 @@ public class KafkaInstanceAPITest extends TestBase {
     @SneakyThrows
     public void testFailToCallAPIIfUserBelongsToADifferentOrganization() {
 
-        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(
-            new KeycloakLoginSession(Environment.ALIEN_USERNAME, Environment.ALIEN_PASSWORD), kafka));
+        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(
+            new KeycloakLoginSession(Environment.ALIEN_USERNAME, Environment.ALIEN_PASSWORD), kafka);
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 

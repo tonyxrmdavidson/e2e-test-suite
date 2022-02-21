@@ -82,7 +82,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
 
-        var oauth = new KeycloakLoginSession(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var oauth = new KeycloakLoginSession( Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         // registry api
         LOGGER.info("initialize registry, kafka security services apis");
@@ -106,7 +106,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         // topic
         LOGGER.info("create topic: {}", TOPIC_NAME);
-        var user = bwait(oauth.loginToOpenshiftIdentity());
+        var user = oauth.loginToOpenshiftIdentity();
         var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafkaInstanceApiUri(kafka), user);
         var topic = KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME);
         LOGGER.debug(topic);

@@ -1,13 +1,11 @@
 package io.managed.services.test;
 
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
-import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertNotNull;
 
 
@@ -31,26 +29,26 @@ public class SSOAuthTest extends TestBase {
 
     @Test
     public void testRedHatSSOLogin() throws Throwable {
-        var auth = new KeycloakLoginSession(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
-        bwait(auth.loginToRedHatSSO());
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        auth.loginToRedHatSSO();
         LOGGER.info("user authenticated against: {}", Environment.REDHAT_SSO_URI);
     }
 
     @Test
     public void testMASSSOLogin() throws Throwable {
-        var auth2 = new KeycloakLoginSession(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
-        bwait(auth2.loginToOpenshiftIdentity());
+        var auth2 = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        auth2.loginToOpenshiftIdentity();
         LOGGER.info("user authenticated against: {}", Environment.OPENSHIFT_IDENTITY_URI);
     }
 
     @Test
     public void testJoinedLogin() throws Throwable {
-        var auth = new KeycloakLoginSession(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
-        bwait(auth.loginToRedHatSSO());
+        auth.loginToRedHatSSO();
         LOGGER.info("user authenticated against: {}", Environment.REDHAT_SSO_URI);
 
-        bwait(auth.loginToOpenshiftIdentity());
+        auth.loginToOpenshiftIdentity();
         LOGGER.info("user authenticated against: {}", Environment.OPENSHIFT_IDENTITY_URI);
     }
 }

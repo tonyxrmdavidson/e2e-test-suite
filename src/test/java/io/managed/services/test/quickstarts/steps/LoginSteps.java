@@ -9,7 +9,6 @@ import io.managed.services.test.quickstarts.contexts.OpenShiftAPIContext;
 import io.managed.services.test.quickstarts.contexts.UserContext;
 import lombok.extern.log4j.Log4j2;
 
-import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertNotNull;
 
 @Log4j2
@@ -36,11 +35,11 @@ public class LoginSteps {
 
         // login to Red Hat SSO
         log.info("login to Red Hat SSO");
-        var redHatUser = bwait(keycloakLoginSession.loginToRedHatSSO());
+        var redHatUser = keycloakLoginSession.loginToRedHatSSO();
 
         // login to MAS SSO
         log.info("login to MAS SSO");
-        var masUser = bwait(keycloakLoginSession.loginToOpenshiftIdentity());
+        var masUser = keycloakLoginSession.loginToOpenshiftIdentity();
 
         // initialize APIs
         log.info("initialize KafkaMgmtAPI with base path '{}'", Environment.OPENSHIFT_API_URI);

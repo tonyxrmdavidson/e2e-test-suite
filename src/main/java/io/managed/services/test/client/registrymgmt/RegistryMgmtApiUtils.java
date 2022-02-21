@@ -7,12 +7,11 @@ import com.openshift.cloud.api.srs.models.RegistryList;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
+import io.managed.services.test.client.exception.ApacheResponseException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.oauth.KeycloakUser;
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,14 +28,15 @@ public class RegistryMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(RegistryMgmtApiUtils.class);
 
     @Deprecated
-    public static Future<RegistryMgmtApi> registryMgmtApi(String username, String password) {
-        return registryMgmtApi(new KeycloakLoginSession(Vertx.vertx(), username, password));
+    public static RegistryMgmtApi registryMgmtApi(String username, String password) throws ApacheResponseException {
+        return registryMgmtApi(new KeycloakLoginSession(username, password));
     }
 
     @Deprecated
-    public static Future<RegistryMgmtApi> registryMgmtApi(KeycloakLoginSession auth) {
+    public static RegistryMgmtApi registryMgmtApi(KeycloakLoginSession auth) throws ApacheResponseException {
         LOGGER.info("authenticate user: {} against RH SSO", auth.getUsername());
-        return auth.loginToRedHatSSO().map(u -> registryMgmtApi(u));
+        var user = auth.loginToRedHatSSO();
+        return registryMgmtApi(user);
     }
 
     @Deprecated
@@ -70,7 +70,7 @@ public class RegistryMgmtApiUtils {
      * @return Registry
      */
     public static Registry applyRegistry(RegistryMgmtApi api, RegistryCreate payload)
-        throws ApiGenericException, InterruptedException,  RegistryNotReadyException {
+        throws ApiGenericException, InterruptedException, RegistryNotReadyException {
 
         var registryList = getRegistryByName(api, payload.getName());
 
@@ -103,7 +103,7 @@ public class RegistryMgmtApiUtils {
     }
 
     public static <T extends Throwable> Registry waitUntilRegistryIsReady(ThrowingSupplier<Registry, T> supplier)
-            throws T, InterruptedException, RegistryNotReadyException {
+        throws T, InterruptedException, RegistryNotReadyException {
 
         var registryAtom = new AtomicReference<Registry>();
         ThrowingFunction<Boolean, Boolean, T> ready = last -> {

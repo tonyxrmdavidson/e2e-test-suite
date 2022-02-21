@@ -67,7 +67,7 @@ public class RegistryCLITest {
 
 
         var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
-        var user = bwait(auth.loginToRedHatSSO());
+        var user = auth.loginToRedHatSSO();
         var registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
 
         try {

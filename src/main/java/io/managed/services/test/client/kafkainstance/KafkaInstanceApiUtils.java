@@ -11,6 +11,7 @@ import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
+import io.managed.services.test.client.exception.ApacheResponseException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
@@ -27,7 +28,7 @@ import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import javax.ws.rs.client.ClientBuilder;
-
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,7 +41,7 @@ import static java.time.Duration.ofSeconds;
 public class KafkaInstanceApiUtils {
 
     public static String kafkaInstanceApiUri(KafkaRequest kafka) {
-        return kafkaInstanceApiUri(kafka.getBootstrapServerHost());
+        return kafkaInstanceApiUri(Objects.requireNonNull(kafka.getBootstrapServerHost()));
     }
 
     public static String kafkaInstanceApiUri(String bootstrapServerHost) {
@@ -50,13 +51,16 @@ public class KafkaInstanceApiUtils {
         return String.format(uriTemplate, hostname);
     }
 
-    public static Future<KafkaInstanceApi> kafkaInstanceApi(KafkaRequest kafka, String username, String password) {
+    @Deprecated
+    public static KafkaInstanceApi kafkaInstanceApi(KafkaRequest kafka, String username, String password) throws ApacheResponseException {
         return kafkaInstanceApi(new KeycloakLoginSession(username, password), kafka);
     }
 
-    public static Future<KafkaInstanceApi> kafkaInstanceApi(KeycloakLoginSession auth, KafkaRequest kafka) {
+    @Deprecated
+    public static KafkaInstanceApi kafkaInstanceApi(KeycloakLoginSession auth, KafkaRequest kafka) throws ApacheResponseException {
         log.info("authenticate user '{}' against MAS SSO", auth.getUsername());
-        return auth.loginToOpenshiftIdentity().map(u -> kafkaInstanceApi(kafkaInstanceApiUri(kafka), u));
+        var user = auth.loginToOpenshiftIdentity();
+        return kafkaInstanceApi(kafka, user);
     }
 
     public static KafkaInstanceApi kafkaInstanceApi(KafkaRequest kafka, KeycloakUser user) {
@@ -71,9 +75,9 @@ public class KafkaInstanceApiUtils {
             clientConfig.register(client.getJSON());
 
             client.setHttpClient(ClientBuilder.newBuilder()
-                    .sslContext(TestUtils.getInsecureSSLContext("TLS"))
-                    .withConfig(clientConfig)
-                    .build());
+                .sslContext(TestUtils.getInsecureSSLContext("TLS"))
+                .withConfig(clientConfig)
+                .build());
         }
 
         return new KafkaInstanceApi(client.setBasePath(uri), user);
