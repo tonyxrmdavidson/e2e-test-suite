@@ -5,6 +5,7 @@ import com.openshift.cloud.api.srs.models.RegistryCreate;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.exception.ApiGenericException;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.registry.RegistryClientUtils;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
@@ -42,17 +43,15 @@ public class RegistryMgmtAPITest extends TestBase {
     private static final String SERVICE_REGISTRY_2_NAME = "mk-e2e-sr2-" + Environment.LAUNCH_KEY;
     private static final String ARTIFACT_SCHEMA = "{\"type\":\"record\",\"name\":\"Greeting\",\"fields\":[{\"name\":\"Message\",\"type\":\"string\"},{\"name\":\"Time\",\"type\":\"long\"}]}";
 
+    private KeycloakLoginSession auth;
     private RegistryMgmtApi registryMgmtApi;
     private Registry registry;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
-
-        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
-            Environment.PRIMARY_USERNAME,
-            Environment.PRIMARY_PASSWORD);
+        auth = KeycloakLoginSession.primaryUser();
+        var user = auth.loginToRedHatSSO();
+        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(user);
     }
 
     @AfterClass(alwaysRun = true)
@@ -93,7 +92,7 @@ public class RegistryMgmtAPITest extends TestBase {
     @Test(dependsOnMethods = "testCreateRegistry")
     public void testCreateArtifact() throws Throwable {
         var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(),
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+            auth.loginToOpenshiftIdentity());
 
         LOGGER.info("create artifact on registry");
         var artifactMetaData = registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8));

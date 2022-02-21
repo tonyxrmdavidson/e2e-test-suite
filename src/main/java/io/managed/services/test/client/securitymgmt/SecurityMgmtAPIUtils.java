@@ -5,6 +5,7 @@ import com.openshift.cloud.api.kas.invoker.ApiClient;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
 import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
+import io.managed.services.test.Environment;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.oauth.KeycloakUser;
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +17,10 @@ import java.util.stream.Collectors;
 
 public class SecurityMgmtAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(SecurityMgmtAPIUtils.class);
+
+    public static SecurityMgmtApi securityMgmtApi(KeycloakUser user) {
+        return new SecurityMgmtApi(new ApiClient().setBasePath(Environment.OPENSHIFT_API_URI), user);
+    }
 
     public static SecurityMgmtApi securityMgmtApi(String uri, KeycloakUser user) {
         return new SecurityMgmtApi(new ApiClient().setBasePath(uri), user);

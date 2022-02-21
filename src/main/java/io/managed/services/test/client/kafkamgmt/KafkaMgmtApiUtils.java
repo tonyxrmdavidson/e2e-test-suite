@@ -41,6 +41,10 @@ public class KafkaMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(KafkaMgmtApiUtils.class);
     private static final String CLUSTER_CAPACITY_EXHAUSTED_CODE = "KAFKAS-MGMT-24";
 
+    public static KafkaMgmtApi kafkaMgmtApi(KeycloakUser user) {
+        return new KafkaMgmtApi(new ApiClient().setBasePath(Environment.OPENSHIFT_API_URI), user);
+    }
+
     public static KafkaMgmtApi kafkaMgmtApi(String uri, KeycloakUser user) {
         return new KafkaMgmtApi(new ApiClient().setBasePath(uri), user);
     }
@@ -367,11 +371,11 @@ public class KafkaMgmtApiUtils {
 
     /**
      * Wait for the new owner to be applied to all brokers.
-     *
+     * <p>
      * Attention: This method will try to create and delete a topic using the new owner, if the
      * new owner has explicit deny or allow ACLs for topic creation and deletion, this method will
      * fail in case of explicit deny or succeed without waiting in case of explicit allow.
-     *
+     * <p>
      * Note: This is a workaround until the KafkaResponse object will not expose the real owner or a
      * status that can be used to determinate when the owner switch is completed.
      *

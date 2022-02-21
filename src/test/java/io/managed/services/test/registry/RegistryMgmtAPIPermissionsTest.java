@@ -5,15 +5,15 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.exception.ApiForbiddenException;
-import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.client.registry.RegistryClientUtils;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -23,11 +23,9 @@ import org.testng.annotations.Test;
 import java.nio.charset.StandardCharsets;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
-import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.applyRegistry;
 import static io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils.cleanRegistry;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 
 /**
@@ -51,123 +49,113 @@ public class RegistryMgmtAPIPermissionsTest extends TestBase {
     private static final String SERVICE_REGISTRY_NAME = "mk-e2e-sr-rmp-" + Environment.LAUNCH_KEY;
     private static final String ARTIFACT_SCHEMA = "{\"type\":\"record\",\"name\":\"Greeting\",\"fields\":[{\"name\":\"Message\",\"type\":\"string\"},{\"name\":\"Time\",\"type\":\"long\"}]}";
 
-    private final Vertx vertx = Vertx.vertx();
+    private KeycloakLoginSession adminAuth;
+    private KeycloakLoginSession alienAuth;
 
-    private RegistryMgmtApi adminRegistryMgmtApi;
-    private RegistryMgmtApi registryMgmtApi;
-    private RegistryMgmtApi secondaryRegistryMgmtApi;
-    private RegistryMgmtApi alienRegistryMgmtApi;
+    private RegistryMgmtApi primaryRegistryMgmtAPI;
+    private RegistryMgmtApi secondaryRegistryMgmtAPI;
+    private RegistryMgmtApi adminRegistryMgmtAPI;
+    private RegistryMgmtApi alienRegistryMgmtAPI;
 
     private Registry registry;
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        assertNotNull(Environment.ADMIN_USERNAME, "the ADMIN_USERNAME env is null");
-        assertNotNull(Environment.ADMIN_PASSWORD, "the ADMIN_PASSWORD env is null");
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
-        assertNotNull(Environment.SECONDARY_USERNAME, "the SECONDARY_USERNAME env is null");
-        assertNotNull(Environment.SECONDARY_PASSWORD, "the SECONDARY_PASSWORD env is null");
-        assertNotNull(Environment.ALIEN_USERNAME, "the ALIEN_USERNAME env is null");
-        assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
+        // initialize the auth objects for all users
+        var primaryAuth = KeycloakLoginSession.primaryUser();
+        var secondaryAuth = KeycloakLoginSession.secondaryUser();
+        adminAuth = KeycloakLoginSession.adminUser();
+        alienAuth = KeycloakLoginSession.alienUser();
 
-        adminRegistryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
-            Environment.ADMIN_USERNAME,
-            Environment.ADMIN_PASSWORD);
+        // initialize RedHat SSO users
+        var primaryUser = primaryAuth.loginToRedHatSSO();
+        var secondaryUser = secondaryAuth.loginToRedHatSSO();
+        var adminUser = adminAuth.loginToRedHatSSO();
+        var alienUser = alienAuth.loginToRedHatSSO();
 
-        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
-            Environment.PRIMARY_USERNAME,
-            Environment.PRIMARY_PASSWORD);
+        // initialize the Security mgmt APIs for all users
+        primaryRegistryMgmtAPI = RegistryMgmtApiUtils.registryMgmtApi(primaryUser);
+        secondaryRegistryMgmtAPI = RegistryMgmtApiUtils.registryMgmtApi(secondaryUser);
+        adminRegistryMgmtAPI = RegistryMgmtApiUtils.registryMgmtApi(adminUser);
+        alienRegistryMgmtAPI = RegistryMgmtApiUtils.registryMgmtApi(alienUser);
 
-        secondaryRegistryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
-            Environment.SECONDARY_USERNAME,
-            Environment.SECONDARY_PASSWORD);
-
-        alienRegistryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(
-            Environment.ALIEN_USERNAME,
-            Environment.ALIEN_PASSWORD);
-
-        registry = applyRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
+        registry = applyRegistry(primaryRegistryMgmtAPI, SERVICE_REGISTRY_NAME);
     }
 
     @AfterClass(alwaysRun = true)
-    public void teardown() throws Throwable {
+    public void teardown() {
         assumeTeardown();
 
         try {
-            if (registryMgmtApi != null) {
-                cleanRegistry(registryMgmtApi, SERVICE_REGISTRY_NAME);
+            if (primaryRegistryMgmtAPI != null) {
+                cleanRegistry(primaryRegistryMgmtAPI, SERVICE_REGISTRY_NAME);
             }
         } catch (Throwable t) {
             LOGGER.error("clean service registry error: ", t);
         }
-
-        bwait(vertx.close());
     }
 
     @Test
-    public void testSecondaryUserCanReadTheRegistry() throws ApiGenericException {
-        var r = secondaryRegistryMgmtApi.getRegistry(registry.getId());
+    @SneakyThrows
+    public void testSecondaryUserCanReadTheRegistry() {
+        var r = secondaryRegistryMgmtAPI.getRegistry(registry.getId());
         assertEquals(r.getName(), registry.getName());
     }
 
     @Test
-    public void testUserCanReadTheRegistry() throws ApiGenericException {
-        LOGGER.info("registries: {}", Json.encode(registryMgmtApi.getRegistries(null, null, null, null)));
+    @SneakyThrows
+    public void testUserCanReadTheRegistry() {
+        LOGGER.info("registries: {}", Json.encode(primaryRegistryMgmtAPI.getRegistries(null, null, null, null)));
         LOGGER.info("registry: {}", Json.encode(registry));
-        var r = registryMgmtApi.getRegistry(registry.getId());
+        var r = primaryRegistryMgmtAPI.getRegistry(registry.getId());
         assertEquals(r.getName(), registry.getName());
     }
 
     @Test
     public void testAlienUserCanNotReadTheRegistry() {
-        assertThrows(ApiNotFoundException.class, () -> alienRegistryMgmtApi.getRegistry(registry.getId()));
+        assertThrows(ApiNotFoundException.class, () -> alienRegistryMgmtAPI.getRegistry(registry.getId()));
     }
 
     @Test
-    public void testAlienUserCanNotCreateArtifactOnTheRegistry() throws Throwable {
-        var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(),
-            Environment.ALIEN_USERNAME,
-            Environment.ALIEN_PASSWORD);
-
+    @SneakyThrows
+    public void testAlienUserCanNotCreateArtifactOnTheRegistry() {
+        var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(), alienAuth.loginToOpenshiftIdentity());
         assertThrows(ApiForbiddenException.class, () -> registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test(priority = 1)
     public void testSecondaryUserCanNotDeleteTheRegistry() {
-        assertThrows(ApiForbiddenException.class, () -> secondaryRegistryMgmtApi.deleteRegistry(registry.getId()));
+        assertThrows(ApiForbiddenException.class, () -> secondaryRegistryMgmtAPI.deleteRegistry(registry.getId()));
     }
 
     @Test(priority = 1)
     public void testAlienUserCanNotDeleteTheRegistry() {
-        assertThrows(ApiForbiddenException.class, () -> alienRegistryMgmtApi.deleteRegistry(registry.getId()));
+        assertThrows(ApiForbiddenException.class, () -> alienRegistryMgmtAPI.deleteRegistry(registry.getId()));
     }
 
     @Test
     public void testUnauthenticatedUserWithFakeToken() {
-        var api = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(TestUtils.FAKE_TOKEN));
+        var api = RegistryMgmtApiUtils.registryMgmtApi(new KeycloakUser(TestUtils.FAKE_TOKEN));
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 
     @Test
     public void testUnauthenticatedUserWithoutToken() {
-        var api = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, new KeycloakUser(""));
+        var api = RegistryMgmtApiUtils.registryMgmtApi(new KeycloakUser(""));
         assertThrows(ApiUnauthorizedException.class, () -> api.getRegistries(null, null, null, null));
     }
 
     @Test
-    public void testAdminUserCanCreateArtifactOnTheRegistry() throws Throwable {
-        var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(),
-            Environment.ADMIN_USERNAME,
-            Environment.ADMIN_PASSWORD);
-
+    @SneakyThrows
+    public void testAdminUserCanCreateArtifactOnTheRegistry() {
+        var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(), adminAuth.loginToOpenshiftIdentity());
         registryClient.createArtifact(null, null, ARTIFACT_SCHEMA.getBytes(StandardCharsets.UTF_8));
     }
 
     @Test(priority = 2)
-    public void testAdminUserCanDeleteTheRegistry() throws Throwable {
+    @SneakyThrows
+    public void testAdminUserCanDeleteTheRegistry() {
         // deletion of register by admin
-        adminRegistryMgmtApi.deleteRegistry(registry.getId());
-
+        adminRegistryMgmtAPI.deleteRegistry(registry.getId());
     }
 }

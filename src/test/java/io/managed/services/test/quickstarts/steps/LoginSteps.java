@@ -42,11 +42,8 @@ public class LoginSteps {
         var masUser = keycloakLoginSession.loginToOpenshiftIdentity();
 
         // initialize APIs
-        log.info("initialize KafkaMgmtAPI with base path '{}'", Environment.OPENSHIFT_API_URI);
-        var kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, redHatUser);
-
-        log.info("initialize SecurityMgmtAPI with base path '{}'", Environment.OPENSHIFT_API_URI);
-        var securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.OPENSHIFT_API_URI, redHatUser);
+        var kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(redHatUser);
+        var securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(redHatUser);
 
         // update contexts
         user.setKeycloakLoginSession(keycloakLoginSession);

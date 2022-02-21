@@ -7,10 +7,8 @@ import com.openshift.cloud.api.srs.models.RegistryList;
 import io.managed.services.test.Environment;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
-import io.managed.services.test.client.exception.ApacheResponseException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
-import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.oauth.KeycloakUser;
 import io.vertx.core.json.Json;
 import org.apache.logging.log4j.LogManager;
@@ -27,19 +25,6 @@ import static java.time.Duration.ofSeconds;
 public class RegistryMgmtApiUtils {
     private static final Logger LOGGER = LogManager.getLogger(RegistryMgmtApiUtils.class);
 
-    @Deprecated
-    public static RegistryMgmtApi registryMgmtApi(String username, String password) throws ApacheResponseException {
-        return registryMgmtApi(new KeycloakLoginSession(username, password));
-    }
-
-    @Deprecated
-    public static RegistryMgmtApi registryMgmtApi(KeycloakLoginSession auth) throws ApacheResponseException {
-        LOGGER.info("authenticate user: {} against RH SSO", auth.getUsername());
-        var user = auth.loginToRedHatSSO();
-        return registryMgmtApi(user);
-    }
-
-    @Deprecated
     public static RegistryMgmtApi registryMgmtApi(KeycloakUser user) {
         return registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
     }

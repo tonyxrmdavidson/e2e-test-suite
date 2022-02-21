@@ -86,19 +86,17 @@ public class KafkaOperatorTest extends TestBase {
     @BeforeClass
     @SneakyThrows
     public void bootstrap() {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
         assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
         assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
 
-        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = KeycloakLoginSession.primaryUser();
 
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
         user = auth.loginToRedHatSSO();
 
         LOGGER.info("initialize kafka and security apis");
-        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, user);
-        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(user);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
 
 
         LOGGER.info("initialize openshift client");

@@ -9,7 +9,6 @@ import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.types.RoleType;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
-import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.AvroKafkaGenericDeserializer;
 import io.managed.services.test.client.kafka.AvroKafkaGenericSerializer;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
@@ -20,6 +19,7 @@ import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
+import io.managed.services.test.client.registry.RegistryClientUtils;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApi;
 import io.managed.services.test.client.registrymgmt.RegistryMgmtApiUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
@@ -44,9 +44,7 @@ import java.util.List;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils.kafkaInstanceApiUri;
-import static io.managed.services.test.client.registry.RegistryClientUtils.registryClient;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 
 /**
  * Test integration between Kafka and Service Registry
@@ -79,17 +77,14 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
     @BeforeClass
     public void bootstrap() throws Throwable {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
-
-        var oauth = new KeycloakLoginSession( Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = KeycloakLoginSession.primaryUser();
+        var user = auth.loginToRedHatSSO();
 
         // registry api
         LOGGER.info("initialize registry, kafka security services apis");
-        var apis = ApplicationServicesApi.applicationServicesApi(oauth);
-        registryMgmtApi = apis.registryMgmt();
-        kafkaMgmtApi = apis.kafkaMgmt();
-        securityMgmtApi = apis.securityMgmt();
+        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(user);
+        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(user);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
 
         // registry
         LOGGER.info("create service registry: {}", SERVICE_REGISTRY_NAME);
@@ -106,8 +101,8 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         // topic
         LOGGER.info("create topic: {}", TOPIC_NAME);
-        var user = oauth.loginToOpenshiftIdentity();
-        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafkaInstanceApiUri(kafka), user);
+        var masUser = auth.loginToOpenshiftIdentity();
+        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafkaInstanceApiUri(kafka), masUser);
         var topic = KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, TOPIC_NAME);
         LOGGER.debug(topic);
 
@@ -117,7 +112,7 @@ public class RegistryKafkaIntegrationTest extends TestBase {
 
         // grant access to the service account to the registry
         LOGGER.info("grant access to the registry for service account: {}", serviceAccount.getClientId());
-        var registryClient = registryClient(registry.getRegistryUrl(), user);
+        var registryClient = RegistryClientUtils.registryClient(registry.getRegistryUrl(), masUser);
         var role = new RoleMapping();
         // We expect the service account to be always created with the same name
         // if that will not be the case in the feature we will have to retrieve the

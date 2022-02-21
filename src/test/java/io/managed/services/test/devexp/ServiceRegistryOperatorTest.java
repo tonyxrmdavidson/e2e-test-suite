@@ -87,25 +87,23 @@ public class ServiceRegistryOperatorTest extends TestBase {
     @BeforeClass
     @SneakyThrows
     public void bootstrap() {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
         assertNotNull(Environment.DEV_CLUSTER_SERVER, "the DEV_CLUSTER_SERVER env is null");
         assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
 
-        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = KeycloakLoginSession.primaryUser();
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
         user = auth.loginToRedHatSSO();
 
         LOGGER.info("initialize security and register apis");
-        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.OPENSHIFT_API_URI, user);
-        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
+        registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(user);
 
         LOGGER.info("initialize openshift client");
         var config = new ConfigBuilder()
-                .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
-                .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
-                .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
-                .build();
+            .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
+            .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
+            .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+            .build();
         oc = new DefaultOpenShiftClient(config);
 
         LOGGER.info("apply service registry '{}'", SERVICE_REGISTRY_NAME);
@@ -152,10 +150,10 @@ public class ServiceRegistryOperatorTest extends TestBase {
 
     private void collectOperatorLogs(ITestContext context) throws IOException {
         LogCollector.saveDeploymentLog(
-                TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
-                oc,
-                "openshift-operators",
-                "service-binding-operator");
+            TestUtils.getLogPath(Environment.LOG_DIR.resolve("test-logs").toString(), context),
+            oc,
+            "openshift-operators",
+            "service-binding-operator");
 
     }
 
@@ -261,8 +259,8 @@ public class ServiceRegistryOperatorTest extends TestBase {
             LOGGER.debug(r);
 
             if (r.getStatus() != null
-                    && r.getStatus().getServiceRegistries() != null
-                    && !r.getStatus().getServiceRegistries().isEmpty()) {
+                && r.getStatus().getServiceRegistries() != null
+                && !r.getStatus().getServiceRegistries().isEmpty()) {
 
                 atom.set(r);
                 return true;
@@ -277,8 +275,8 @@ public class ServiceRegistryOperatorTest extends TestBase {
     public void testCreateServiceRegistryConnection() throws Throwable {
 
         var serviceRegistry = cloudServicesRequest.getStatus().getServiceRegistries().stream()
-                .filter(r -> r.getName().equals(SERVICE_REGISTRY_NAME))
-                .findFirst();
+            .filter(r -> r.getName().equals(SERVICE_REGISTRY_NAME))
+            .findFirst();
 
         if (serviceRegistry.isEmpty()) {
             LOGGER.info("CloudServicesRequest: {}", Json.encode(cloudServicesRequest));
@@ -302,8 +300,8 @@ public class ServiceRegistryOperatorTest extends TestBase {
             LOGGER.debug(r);
 
             return r.getStatus() != null
-                    && r.getStatus().getMessage() != null
-                    && r.getStatus().getMessage().equals("Created");
+                && r.getStatus().getMessage() != null
+                && r.getStatus().getMessage().equals("Created");
         };
         waitFor("ManagedServiceRegistryConnection to be created", ofSeconds(10), ofMinutes(2), ready);
         LOGGER.info("ManagedServiceRegistryConnection is created");

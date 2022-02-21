@@ -10,7 +10,6 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.ThrowingFunction;
-import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
@@ -21,6 +20,7 @@ import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.vertx.core.Future;
@@ -47,7 +47,6 @@ import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopi
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -91,6 +90,7 @@ public class KafkaMgmtAPITest extends TestBase {
         "kafka_namespace:kafka_server_socket_server_metrics_connection_creation_rate:sum"
     };
 
+    private KeycloakLoginSession auth;
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
     private KafkaRequest kafka;
@@ -99,16 +99,12 @@ public class KafkaMgmtAPITest extends TestBase {
 
 
     @BeforeClass
+    @SneakyThrows
     public void bootstrap() {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
-
-        var apps = ApplicationServicesApi.applicationServicesApi(
-            Environment.PRIMARY_USERNAME,
-            Environment.PRIMARY_PASSWORD);
-
-        securityMgmtApi = apps.securityMgmt();
-        kafkaMgmtApi = apps.kafkaMgmt();
+        auth = KeycloakLoginSession.primaryUser();
+        var user = auth.loginToRedHatSSO();
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
+        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(user);
     }
 
     @AfterClass(alwaysRun = true)
@@ -157,8 +153,7 @@ public class KafkaMgmtAPITest extends TestBase {
 
         kafka = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
 
-        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, auth.loginToOpenshiftIdentity());
     }
 
     @Test
@@ -184,9 +179,6 @@ public class KafkaMgmtAPITest extends TestBase {
     @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testCreateTopics() {
-
-        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
         log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
         var topicPayload = new NewTopicInput()
@@ -289,7 +281,7 @@ public class KafkaMgmtAPITest extends TestBase {
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"})
     @SneakyThrows
-    public <T extends Throwable> void testFederateMetrics() {
+    public void testFederateMetrics() {
         // Verify all expected user facing Kafka metrics retrieved from Observatorium are included in the response in a Prometheus Text Format
         var missingMetricsAtom = new AtomicReference<List<String>>();
         ThrowingFunction<Boolean, Boolean, ApiGenericException> isMetricAvailable = last -> {
@@ -390,32 +382,28 @@ public class KafkaMgmtAPITest extends TestBase {
         securityMgmtApi.deleteServiceAccountById(serviceAccountForDeletion.getId());
 
         // fail to communicate due to service account being deleted using PLAIN & OAUTH
-        assertThrows(KafkaException.class, () -> {
-            bwait(testTopic(
-                Vertx.vertx(),
-                bootstrapHost,
-                clientID,
-                clientSecret,
-                TOPIC_NAME,
-                1000,
-                10,
-                100,
-                KafkaAuthMethod.PLAIN
-            ));
-        });
-        assertThrows(KafkaException.class, () -> {
-            bwait(testTopic(
-                Vertx.vertx(),
-                bootstrapHost,
-                clientID,
-                clientSecret,
-                TOPIC_NAME,
-                1000,
-                10,
-                100,
-                KafkaAuthMethod.OAUTH
-            ));
-        });
+        assertThrows(KafkaException.class, () -> bwait(testTopic(
+            Vertx.vertx(),
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            TOPIC_NAME,
+            1000,
+            10,
+            100,
+            KafkaAuthMethod.PLAIN
+        )));
+        assertThrows(KafkaException.class, () -> bwait(testTopic(
+            Vertx.vertx(),
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            TOPIC_NAME,
+            1000,
+            10,
+            100,
+            KafkaAuthMethod.OAUTH
+        )));
     }
 
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1)

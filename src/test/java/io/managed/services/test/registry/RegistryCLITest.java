@@ -66,9 +66,9 @@ public class RegistryCLITest {
     public void clean() {
 
 
-        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = KeycloakLoginSession.primaryUser();
         var user = auth.loginToRedHatSSO();
-        var registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        var registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(user);
 
         try {
             RegistryMgmtApiUtils.deleteRegistryByNameIfExists(registryMgmtApi, SERVICE_REGISTRY_NAME);

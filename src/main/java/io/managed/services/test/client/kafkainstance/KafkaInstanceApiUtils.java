@@ -11,12 +11,10 @@ import io.managed.services.test.IsReady;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.ThrowingSupplier;
-import io.managed.services.test.client.exception.ApacheResponseException;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
-import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.oauth.KeycloakUser;
 import io.managed.services.test.wait.TReadyFunction;
 import io.vertx.core.Future;
@@ -49,18 +47,6 @@ public class KafkaInstanceApiUtils {
         String hostname = portIndex >= 0 ? bootstrapServerHost.substring(0, portIndex) : bootstrapServerHost;
         String uriTemplate = Environment.KAFKA_INSTANCE_API_TEMPLATE;
         return String.format(uriTemplate, hostname);
-    }
-
-    @Deprecated
-    public static KafkaInstanceApi kafkaInstanceApi(KafkaRequest kafka, String username, String password) throws ApacheResponseException {
-        return kafkaInstanceApi(new KeycloakLoginSession(username, password), kafka);
-    }
-
-    @Deprecated
-    public static KafkaInstanceApi kafkaInstanceApi(KeycloakLoginSession auth, KafkaRequest kafka) throws ApacheResponseException {
-        log.info("authenticate user '{}' against MAS SSO", auth.getUsername());
-        var user = auth.loginToOpenshiftIdentity();
-        return kafkaInstanceApi(kafka, user);
     }
 
     public static KafkaInstanceApi kafkaInstanceApi(KafkaRequest kafka, KeycloakUser user) {

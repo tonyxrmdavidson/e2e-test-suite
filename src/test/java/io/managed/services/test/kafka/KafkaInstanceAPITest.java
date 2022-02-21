@@ -6,7 +6,6 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
-import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.exception.ApiLockedException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
@@ -34,7 +33,6 @@ import java.util.Objects;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -74,18 +72,16 @@ public class KafkaInstanceAPITest extends TestBase {
     @BeforeClass
     @SneakyThrows
     public void bootstrap() {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+        var auth = KeycloakLoginSession.primaryUser();
+        var user = auth.loginToRedHatSSO();
 
-        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
-        var apps = ApplicationServicesApi.applicationServicesApi(auth);
-        kafkaMgmtApi = apps.kafkaMgmt();
-        securityMgmtApi = apps.securityMgmt();
-        LOGGER.info("kafka and security mgmt api initialized");
+        kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(user);
+        securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
+        LOGGER.info("kafka and security mgmt APIs initialized");
 
         kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
-        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka);
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, auth.loginToOpenshiftIdentity());
         LOGGER.info("kafka instance api client initialized");
     }
 
@@ -126,8 +122,8 @@ public class KafkaInstanceAPITest extends TestBase {
     @SneakyThrows
     public void testFailToCallAPIIfUserBelongsToADifferentOrganization() {
 
-        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(
-            new KeycloakLoginSession(Environment.ALIEN_USERNAME, Environment.ALIEN_PASSWORD), kafka);
+        var user = KeycloakLoginSession.alienUser().loginToOpenshiftIdentity();
+        var kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, user);
         assertThrows(ApiUnauthorizedException.class, () -> kafkaInstanceApi.getTopics());
     }
 

@@ -33,6 +33,8 @@ import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.function.Function;
 
+import static org.testng.Assert.assertNotNull;
+
 public class KeycloakLoginSession {
     private static final Logger LOGGER = LogManager.getLogger(KeycloakLoginSession.class);
 
@@ -44,6 +46,30 @@ public class KeycloakLoginSession {
     public KeycloakLoginSession(String username, String password) {
         this.username = username;
         this.password = password;
+    }
+
+    public static KeycloakLoginSession primaryUser() {
+        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
+        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+        return new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+    }
+
+    public static KeycloakLoginSession secondaryUser() {
+        assertNotNull(Environment.SECONDARY_USERNAME, "the SECONDARY_USERNAME env is null");
+        assertNotNull(Environment.SECONDARY_PASSWORD, "the SECONDARY_PASSWORD env is null");
+        return new KeycloakLoginSession(Environment.SECONDARY_USERNAME, Environment.SECONDARY_PASSWORD);
+    }
+
+    public static KeycloakLoginSession adminUser() {
+        assertNotNull(Environment.ADMIN_USERNAME, "the ADMIN_USERNAME env is null");
+        assertNotNull(Environment.ADMIN_PASSWORD, "the ADMIN_PASSWORD env is null");
+        return new KeycloakLoginSession(Environment.ADMIN_USERNAME, Environment.ADMIN_PASSWORD);
+    }
+
+    public static KeycloakLoginSession alienUser() {
+        assertNotNull(Environment.ALIEN_USERNAME, "the ALIEN_USERNAME env is null");
+        assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
+        return new KeycloakLoginSession(Environment.ALIEN_USERNAME, Environment.ALIEN_PASSWORD);
     }
 
     private OAuth20Service createOAuth2(

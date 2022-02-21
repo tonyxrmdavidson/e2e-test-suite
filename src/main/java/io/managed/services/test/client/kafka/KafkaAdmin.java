@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 public class KafkaAdmin implements AutoCloseable {
 
     public final Admin admin;
@@ -200,7 +201,7 @@ public class KafkaAdmin implements AutoCloseable {
     }
 
     public void logDirs() {
-        get(admin.describeLogDirs(List.of(1)).all());
+        get(admin.describeLogDirs(List.of(1)).allDescriptions());
     }
 
     public void reassignPartitions(String topicName) {

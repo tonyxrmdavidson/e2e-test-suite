@@ -82,11 +82,11 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void clean() {
 
-        var auth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        var auth = KeycloakLoginSession.primaryUser();
         var user = auth.loginToRedHatSSO();
 
-        var kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(Environment.OPENSHIFT_API_URI, user);
-        var securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(Environment.OPENSHIFT_API_URI, user);
+        var kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(user);
+        var securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
 
         try {
             KafkaMgmtApiUtils.deleteKafkaByNameIfExists(kafkaMgmtApi, KAFKA_INSTANCE_NAME);

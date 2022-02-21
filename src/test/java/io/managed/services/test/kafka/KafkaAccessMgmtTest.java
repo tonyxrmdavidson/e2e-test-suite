@@ -15,7 +15,6 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
-import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiForbiddenException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
@@ -25,9 +24,11 @@ import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.ElectionType;
@@ -49,7 +50,6 @@ import java.util.List;
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -99,10 +99,12 @@ public class KafkaAccessMgmtTest extends TestBase {
 
     private static final String TEST_CONSUMER_GROUP_NAME_01 = "test-consumer-group-01";
 
-    private ApplicationServicesApi primaryAPI;
-    private ApplicationServicesApi secondaryAPI;
-    private ApplicationServicesApi alienAPI;
-    private ApplicationServicesApi adminAPI;
+    private KafkaMgmtApi primaryKafkaMgmtAPI;
+    private KafkaMgmtApi secondaryKafkaMgmtAPI;
+    private KafkaMgmtApi adminKafkaMgmtAPI;
+    private KafkaMgmtApi alienKafkaMgmtAPI;
+
+    private SecurityMgmtApi primarySecurityMgmtAPI;
 
     private ServiceAccount primaryServiceAccount;
 
@@ -121,34 +123,40 @@ public class KafkaAccessMgmtTest extends TestBase {
     @BeforeClass
     @SneakyThrows
     public void bootstrap() {
-        assertNotNull(Environment.ADMIN_USERNAME, "the ADMIN_USERNAME env is null");
-        assertNotNull(Environment.ADMIN_PASSWORD, "the ADMIN_PASSWORD env is null");
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
-        assertNotNull(Environment.SECONDARY_USERNAME, "the SECONDARY_USERNAME env is null");
-        assertNotNull(Environment.SECONDARY_PASSWORD, "the SECONDARY_PASSWORD env is null");
-        assertNotNull(Environment.ALIEN_USERNAME, "the ALIEN_USERNAME env is null");
-        assertNotNull(Environment.ALIEN_PASSWORD, "the ALIEN_PASSWORD env is null");
 
         // initialize the auth objects for all users
-        var primaryAuth = new KeycloakLoginSession(Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
-        var secondaryAuth = new KeycloakLoginSession(Environment.SECONDARY_USERNAME, Environment.SECONDARY_PASSWORD);
-        var alienAuth = new KeycloakLoginSession(Environment.ALIEN_USERNAME, Environment.ALIEN_PASSWORD);
-        var adminAuth = new KeycloakLoginSession(Environment.ADMIN_USERNAME, Environment.ADMIN_PASSWORD);
+        var primaryAuth = KeycloakLoginSession.primaryUser();
+        var secondaryAuth = KeycloakLoginSession.secondaryUser();
+        var adminAuth = KeycloakLoginSession.adminUser();
+        var alienAuth = KeycloakLoginSession.alienUser();
 
-        // initialize the mgmt APIs client for all users
-        primaryAPI = ApplicationServicesApi.applicationServicesApi(primaryAuth);
-        secondaryAPI = ApplicationServicesApi.applicationServicesApi(secondaryAuth);
-        alienAPI = ApplicationServicesApi.applicationServicesApi(alienAuth);
-        adminAPI = ApplicationServicesApi.applicationServicesApi(adminAuth);
+        // initialize RedHat SSO users
+        var primaryUser = primaryAuth.loginToRedHatSSO();
+        var secondaryUser = secondaryAuth.loginToRedHatSSO();
+        var adminUser = adminAuth.loginToRedHatSSO();
+        var alienUser = alienAuth.loginToRedHatSSO();
+
+        // initialize OpenShift Identity users
+        var primaryMasUser = primaryAuth.loginToOpenshiftIdentity();
+        var secondaryMasUser = secondaryAuth.loginToOpenshiftIdentity();
+        var adminMasUser = adminAuth.loginToOpenshiftIdentity();
+
+        // initialize the Kafka mgmt APIs for all users
+        primaryKafkaMgmtAPI = KafkaMgmtApiUtils.kafkaMgmtApi(primaryUser);
+        secondaryKafkaMgmtAPI = KafkaMgmtApiUtils.kafkaMgmtApi(secondaryUser);
+        adminKafkaMgmtAPI = KafkaMgmtApiUtils.kafkaMgmtApi(adminUser);
+        alienKafkaMgmtAPI = KafkaMgmtApiUtils.kafkaMgmtApi(alienUser);
+
+        // initialize the Security mgmt APIs
+        primarySecurityMgmtAPI = SecurityMgmtAPIUtils.securityMgmtApi(primaryUser);
 
         // create a kafka instance owned by the primary user
         LOGGER.info("create kafka instance '{}'", KAFKA_INSTANCE_NAME);
-        kafka = KafkaMgmtApiUtils.applyKafkaInstance(primaryAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(primaryKafkaMgmtAPI, KAFKA_INSTANCE_NAME);
 
         // create a service account owned by the primary user
         primaryServiceAccount = SecurityMgmtAPIUtils.applyServiceAccount(
-            primaryAPI.securityMgmt(), PRIMARY_SERVICE_ACCOUNT_NAME);
+            primarySecurityMgmtAPI, PRIMARY_SERVICE_ACCOUNT_NAME);
 
         // create the apache kafka admin client
         primaryApacheKafkaAdmin = new KafkaAdmin(
@@ -158,9 +166,9 @@ public class KafkaAccessMgmtTest extends TestBase {
         LOGGER.info("kafka admin api initialized for instance: {}", kafka.getBootstrapServerHost());
 
         // initialize the Kafka Instance API (rest) clients for all users
-        primaryKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(primaryAuth, kafka);
-        secondaryKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(secondaryAuth, kafka);
-        adminKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(adminAuth, kafka);
+        primaryKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, primaryMasUser);
+        secondaryKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, secondaryMasUser);
+        adminKafkaInstanceAPI = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, adminMasUser);
 
         // get the default ACLs for the Kafka instance
         // (the current ACLs of an unmodified Kafka instance are the default ACLs)
@@ -191,7 +199,7 @@ public class KafkaAccessMgmtTest extends TestBase {
         if (Environment.SKIP_KAFKA_TEARDOWN) {
             // Try to swap the owner back
             try {
-                KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminAPI.kafkaMgmt(), kafka, Environment.PRIMARY_USERNAME);
+                KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminKafkaMgmtAPI, kafka, Environment.PRIMARY_USERNAME);
                 KafkaMgmtApiUtils.waitUntilOwnerIsChanged(primaryKafkaInstanceAPI);
             } catch (Throwable t) {
                 LOGGER.warn("switching back owner error: {}", t.getMessage());
@@ -221,12 +229,12 @@ public class KafkaAccessMgmtTest extends TestBase {
         }
 
         try {
-            KafkaMgmtApiUtils.cleanKafkaInstance(adminAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.cleanKafkaInstance(adminKafkaMgmtAPI, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean kafka error: ", t);
         }
         try {
-            SecurityMgmtAPIUtils.cleanServiceAccount(primaryAPI.securityMgmt(), PRIMARY_SERVICE_ACCOUNT_NAME);
+            SecurityMgmtAPIUtils.cleanServiceAccount(primarySecurityMgmtAPI, PRIMARY_SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("clean main (primary) service account error: ", t);
         }
@@ -239,7 +247,7 @@ public class KafkaAccessMgmtTest extends TestBase {
         // The kafka instance is owned by the primary user and the secondary user is in the same organization
         // as the primary user
         LOGGER.info("Test that by default the secondary user can read the kafka instance");
-        var kafkas = secondaryAPI.kafkaMgmt().getKafkas(null, null, null, null);
+        var kafkas = secondaryKafkaMgmtAPI.getKafkas(null, null, null, null);
 
         LOGGER.debug(kafkas);
 
@@ -256,7 +264,7 @@ public class KafkaAccessMgmtTest extends TestBase {
         // The kafka instance is owned by the primary user and the alien user is not in the same organization
         // as the primary user
         LOGGER.info("Test that by default the alien user can not read the kafka instance");
-        var kafkas = alienAPI.kafkaMgmt().getKafkas(null, null, null, null);
+        var kafkas = alienKafkaMgmtAPI.getKafkas(null, null, null, null);
 
         LOGGER.debug(kafkas);
 
@@ -675,7 +683,7 @@ public class KafkaAccessMgmtTest extends TestBase {
     public void testAdminUserCanChangeTheKafkaInstanceOwner() {
 
         LOGGER.info("Switch the owner of kafka instance from the primary user to secondary user");
-        kafka = KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME);
+        kafka = KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminKafkaMgmtAPI, kafka, Environment.SECONDARY_USERNAME);
 
         // wait until owner is changed (waiting for Rollout on Brokers)
         KafkaMgmtApiUtils.waitUntilOwnerIsChanged(secondaryKafkaInstanceAPI);
@@ -739,19 +747,19 @@ public class KafkaAccessMgmtTest extends TestBase {
     @Test(priority = 11, dependsOnMethods = "testAdminUserCanChangeTheKafkaInstanceOwner")
     public void testPrimaryUserCanNotDeleteTheKafkaInstance() {
         LOGGER.info("Test that the primary user (old owner) can not delete the Kafka instance");
-        assertThrows(ApiNotFoundException.class, () -> primaryAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
+        assertThrows(ApiNotFoundException.class, () -> primaryKafkaMgmtAPI.deleteKafkaById(kafka.getId(), true));
     }
 
     @Test(priority = 11, dependsOnMethods = "testAdminUserCanChangeTheKafkaInstanceOwner")
     public void testAlienUserCanNotDeleteTheKafkaInstance() {
         LOGGER.info("Test that the aline user can not delete the Kafka instance");
-        assertThrows(ApiNotFoundException.class, () -> alienAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
+        assertThrows(ApiNotFoundException.class, () -> alienKafkaMgmtAPI.deleteKafkaById(kafka.getId(), true));
     }
 
     @SneakyThrows
     @Test(priority = 12, dependsOnMethods = "testAdminUserCanChangeTheKafkaInstanceOwner")
     public void testSecondaryUserCanDeleteTheKafkaInstance() {
         LOGGER.info("Test that the secondary user can delete the Kafka instance");
-        KafkaMgmtApiUtils.cleanKafkaInstance(secondaryAPI.kafkaMgmt(), KAFKA_INSTANCE_NAME);
+        KafkaMgmtApiUtils.cleanKafkaInstance(secondaryKafkaMgmtAPI, KAFKA_INSTANCE_NAME);
     }
 }

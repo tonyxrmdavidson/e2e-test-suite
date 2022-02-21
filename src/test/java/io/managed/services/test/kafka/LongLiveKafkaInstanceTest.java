@@ -7,7 +7,6 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
-import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
@@ -17,6 +16,7 @@ import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
+import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.vertx.core.Vertx;
@@ -38,7 +38,6 @@ import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithMultipleConsumers;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -67,6 +66,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     static final String TEST_CANARY_NAME = "__strimzi_canary";
     public static final String TEST_CANARY_GROUP = "canary-group";
 
+    private KeycloakLoginSession auth;
     private KafkaMgmtApi kafkaMgmtApi;
     private SecurityMgmtApi securityMgmtApi;
     private KafkaInstanceApi kafkaInstanceApi;
@@ -75,16 +75,12 @@ public class LongLiveKafkaInstanceTest extends TestBase {
     private ServiceAccount serviceAccount;
 
     @BeforeClass
+    @SneakyThrows
     public void bootstrap() {
-        assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
-        assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
-
-        var apps = ApplicationServicesApi.applicationServicesApi(
-            Environment.PRIMARY_USERNAME,
-            Environment.PRIMARY_PASSWORD);
-
-        this.kafkaMgmtApi = apps.kafkaMgmt();
-        this.securityMgmtApi = apps.securityMgmt();
+        auth = KeycloakLoginSession.primaryUser();
+        var user = auth.loginToRedHatSSO();
+        this.kafkaMgmtApi = KafkaMgmtApiUtils.kafkaMgmtApi(user);
+        this.securityMgmtApi = SecurityMgmtAPIUtils.securityMgmtApi(user);
     }
 
     @Test
@@ -110,8 +106,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         }
 
         LOGGER.info("initialize kafka instance api");
-        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
+        kafkaInstanceApi = KafkaInstanceApiUtils.kafkaInstanceApi(kafka, auth.loginToOpenshiftIdentity());
     }
 
     @Test
