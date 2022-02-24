@@ -137,40 +137,34 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * you are logged in to the OpenShift Streams for Apache Kafka web console
     * you have a running Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance has a generated bootstrap server
-    * You created a service account for the Kafka instance
-    * JDK 11 or later is installed
-    * for Windows the latest version of Oracle JDK is installed
-    * You have downloaded and verified the latest supported binary version of the Apache Kafka distribution
+    * you have downloaded and verified the latest supported binary version of the Apache Kafka distribution
 
     # 1. Configuring Kafka scripts to connect to a Kafka instance
-    Given you have client ID and Secret for the service account, and a SASL connection mechanism
-    When you create an `app-services.properties` file in the local `/config` directory of the Kafka binaries
-    Then it contains the connection values
+    Given you have the bootstrap server endpoint for your Kafka instance
+    * you have the generated credentials for your service account
+    When you create an `app-services.properties` file with SASL connection mechanism
 
     # 2. Producing messages using Kafka scripts
-    Given you are set up to produce messages to Kafka topics
-    * The Kafka topic creation script `kafka-topics.sh` is available in the `/bin` directory of the Kafka binaries
-    * The Kafka producer creation script `kafka-console-producer.sh` is available in the `/bin` directory of the Kafka binaries
-    * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
-    * You have the bootstrap server address for the Kafka instance
-    When you enter a command to create a Kafka topic using `kafka-topics.sh`
-    And use the bootstrap server address
-    And use the `app-services.properties` file
-    Then a topic is created in the Kafka instance
-    Given you have created a topic
-    When you produce messages to the topic you created using `kafka-console-producer.sh`
-    And use the bootstrap server address as a parameter
-    And use the `app-services.properties` file as a parameter
-    Then messages are produced to the topic in the Kafka instance
+    Given you have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * the Kafka instance is in Ready state
+    * you have set the permissions for your service account to access your Kafka instance resources
+    * you have set the permissions for your service account to manipulate topic
+    * the Kafka topic creation script `kafka-topics.sh` is available
+    * the Kafka producer creation script `kafka-console-producer.sh` is available
+    * an `app-services.properties` file is configured
+    * you enter a command to create Kafka topic kafka-script-topic using `kafka-topics.sh`
+    When you produce messages to the topic kafka-script-topic using `kafka-console-producer.sh`
+    Then the `kafka-console-producer` is still running without any errors
 
     # 3. Consuming messages using Kafka scripts
-    Given you are set up to consume messages
-    * The Kafka consumer creation script `kafka-console-consumer.sh` is available in the `/bin` directory of the Kafka binaries
-    * An `app-services.properties` file is configured in the local `/config` directory of the Kafka binaries
-    * You have the bootstrap server address for the Kafka instance
-    * A topic contains the messages you produced in the Kafka instance
-    When you consume messages from the topic you created using `kafka-console-consumer.sh`
-    And use the bootstrap server address as a parameter
-    And use the `app-services.properties` file as a parameter
-    Then messages are consumed from the topic
-    And displayed on the command line
+    Given you have a running Kafka instance in OpenShift Streams for Apache Kafka
+    * the Kafka instance is in Ready state
+    * the Kafka consumer creation script `kafka-console-consumer.sh` is available
+    * an `app-services.properties` file is configured
+    * you have the bootstrap server endpoint for your Kafka instance
+    * you have created the Kafka topic kafka-script-topic
+    * you used a `kafka-console-producer` to produce example messages to a topic
+    When you consume messages from the topic kafka-script-topic you created using `kafka-console-consumer.sh`
+    Then your `kafka-console-consumer` is running without any errors
+    And the `kafka-console-consumer` display the example messages from the producer
+

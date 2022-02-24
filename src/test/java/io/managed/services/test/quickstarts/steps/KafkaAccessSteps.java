@@ -1,5 +1,10 @@
 package io.managed.services.test.quickstarts.steps;
 
+import com.openshift.cloud.api.kas.auth.models.AclBinding;
+import com.openshift.cloud.api.kas.auth.models.AclOperation;
+import com.openshift.cloud.api.kas.auth.models.AclPatternType;
+import com.openshift.cloud.api.kas.auth.models.AclPermissionType;
+import com.openshift.cloud.api.kas.auth.models.AclResourceType;
 import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
@@ -31,6 +36,29 @@ public class KafkaAccessSteps {
         var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccount.getClientId());
         log.info("apply producer and consumer ACLs for principal '{}'", principal);
         KafkaInstanceApiAccessUtils.applyProducerAndConsumerACLs(kafkaInstanceApi, principal);
+
+        this.principal = principal;
+    }
+
+    @Given("you have set the permissions for your service account to manipulate topic")
+    public void you_have_set_the_permissions_for_your_service_account_to_manipulate_topic() throws Throwable {
+        var kafkaInstanceApi = kafkaInstanceContext.kafkaInstanceApi();
+        var serviceAccount = serviceAccountContext.requireServiceAccount();
+
+        var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccount.getClientId());
+        log.info("apply acl to create topics for principal '{}'", principal);
+
+        var acl = new AclBinding()
+                .principal(principal)
+                .resourceType(AclResourceType.TOPIC)
+                .patternType(AclPatternType.LITERAL)
+                .resourceName("*")
+                .permission(AclPermissionType.ALLOW)
+                .operation(AclOperation.ALL);
+
+        log.debug(acl);
+
+        kafkaInstanceApi.createAcl(acl);
 
         this.principal = principal;
     }
