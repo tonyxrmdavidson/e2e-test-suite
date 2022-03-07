@@ -19,10 +19,11 @@ public class SecurityMgmtAPIUtils {
     private static final Logger LOGGER = LogManager.getLogger(SecurityMgmtAPIUtils.class);
 
     public static SecurityMgmtApi securityMgmtApi(KeycloakUser user) {
-        return new SecurityMgmtApi(new ApiClient().setBasePath(Environment.OPENSHIFT_API_URI), user);
+        return new SecurityMgmtApi(new ApiClient().setBasePath(Environment.SECURITY_MGMT_API_URI), user);
     }
 
     public static SecurityMgmtApi securityMgmtApi(String uri, KeycloakUser user) {
+        LOGGER.info("initialize SecurityMgmtApi; uri={}", uri);
         return new SecurityMgmtApi(new ApiClient().setBasePath(uri), user);
     }
 
@@ -31,7 +32,7 @@ public class SecurityMgmtAPIUtils {
      *
      * @param api  SecurityMgmtApi
      * @param name Service Account name
-     * @return Optional ServiceAccount
+     * @return Optional TemporaryServiceAccount
      */
     public static Optional<ServiceAccountListItem> getServiceAccountByName(SecurityMgmtApi api, String name)
         throws ApiGenericException {
@@ -64,11 +65,11 @@ public class SecurityMgmtAPIUtils {
 
     /**
      * If the service account with the passed name doesn't exist, recreate it, otherwise reset the credentials
-     * and return the ServiceAccount with clientSecret
+     * and return the TemporaryServiceAccount with clientSecret
      *
      * @param api  SecurityMgmtApi
      * @param name Service Account Name
-     * @return ServiceAccount with clientSecret
+     * @return TemporaryServiceAccount with clientSecret
      */
     public static ServiceAccount applyServiceAccount(SecurityMgmtApi api, String name)
         throws ApiGenericException {

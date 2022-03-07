@@ -43,6 +43,7 @@ public class Environment {
     private static final String ADMIN_PASSWORD_ENV = "ADMIN_PASSWORD";
 
     private static final String OPENSHIFT_API_URI_ENV = "OPENSHIFT_API_URI";
+    private static final String SECURITY_MGMT_API_URI_ENV = "SECURITY_MGMT_API_URI";
 
     private static final String REDHAT_SSO_URI_ENV = "REDHAT_SSO_URI";
     private static final String REDHAT_SSO_REALM_ENV = "REDHAT_SSO_REALM";
@@ -104,6 +105,7 @@ public class Environment {
 
     // app-services APIs base URI
     public static final String OPENSHIFT_API_URI = getOrDefault(OPENSHIFT_API_URI_ENV, "https://api.stage.openshift.com");
+    public static final String SECURITY_MGMT_API_URI = getOrDefault(SECURITY_MGMT_API_URI_ENV, OPENSHIFT_API_URI);
 
     // sso.redhat.com OAuth ENVs
     public static final String REDHAT_SSO_URI = getOrDefault(REDHAT_SSO_URI_ENV, "https://sso.redhat.com");

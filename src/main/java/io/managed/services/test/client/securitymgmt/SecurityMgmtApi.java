@@ -11,7 +11,9 @@ import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
 import io.managed.services.test.client.oauth.KeycloakUser;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 public class SecurityMgmtApi extends BaseApi {
 
     private final ApiClient apiClient;
@@ -20,7 +22,13 @@ public class SecurityMgmtApi extends BaseApi {
     public SecurityMgmtApi(ApiClient apiClient, KeycloakUser user) {
         super(user);
         this.apiClient = apiClient;
-        this.api = new SecurityApi(apiClient);
+
+        if (apiClient.getBasePath().endsWith("/apis/service_accounts/v1")) {
+            log.warn("Initializing TemporarySecurityApi with base path: {}", apiClient.getBasePath());
+            this.api = new TemporarySecurityApi(apiClient);
+        } else {
+            this.api = new SecurityApi(apiClient);
+        }
     }
 
     @Override

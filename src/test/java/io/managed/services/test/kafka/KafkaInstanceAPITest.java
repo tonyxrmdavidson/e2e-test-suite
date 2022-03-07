@@ -89,6 +89,14 @@ public class KafkaInstanceAPITest extends TestBase {
     public void teardown() {
         assumeTeardown();
 
+        if (Environment.SKIP_KAFKA_TEARDOWN) {
+            try {
+                kafkaInstanceApi.deleteTopic(TEST_TOPIC_NAME);
+            } catch (Throwable t) {
+                LOGGER.warn("failed to clean the topic: ", t);
+            }
+        }
+
         // delete kafka instance
         try {
             KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);

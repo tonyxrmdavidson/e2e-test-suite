@@ -46,6 +46,7 @@ public class KafkaMgmtApiUtils {
     }
 
     public static KafkaMgmtApi kafkaMgmtApi(String uri, KeycloakUser user) {
+        LOGGER.info("initialize KafkaMgmtApi; uri={}", uri);
         return new KafkaMgmtApi(new ApiClient().setBasePath(uri), user);
     }
 

@@ -135,6 +135,19 @@ public class KafkaMgmtAPITest extends TestBase {
         } catch (Throwable t) {
             log.error("clean service account error: ", t);
         }
+
+        // debug print all service account
+        try {
+            log.debug(securityMgmtApi.getServiceAccounts());
+        } catch (Throwable t) {
+            log.error("failed to retrieve service accounts: ", t);
+        }
+        // debug print all kafka instances
+        try {
+            log.debug(kafkaMgmtApi.getKafkas(null, null, null, null));
+        } catch (Throwable t) {
+            log.error("failed to retrieve kafka instances: ", t);
+        }
     }
 
     @Test
