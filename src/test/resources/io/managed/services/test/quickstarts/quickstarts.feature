@@ -152,7 +152,8 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     * the Kafka topic creation script `kafka-topics.sh` is available
     * the Kafka producer creation script `kafka-console-producer.sh` is available
     * an `app-services.properties` file is configured
-    * you enter a command to create Kafka topic kafka-script-topic using `kafka-topics.sh`
+    When you enter a command to create Kafka topic kafka-script-topic using `kafka-topics.sh`
+    Then the topic kafka-script-topic is created in the Kafka instance
     When you produce messages to the topic kafka-script-topic using `kafka-console-producer.sh`
     Then the `kafka-console-producer` is still running without any errors
 

@@ -95,7 +95,7 @@ public class KafkaScriptsSteps {
     @When("you consume messages from the topic {word} you created using `kafka-console-consumer.sh`")
     public void you_consume_messages_from_the_topic_you_created_using_kafka_console_consumer_sh(String topicName) {
 
-        log.info("start the kcat consumer");
+        log.info("start the kafka consumer script");
         var bootstrapServerHost = kafkaInstanceContext.requireKafkaInstance().getBootstrapServerHost();
         consumerProcess = kafkaScripts.startKafkaConsoleConsumer(topicName, bootstrapServerHost, kafkaPropertiesPath);
 
@@ -194,7 +194,7 @@ public class KafkaScriptsSteps {
         log.info(version);
     }
 
-    @Given("you enter a command to create Kafka topic {word} using `kafka-topics.sh`")
+    @When("you enter a command to create Kafka topic {word} using `kafka-topics.sh`")
     public void you_enter_a_command_to_create_a_kafka_topic_using_kafka_topics_sh(String topicName) throws ProcessException {
 
         this.topicName = topicName;
@@ -227,6 +227,12 @@ public class KafkaScriptsSteps {
     public void an_app_services_properties_file_is_configured() {
         assertNotNull(kafkaPropertiesPath);
     }
+
+    @Then("the topic {word} is created in the Kafka instance")
+    public void theTopicIsCreatedInTheKafkaInstance(String topicName) {
+        assertTrue(topicName.equals(this.topicName));
+    }
+
 
     @After(order = 10200)
     public void cleanKafkaWorkdir() {
@@ -289,4 +295,6 @@ public class KafkaScriptsSteps {
 
         producerProcess = null;
     }
+
+
 }
