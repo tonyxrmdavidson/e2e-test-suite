@@ -1,21 +1,28 @@
 package io.managed.services.test.cli;
 
 import io.managed.services.test.Environment;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static java.time.Duration.ofMinutes;
 
@@ -78,30 +85,57 @@ public class KafkaScripts {
         }
     }
 
-    public void downloadAndExtractKafkaScripts() throws IOException {
+    public void downloadAndExtractKafkaScripts() throws IOException, InterruptedException {
 
         String kafkaURLString = String.format("https://dlcdn.apache.org/kafka/%s/%s.tgz", kafkaVersion, kafkaResource);
         LOGGER.info("downloading kafka scripts from url: {}", kafkaURLString);
 
         // where to store downloaded archive
-        Path p = Paths.get(rootWorkDir.toString(), "kafka.tgz");
+        Path source = Paths.get(rootWorkDir.toString(), "kafka.tgz");
         // alternative download for exec("wget", kafkaURLString, "-P", ".", "--quiet")
         FileUtils.copyURLToFile(
                 new URL(kafkaURLString),
-                p.toFile(),
+                source.toFile(),
                 10000,
                 10000);
 
         LOGGER.info("extract binaries");
-        try {
-            //return new AsyncProcess(builder(command).start());
-            var cmd = List.of("tar", "-xvzf", "kafka.tgz");
-            var processBuilder = new ProcessBuilder(cmd).directory(new File(rootWorkDir.toString()));
-            var startedProcess = processBuilder.start();
-            startedProcess.waitFor(10, TimeUnit.SECONDS);
 
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+        // destination of decompression
+        Path target = rootWorkDir;
+
+        if (Files.notExists(source)) {
+            throw new IOException(" The file you want to extract does not exist ");
+        }
+
+
+        try (InputStream fi = Files.newInputStream(source);
+             BufferedInputStream bi = new BufferedInputStream(fi);
+             GzipCompressorInputStream gzi = new GzipCompressorInputStream(bi);
+             TarArchiveInputStream ti = new TarArchiveInputStream(gzi)) {
+
+            ArchiveEntry entry;
+            while ((entry = ti.getNextEntry()) != null) {
+
+                // Get the unzip file directory , And determine whether the file is damaged
+                Path newPath = zipSlipProtect(entry, target);
+
+                if (entry.isDirectory()) {
+                    // Create a directory for extracting files
+                    Files.createDirectories(newPath);
+                } else {
+                    // Verify the existence of the extracted file directory again
+                    Path parent = newPath.getParent();
+                    if (parent != null) {
+                        if (Files.notExists(parent)) {
+                            Files.createDirectories(parent);
+                        }
+                    }
+                    //  Input the extracted file into TarArchiveInputStream, Output to disk newPath Catalog
+                    Files.copy(ti, newPath, StandardCopyOption.REPLACE_EXISTING);
+
+                }
+            }
         }
 
         // update command path to the kafka binaries. If windows /bin/windows otherwise /bin
@@ -114,6 +148,26 @@ public class KafkaScripts {
             LOGGER.info("move to /bin as bin directory for none windows platform");
             this.binariesWorkdir = Paths.get(rootWorkDir.toString(), kafkaResource, "bin").toString();
         }
+
+        // after unzip in java all rights to execute are forbidden.
+        // Because scripts that we will use depends on others we will allow execution of all
+        try (Stream<Path> paths = Files.walk(Paths.get(this.binariesWorkdir))) {
+            paths
+                    .filter(Files::isRegularFile)
+                    .forEach(f -> f.toFile().setExecutable(true, false));
+        }
+    }
+
+    // Determine whether the compressed file is damaged , And return to the unzipped directory of the file
+    private  Path zipSlipProtect(ArchiveEntry entry, Path targetDir) throws IOException {
+        Path targetDirResolved = targetDir.resolve(entry.getName());
+        Path normalizePath = targetDirResolved.normalize();
+
+        if (!normalizePath.startsWith(targetDir)) {
+            throw new IOException(" The compressed file has been damaged : " + entry.getName());
+        }
+
+        return normalizePath;
     }
 
     public Path createAndSetUpConfigFile(String content) throws ProcessException, IOException {
