@@ -31,7 +31,7 @@ public class SecurityMgmtAPIUtils {
     public static Optional<ServiceAccountListItem> getServiceAccountByName(SecurityMgmtApi api, String name)
         throws ApiGenericException {
 
-        var list = api.getServiceAccounts();
+        var list = api.getServiceAccounts(null);
         return list.getItems().stream().filter(a -> name.equals(a.getName())).findAny();
     }
 
@@ -91,7 +91,7 @@ public class SecurityMgmtAPIUtils {
      */
     public static void cleanServiceAccount(SecurityMgmtApi api, String name) throws ApiGenericException {
 
-        var accounts = api.getServiceAccounts().getItems()
+        var accounts = api.getServiceAccounts(null).getItems()
             .stream().filter(a -> name.equals(a.getName()))
             .collect(Collectors.toList());
 
