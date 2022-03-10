@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 
 public class KafkaAdmin implements AutoCloseable {
 
-    public final Admin admin;
+    private final Admin admin;
 
     public KafkaAdmin(String bootstrapHost, String clientID, String clientSecret) {
         this(bootstrapHost, KafkaAuthMethod.oAuthConfigs(bootstrapHost, clientID, clientSecret));
@@ -66,6 +66,14 @@ public class KafkaAdmin implements AutoCloseable {
         } catch (ExecutionException e) {
             throw e.getCause();
         }
+    }
+
+    public Admin getAdmin() {
+        return admin;
+    }
+
+    public String getClusterId() {
+        return get(admin.describeCluster().clusterId());
     }
 
     public void createTopic(String name) {

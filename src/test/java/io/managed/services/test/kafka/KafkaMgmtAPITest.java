@@ -4,6 +4,7 @@ import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;
+import com.openshift.cloud.api.kas.models.KafkaUpdateRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountRequest;
 import io.managed.services.test.Environment;
@@ -13,6 +14,7 @@ import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
 import io.managed.services.test.client.exception.ApiGenericException;
+import io.managed.services.test.client.kafka.KafkaAdminUtils;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
@@ -31,6 +33,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.javatuples.Pair;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -41,12 +44,14 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -67,7 +72,6 @@ public class KafkaMgmtAPITest extends TestBase {
 
     static final String SERVICE_ACCOUNT_NAME_FOR_DELETION = "mk-e2e-sa-delete" + Environment.LAUNCH_KEY;
     static final String KAFKA_INSTANCE_NAME = "mk-e2e-" + Environment.LAUNCH_KEY;
-    static final String KAFKA2_INSTANCE_NAME = "mk-e2e-2-" + Environment.LAUNCH_KEY;
     static final String SERVICE_ACCOUNT_NAME = "mk-e2e-sa-" + Environment.LAUNCH_KEY;
     static final String TOPIC_NAME = "test-topic";
     static final String METRIC_TOPIC_NAME = "metric-test-topic";
@@ -116,18 +120,33 @@ public class KafkaMgmtAPITest extends TestBase {
 
     @AfterClass(alwaysRun = true)
     public void teardown() {
+        assumeTeardown();
+
+        if (Environment.SKIP_KAFKA_TEARDOWN) {
+            try {
+                kafkaMgmtApi.updateKafka(kafka.getId(), new KafkaUpdateRequest().reauthenticationEnabled(true));
+            } catch (Throwable t) {
+                log.warn("resat kafka reauth error: ", t);
+            }
+
+            try {
+                kafkaInstanceApi.deleteTopic(TOPIC_NAME);
+            } catch (Throwable t) {
+                log.warn("clean {} topic error: ", TOPIC_NAME, t);
+            }
+
+            try {
+                kafkaInstanceApi.deleteTopic(METRIC_TOPIC_NAME);
+            } catch (Throwable t) {
+                log.warn("clean {} topic error: ", METRIC_TOPIC_NAME, t);
+            }
+        }
 
         // delete kafka instance
         try {
             KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
         } catch (Throwable t) {
             log.error("clean main kafka instance error: ", t);
-        }
-
-        try {
-            KafkaMgmtApiUtils.cleanKafkaInstance(kafkaMgmtApi, KAFKA2_INSTANCE_NAME);
-        } catch (Throwable t) {
-            log.error("clean second kafka instance error: ", t);
         }
 
         // delete service account
@@ -156,9 +175,7 @@ public class KafkaMgmtAPITest extends TestBase {
             .region(Environment.DEFAULT_KAFKA_REGION);
 
         log.info("create kafka instance '{}'", payload.getName());
-        var k = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
-
-        kafka = KafkaMgmtApiUtils.waitUntilKafkaIsReady(kafkaMgmtApi, k.getId());
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, payload);
 
         kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
             Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
@@ -187,9 +204,6 @@ public class KafkaMgmtAPITest extends TestBase {
     @Test(dependsOnMethods = "testCreateKafkaInstance")
     @SneakyThrows
     public void testCreateTopics() {
-
-        var kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
 
         log.info("create topic '{}' on the instance '{}'", TOPIC_NAME, kafka.getName());
         var topicPayload = new NewTopicInput()
@@ -360,6 +374,41 @@ public class KafkaMgmtAPITest extends TestBase {
         assertThrows(ApiConflictException.class, () -> kafkaMgmtApi.createKafka(true, payload));
     }
 
+    @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"})
+    @SneakyThrows
+    public void testReauthentication() {
+
+        // make sure reauthentication is enabled by default
+        assertTrue(kafka.getReauthenticationEnabled());
+
+        var initialSessionLifetimeMs = KafkaAdminUtils.getAuthenticatorPositiveSessionLifetimeMs(
+            kafka.getBootstrapServerHost(),
+            serviceAccount.getClientId(),
+            serviceAccount.getClientSecret());
+        log.debug("positiveSessionLifetimeMs: {}", initialSessionLifetimeMs);
+        // because reauth is enabled the session lifetime can not be null
+        assertNotNull(initialSessionLifetimeMs);
+
+        // disable kafka instance reauthentication
+        log.info("set Kafka reauthentication to false");
+        kafka = kafkaMgmtApi.updateKafka(kafka.getId(), new KafkaUpdateRequest().reauthenticationEnabled(false));
+        assertFalse(kafka.getReauthenticationEnabled());
+
+        ThrowingFunction<Boolean, Boolean, ApiGenericException> isReauthenticationDisabled = last -> {
+
+            var sessionLifetimeMs = KafkaAdminUtils.getAuthenticatorPositiveSessionLifetimeMs(
+                kafka.getBootstrapServerHost(),
+                serviceAccount.getClientId(),
+                serviceAccount.getClientSecret());
+
+            log.debug("positiveSessionLifetimeMs: {}", sessionLifetimeMs);
+
+            // session lifetime should become null after disabling reauth
+            return sessionLifetimeMs == null;
+        };
+        waitFor("kafka reauthentication to be disabled", ofSeconds(10), ofMinutes(5), isReauthenticationDisabled);
+    }
+
     @Test(dependsOnMethods = "testCreateTopics")
     @SneakyThrows
     public void testDeleteServiceAccount() {
@@ -379,6 +428,22 @@ public class KafkaMgmtAPITest extends TestBase {
         var clientSecret = serviceAccountForDeletion.getClientSecret();
 
         bwait(testTopic(
+            Vertx.vertx(),
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            TOPIC_NAME,
+            1000,
+            10,
+            100,
+            KafkaAuthMethod.PLAIN));
+
+        // deletion of SA (serviceAccountForDeletion)
+        securityMgmtApi.deleteServiceAccountById(serviceAccountForDeletion.getId());
+
+        // fail to communicate due to service account being deleted using PLAIN & OAUTH
+        assertThrows(KafkaException.class, () -> {
+            bwait(testTopic(
                 Vertx.vertx(),
                 bootstrapHost,
                 clientID,
@@ -387,36 +452,20 @@ public class KafkaMgmtAPITest extends TestBase {
                 1000,
                 10,
                 100,
-                KafkaAuthMethod.PLAIN));
-
-        // deletion of SA (serviceAccountForDeletion)
-        securityMgmtApi.deleteServiceAccountById(serviceAccountForDeletion.getId());
-
-        // fail to communicate due to service account being deleted using PLAIN & OAUTH
-        assertThrows(KafkaException.class, () -> {
-            bwait(testTopic(
-                    Vertx.vertx(),
-                    bootstrapHost,
-                    clientID,
-                    clientSecret,
-                    TOPIC_NAME,
-                    1000,
-                    10,
-                    100,
-                    KafkaAuthMethod.PLAIN
+                KafkaAuthMethod.PLAIN
             ));
         });
         assertThrows(KafkaException.class, () -> {
             bwait(testTopic(
-                    Vertx.vertx(),
-                    bootstrapHost,
-                    clientID,
-                    clientSecret,
-                    TOPIC_NAME,
-                    1000,
-                    10,
-                    100,
-                    KafkaAuthMethod.OAUTH
+                Vertx.vertx(),
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                TOPIC_NAME,
+                1000,
+                10,
+                100,
+                KafkaAuthMethod.OAUTH
             ));
         });
     }
@@ -424,6 +473,9 @@ public class KafkaMgmtAPITest extends TestBase {
     @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 1)
     @SneakyThrows
     public void testDeleteKafkaInstance() {
+        if (Environment.SKIP_KAFKA_TEARDOWN) {
+            throw new SkipException("Skip kafka delete");
+        }
 
         var bootstrapHost = kafka.getBootstrapServerHost();
         var clientID = serviceAccount.getClientId();
@@ -458,30 +510,4 @@ public class KafkaMgmtAPITest extends TestBase {
         bwait(producer.asyncClose());
     }
 
-    @Test(priority = 2)
-    @SneakyThrows
-    public void testDeleteProvisioningKafkaInstance() {
-
-        // TODO: Move in a regression test class
-
-        // Create Kafka Instance
-        var payload = new KafkaRequestPayload()
-            .name(KAFKA2_INSTANCE_NAME)
-            .multiAz(true)
-            .cloudProvider("aws")
-            .region(Environment.DEFAULT_KAFKA_REGION);
-
-        log.info("create kafka instance '{}'", KAFKA2_INSTANCE_NAME);
-        var kafkaToDelete = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
-        log.debug(kafkaToDelete);
-
-        log.info("wait 3 seconds before start deleting");
-        Thread.sleep(ofSeconds(3).toMillis());
-
-        log.info("delete kafka '{}'", kafkaToDelete.getId());
-        kafkaMgmtApi.deleteKafkaById(kafkaToDelete.getId(), true);
-
-        log.info("wait for kafka to be deleted '{}'", kafkaToDelete.getId());
-        KafkaMgmtApiUtils.waitUntilKafkaIsDeleted(kafkaMgmtApi, kafkaToDelete.getId());
-    }
 }
