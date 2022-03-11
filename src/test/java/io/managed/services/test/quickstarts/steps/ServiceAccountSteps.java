@@ -53,7 +53,7 @@ public class ServiceAccountSteps {
     public void the_service_account_is_listed_in_the_service_accounts_table() throws Throwable {
         var securityMgmtApi = openShiftAPIContext.requireSecurityMgmtApi();
 
-        var list = securityMgmtApi.getServiceAccounts();
+        var list = securityMgmtApi.getServiceAccounts(null);
         log.debug(list);
 
         var o = list.getItems().stream()
