@@ -42,8 +42,8 @@ public class SecurityMgmtApi extends BaseApi {
         return retry(() -> api.getServiceAccountById(id));
     }
 
-    public ServiceAccountList getServiceAccounts() throws ApiGenericException {
-        return retry(() -> api.getServiceAccounts());
+    public ServiceAccountList getServiceAccounts(String clientId) throws ApiGenericException {
+        return retry(() -> api.getServiceAccounts(clientId));
     }
 
     public ServiceAccount createServiceAccount(ServiceAccountRequest serviceAccountRequest) throws ApiGenericException {
