@@ -246,7 +246,7 @@ public class QuarkusApplicationTest extends TestBase {
         }
         var secretClientID = decodeBase64(encodedClientID);
 
-        var accounts = securityMgmtApi.getServiceAccounts(null);
+        var accounts = securityMgmtApi.getServiceAccounts();
         var accountOptional = accounts.getItems().stream()
             .filter(a -> secretClientID.equals(a.getClientId()))
             .findAny();

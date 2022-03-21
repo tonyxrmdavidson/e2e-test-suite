@@ -7,24 +7,21 @@ import com.openshift.cloud.api.kas.auth.invoker.ApiClient;
 import com.openshift.cloud.api.kas.auth.invoker.ApiException;
 import com.openshift.cloud.api.kas.auth.models.AclBinding;
 import com.openshift.cloud.api.kas.auth.models.AclBindingListPage;
-import com.openshift.cloud.api.kas.auth.models.AclBindingOrderKey;
 import com.openshift.cloud.api.kas.auth.models.AclOperationFilter;
 import com.openshift.cloud.api.kas.auth.models.AclPatternTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.AclPermissionTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.AclResourceTypeFilter;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
-import com.openshift.cloud.api.kas.auth.models.ConsumerGroupDescriptionOrderKey;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroupList;
-import com.openshift.cloud.api.kas.auth.models.ConsumerGroupOrderKey;
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
-import com.openshift.cloud.api.kas.auth.models.SortDirection;
 import com.openshift.cloud.api.kas.auth.models.Topic;
-import com.openshift.cloud.api.kas.auth.models.TopicOrderKey;
 import com.openshift.cloud.api.kas.auth.models.TopicsList;
 import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiUnknownException;
 import io.managed.services.test.client.oauth.KeycloakUser;
+
+import java.math.BigDecimal;
 
 public class KafkaInstanceApi extends BaseApi {
 
@@ -59,7 +56,7 @@ public class KafkaInstanceApi extends BaseApi {
         return getTopics(null, null, null, null, null);
     }
 
-    public TopicsList getTopics(Integer size, Integer page, String filter, SortDirection order, TopicOrderKey orderKey) throws ApiGenericException {
+    public TopicsList getTopics(Integer size, Integer page, String filter, String order, String orderKey) throws ApiGenericException {
         return retry(() -> topicsApi.getTopics(size, filter, page, order, orderKey));
     }
 
@@ -79,7 +76,7 @@ public class KafkaInstanceApi extends BaseApi {
         return getConsumerGroups(null, null, null, null, null, null);
     }
 
-    public ConsumerGroupList getConsumerGroups(Integer size, Integer page, String topic, String groupIdFilter, SortDirection order, ConsumerGroupOrderKey orderKey) throws ApiGenericException {
+    public ConsumerGroupList getConsumerGroups(Integer size, Integer page, String topic, String groupIdFilter, String order, String orderKey) throws ApiGenericException {
         return retry(() -> groupsApi.getConsumerGroups(size, page, topic, groupIdFilter, order, orderKey));
     }
 
@@ -87,7 +84,7 @@ public class KafkaInstanceApi extends BaseApi {
         return getConsumerGroupById(consumerGroupId, null, null, null, null);
     }
 
-    public ConsumerGroup getConsumerGroupById(String consumerGroupId, SortDirection order, ConsumerGroupDescriptionOrderKey orderKey, Integer partitionFilter, String topic) throws ApiGenericException {
+    public ConsumerGroup getConsumerGroupById(String consumerGroupId, String order, String orderKey, Integer partitionFilter, String topic) throws ApiGenericException {
         return retry(() -> groupsApi.getConsumerGroupById(consumerGroupId, order, orderKey, partitionFilter, topic));
     }
 
@@ -95,7 +92,7 @@ public class KafkaInstanceApi extends BaseApi {
         retry(() -> groupsApi.deleteConsumerGroupById(consumerGroupId));
     }
 
-    public AclBindingListPage getAcls(AclResourceTypeFilter resourceType, String resourceName, AclPatternTypeFilter patternType, String principal, AclOperationFilter operation, AclPermissionTypeFilter permission, Integer page, Integer size, SortDirection order, AclBindingOrderKey orderKey) throws ApiGenericException {
+    public AclBindingListPage getAcls(AclResourceTypeFilter resourceType, String resourceName, AclPatternTypeFilter patternType, String principal, AclOperationFilter operation, AclPermissionTypeFilter permission, BigDecimal page, BigDecimal size, String order, String orderKey) throws ApiGenericException {
         return retry(() -> aclsApi.getAcls(resourceType, resourceName, patternType, principal, operation, permission, page, size, order, orderKey));
     }
 
