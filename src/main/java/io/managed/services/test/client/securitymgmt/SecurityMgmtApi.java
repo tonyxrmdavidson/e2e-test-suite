@@ -43,7 +43,7 @@ public class SecurityMgmtApi extends BaseApi {
     }
 
     public ServiceAccountList getServiceAccounts() throws ApiGenericException {
-        return retry(() -> api.getServiceAccounts());
+        return retry(() -> api.getServiceAccounts(null));
     }
 
     public ServiceAccount createServiceAccount(ServiceAccountRequest serviceAccountRequest) throws ApiGenericException {
