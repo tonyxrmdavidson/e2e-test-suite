@@ -115,7 +115,7 @@ public class LongLiveKafkaInstanceTest extends TestBase {
             Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
     }
 
-    @Test
+    @Test(dependsOnMethods = "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist")
     @SneakyThrows
     public void testThatTheLongLiveServiceAccountAlreadyExist() {
 
