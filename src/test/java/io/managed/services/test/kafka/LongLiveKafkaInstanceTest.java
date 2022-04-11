@@ -8,6 +8,7 @@ import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ApplicationServicesApi;
+import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
@@ -126,8 +127,8 @@ public class LongLiveKafkaInstanceTest extends TestBase {
 
         LOGGER.info("reset credentials for service account '{}'", SERVICE_ACCOUNT_NAME);
         serviceAccount = securityMgmtApi.resetServiceAccountCreds(optionalAccount.get().getId());
+        createACLs(serviceAccount);
     }
-
 
     @Test(priority = 1, dependsOnMethods = "testRecreateTheLongLiveKafkaInstanceIfItDoesNotExist")
     @SneakyThrows
@@ -136,6 +137,12 @@ public class LongLiveKafkaInstanceTest extends TestBase {
         if (Objects.isNull(serviceAccount)) {
             LOGGER.info("create service account '{}'", SERVICE_ACCOUNT_NAME);
             serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
+            createACLs(serviceAccount);
+        }
+    }
+
+    private void createACLs(ServiceAccount serviceAccount) throws ApiGenericException {
+        if (serviceAccount != null) {
             var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccount.getClientId());
             KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
         }
