@@ -197,4 +197,10 @@ public class KafkaInstanceApiUtils {
         }
     }
 
+    public static Topic updateTopicPartition(KafkaInstanceApi api, String name, int partitions) throws ApiGenericException {
+        TopicSettings topicSettings = new TopicSettings();
+        topicSettings.setNumPartitions(partitions);
+        return api.updateTopic(name,topicSettings);
+    }
+
 }

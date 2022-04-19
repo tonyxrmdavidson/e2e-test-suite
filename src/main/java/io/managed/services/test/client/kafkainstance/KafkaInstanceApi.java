@@ -20,6 +20,7 @@ import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.SortDirection;
 import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.auth.models.TopicOrderKey;
+import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.auth.models.TopicsList;
 import io.managed.services.test.client.BaseApi;
 import io.managed.services.test.client.exception.ApiGenericException;
@@ -53,6 +54,12 @@ public class KafkaInstanceApi extends BaseApi {
     @Override
     protected void setAccessToken(String t) {
         apiClient.setAccessToken(t);
+    }
+
+
+    public Topic updateTopic(String name, TopicSettings ts) throws ApiGenericException {
+        //return getTopics(null, null, null, null, null);
+        return retry(() -> topicsApi.updateTopic(name, ts));
     }
 
     public TopicsList getTopics() throws ApiGenericException {
