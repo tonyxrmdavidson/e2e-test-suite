@@ -1,7 +1,7 @@
 name: Renovate
 on:
   schedule:
-    - cron: '0 8-18 * * 1-5' # Every hour, between 08:00 and 18:00, Monday through Friday
+    - cron: '*/7 8-18 * * 1-5' # Every hour, between 08:00 and 18:00, Monday through Friday
 jobs:
   renovate:
     runs-on: ubuntu-latest
@@ -14,4 +14,4 @@ jobs:
         uses: renovatebot/github-action@v31.22.0
         with:
           configurationFile: renovate-self-hosted-config.json
-          token: ${{ secrets.RENOVATE_TOKEN }}
+          token: ${{ secrets.RENOVATE_ACTION_TOKEN }}
