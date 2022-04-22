@@ -1,7 +1,6 @@
 package io.managed.services.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import com.openshift.cloud.api.kas.models.MetricsInstantQueryList;
 import io.managed.services.test.cli.CliGenericException;
 import io.managed.services.test.client.kafka.KafkaMessagingUtils;
@@ -24,11 +23,6 @@ import static org.testng.Assert.assertTrue;
 
 public class SmokeTest extends TestBase {
     private static final Logger LOGGER = LogManager.getLogger(SmokeTest.class);
-
-    @Test
-    public void renovate() {
-        Gson gson = new Gson();
-    }
 
     @Test
     public void random() {
