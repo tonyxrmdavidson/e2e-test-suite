@@ -288,6 +288,11 @@ public class KafkaMgmtApiUtils {
         var admin = "admin-server-" + bootstrap;
         var hosts = new ArrayList<>(List.of(bootstrap, admin, broker0, broker1, broker2));
 
+        // if Kafka instance is of type developer it is smaller and does not have broker1 and broker 2
+        if (Objects.requireNonNull(kafka.getInstanceType()).equals("developer")) {
+            hosts.removeAll(List.of(broker1, broker2));
+        }
+
         ThrowingFunction<Boolean, Boolean, java.lang.Error> ready = last -> {
 
             for (var i = 0; i < hosts.size(); i++) {
