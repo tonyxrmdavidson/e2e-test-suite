@@ -232,6 +232,62 @@ public class KafkaAccessMgmtTest extends TestBase {
         }
     }
 
+
+    @Test
+    @SneakyThrows
+    public void testUserCanCreateTopicWithUnderscorePrefix() {
+
+        LOGGER.info("Test user can create topics with prefix '__'");
+        final String internalTopicName = "__topic";
+
+        var payload = new NewTopicInput()
+                .name(internalTopicName)
+                .settings(new TopicSettings().numPartitions(1));
+        primaryKafkaInstanceAPI.createTopic(payload);
+
+        // clean topic
+        LOGGER.info("Clean created topic {}", internalTopicName);
+        try {
+            primaryKafkaInstanceAPI.deleteTopic(internalTopicName);
+        } catch (Exception e) {
+            LOGGER.error("error while deleting topic {}, {}", internalTopicName, e.getMessage());
+        }
+    }
+
+    @Test
+    @SneakyThrows
+    public void testUserCannotCreateTopicWithRedhatUnderscorePrefix() {
+
+        LOGGER.info("Test user cannot create topics with prefix '__redhat_'");
+        final String internalTopicName = "__redhat_topic";
+
+        var payload = new NewTopicInput()
+                .name(internalTopicName)
+                .settings(new TopicSettings().numPartitions(1));
+        //primaryKafkaInstanceAPI.createTopic(payload);
+        assertThrows(ApiForbiddenException.class, () -> primaryKafkaInstanceAPI.createTopic(payload));
+        // clean topic
+        LOGGER.info("Clean created topic {}", internalTopicName);
+        try {
+            primaryKafkaInstanceAPI.deleteTopic(internalTopicName);
+        } catch (Exception e) {
+            LOGGER.error("error while deleting topic {}, {}", internalTopicName, e.getMessage());
+        }
+    }
+
+
+    @Test
+    @SneakyThrows
+    public void testUserCannotAccessSystemTopics() {
+
+        LOGGER.info("Test user cannot access '__consumer_offsets' and '__transaction_state'");
+        var instanceApiTopics = primaryKafkaInstanceAPI.getTopics();
+        var o = instanceApiTopics.getItems().stream()
+                .filter(k -> "__consumer_offsets".equals(k.getName()) || "__transaction_state".equals(k.getName()))
+                .findAny();
+        assertTrue(o.isEmpty());
+    }
+
     @Test
     @SneakyThrows
     public void testDefaultSecondaryUserCanReadTheKafkaInstance() {
