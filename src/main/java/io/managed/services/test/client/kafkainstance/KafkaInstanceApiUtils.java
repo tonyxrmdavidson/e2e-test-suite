@@ -204,6 +204,7 @@ public class KafkaInstanceApiUtils {
         return api.updateTopic(name, topicSettings);
     }
 
+    // only partitions from public topic are visible (internal and redhat topic are not included, e.g. __consumer_offsets, __redhat_* )
     public static int getPartitionCountTotal(KafkaInstanceApi api) throws ApiGenericException {
         return api.getTopics().getItems().stream().mapToInt(t -> Objects.requireNonNull(t.getPartitions()).size()).reduce(0, Integer::sum);
     }
