@@ -30,6 +30,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.managed.services.test.TestUtils.waitFor;
 import static java.time.Duration.ofDays;
@@ -424,5 +426,23 @@ public class KafkaMgmtApiUtils {
             .owner(newOwnerName.toLowerCase(Locale.ROOT));
 
         return mgmtApi.updateKafka(kafka.getId(), kafkaUpdateRequest);
+    }
+
+    /**
+     * Get total partition limit of per given kafka instance.
+     *
+     * @param api  KafkaMgmtApi
+     */
+    public static int getPartitionLimitMax(KafkaMgmtApi api, KafkaRequest kafka) throws Exception {
+        var metrics = api.federateMetrics(kafka.getId());
+        // partition limit regex
+        final String regex = "^kafka_instance_partition_limit.*\\s(\\d+)$";
+        final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
+        final Matcher matcher = pattern.matcher(metrics);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        // if not found
+        throw new Exception("Unable to parse kafka instance partition limit");
     }
 }

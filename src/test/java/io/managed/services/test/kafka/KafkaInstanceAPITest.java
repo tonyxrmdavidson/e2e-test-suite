@@ -8,7 +8,6 @@ import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
-import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiLockedException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
@@ -154,67 +153,6 @@ public class KafkaInstanceAPITest extends TestBase {
             .settings(new TopicSettings().numPartitions(1));
         var topic = kafkaInstanceApi.createTopic(payload);
         LOGGER.debug(topic);
-    }
-
-    @Test
-    @SneakyThrows
-    public void testCreateTopicPartition() {
-        // getting test-topic should fail because the topic shouldn't exist
-        //assertThrows(ApiNotFoundException.class, () -> kafkaInstanceApi.getTopic(TEST_TOPIC_NAME));
-        LOGGER.info("create topic '{}', with too many partitions", "topic-1001");
-        var payload = new NewTopicInput()
-                .name("topic-1001")
-                .settings(new TopicSettings().numPartitions(1001));
-        assertThrows(ApiGenericException.class,
-                () -> kafkaInstanceApi.createTopic(payload));
-    }
-
-    @Test
-    @SneakyThrows
-    public void testOverflowPartitionsLimitOnInstance() {
-        // getting test-topic should fail because the topic shouldn't exist
-        //assertThrows(ApiNotFoundException.class, () -> kafkaInstanceApi.getTopic(TEST_TOPIC_NAME));
-        //LOGGER.info("create topic '{}', with too many partitions", "topic-1001");
-        //var payload = new NewTopicInput()
-        //        .name("topic-1001")
-        //        .settings(new TopicSettings().numPartitions(1001));
-        //assertThrows(ApiGenericException.class,
-        //        () -> kafkaInstanceApi.createTopic(payload));
-        LOGGER.info("create topic '{}'", TEST_TOPIC_NAME);
-        var payload = new NewTopicInput()
-                .name("a-300")
-                .settings(new TopicSettings().numPartitions(800));
-        var topic = kafkaInstanceApi.createTopic(payload);
-        LOGGER.debug(topic);
-
-        LOGGER.info("create topic '{}'", TEST_TOPIC_NAME);
-        var payload2 = new NewTopicInput()
-                .name("b-300")
-                .settings(new TopicSettings().numPartitions(800));
-        var topic2 = kafkaInstanceApi.createTopic(payload2);
-        LOGGER.debug(topic2);
-
-        LOGGER.info("create topic '{}'", TEST_TOPIC_NAME);
-        var payload3 = new NewTopicInput()
-                .name("c-401")
-                .settings(new TopicSettings().numPartitions(401));
-        var topic3 = kafkaInstanceApi.createTopic(payload3);
-        LOGGER.debug(topic3);
-    }
-
-    @Test
-    @SneakyThrows
-    // TODO
-    public void testIncreaseNumberOfTopicsPartitions() {
-        // getting test-topic should fail because the topic shouldn't exist
-        //assertThrows(ApiNotFoundException.class, () -> kafkaInstanceApi.getTopic(TEST_TOPIC_NAME));
-        LOGGER.info("create topic '{}', with too many partitions", "topic-1005");
-        var payload = new NewTopicInput()
-                .name("topic-good")
-                .settings(new TopicSettings().numPartitions(2));
-        kafkaInstanceApi.createTopic(payload);
-        assertThrows(ApiGenericException.class,
-                () -> KafkaInstanceApiUtils.updateTopicPartition(kafkaInstanceApi, "topic-good",1005));
     }
 
     @Test(dependsOnMethods = "testCreateTopic")

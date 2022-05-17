@@ -28,6 +28,7 @@ import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
 import javax.ws.rs.client.ClientBuilder;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -200,7 +201,10 @@ public class KafkaInstanceApiUtils {
     public static Topic updateTopicPartition(KafkaInstanceApi api, String name, int partitions) throws ApiGenericException {
         TopicSettings topicSettings = new TopicSettings();
         topicSettings.setNumPartitions(partitions);
-        return api.updateTopic(name,topicSettings);
+        return api.updateTopic(name, topicSettings);
     }
 
+    public static int getPartitionCountTotal(KafkaInstanceApi api) throws ApiGenericException {
+        return api.getTopics().getItems().stream().mapToInt(t -> Objects.requireNonNull(t.getPartitions()).size()).reduce(0, Integer::sum);
+    }
 }
