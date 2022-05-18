@@ -227,10 +227,11 @@ public class KafkaMgmtAPITest extends TestBase {
         final int maxPartitionLimit = KafkaMgmtApiUtils.getPartitionLimitMax(kafkaMgmtApi, kafka);
         log.info("Max partition limit per given instance: {}", maxPartitionLimit);
 
-        log.info("Attempt to create topic '{}', with too many partitions: {}", topicName, maxPartitionLimit + 1);
+        final int exceedMaxPartitionLimit = maxPartitionLimit + 1;
+        log.info("Expecting to fail while Attempting to create topic '{}', with too many partitions: {}", topicName, exceedMaxPartitionLimit);
         var payload = new NewTopicInput()
                 .name(topicName)
-                .settings(new TopicSettings().numPartitions(maxPartitionLimit + 1));
+                .settings(new TopicSettings().numPartitions(exceedMaxPartitionLimit));
         assertThrows(ApiGenericException.class,
                 () -> kafkaInstanceApi.createTopic(payload));
     }
@@ -238,14 +239,19 @@ public class KafkaMgmtAPITest extends TestBase {
     // ADMIN API can check that requesting to change configuration of a topic to have more partition than is max limit on given instance could not be satisfied in any case
     @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"})
     @SneakyThrows
-    public void testForbiddenToExceedParitionLimitOnTopicConfiguration() {
+    public void testForbiddenToExceedPartitionLimitOnTopicConfiguration() {
 
         var topicName = "topic-part-exceed-conf";
         KafkaInstanceApiUtils.applyTopic(kafkaInstanceApi, topicName);
+        log.info("Applying topic '{}', with 1 partition",topicName);
 
         final int maxPartitionLimit = KafkaMgmtApiUtils.getPartitionLimitMax(kafkaMgmtApi, kafka);
+        log.info("Max partition limit for topics created by user: {}", maxPartitionLimit);
+
+        final int exceedMaxPartitionLimit = maxPartitionLimit + 1;
+        log.info("Expecting to fail while configuring topic '{}', to exceed max partition limit by having {} partitions",exceedMaxPartitionLimit, exceedMaxPartitionLimit);
         assertThrows(ApiGenericException.class,
-                () -> KafkaInstanceApiUtils.updateTopicPartition(kafkaInstanceApi, topicName, maxPartitionLimit + 1));
+                () -> KafkaInstanceApiUtils.updateTopicPartition(kafkaInstanceApi, topicName, exceedMaxPartitionLimit));
     }
 
     // Requesting valid number of partition in created topic, but breaching the limit by Sum of partitions with all of existing Topic (i.e. topic visible to user)
@@ -253,41 +259,53 @@ public class KafkaMgmtAPITest extends TestBase {
     @SneakyThrows
     public void testTotalPartitionLimitByTopicCreation() {
 
-        var topicNameFirst = "topic-part-total-exceed-create";
-        var topicNameSecond = "topic-part-total-exceed-2-create";
         final int maxPartitionLimit = KafkaMgmtApiUtils.getPartitionLimitMax(kafkaMgmtApi, kafka);
+        log.info("Partition limit: {}", maxPartitionLimit);
         final int currentPartitionCount = KafkaInstanceApiUtils.getPartitionCountTotal(kafkaInstanceApi);
+        log.info("Current sum of partitions of all public topics: {}", currentPartitionCount);
 
         // Assuming we are not already overflowing given partition limit
         if (currentPartitionCount > maxPartitionLimit) {
             throw new SkipException("Skip kafka delete");
         }
 
-        // create 2 topic, first can be created but spend half of free partitions, Second fails as it will breach the max limit
-        final int partitionCountOfNewTopic = (maxPartitionLimit - currentPartitionCount) / 2;
-        // first topic
+        // create 2 topic, first can be created but spend half of free partitions, second topic fails as it will breach the max limit
+        var topicName1 = "topic-part-total-exceed-1-create";
+        var topicName2 = "topic-part-total-exceed-2-create";
+        final int partitionCountOfTopic1 = (maxPartitionLimit - currentPartitionCount) / 2;
+        log.info("Proposed partition count of topic '{}'", partitionCountOfTopic1);
+        // Second topic contains second half of available partitions, and two extra partitions to actually breach (for sure) partition limit
+        final int partitionCountOfTopic2 = partitionCountOfTopic1 + 2;
+        log.info("Proposed partition count of topic '{}'", partitionCountOfTopic2);
+
+        // creation of the first topic
+        log.info("Creating topic '{}' with {} partitions", topicName1, partitionCountOfTopic1);
         var payloadTopic1 = new NewTopicInput()
-                .name(topicNameFirst)
-                .settings(new TopicSettings().numPartitions(partitionCountOfNewTopic));
+                .name(topicName1)
+                .settings(new TopicSettings().numPartitions(partitionCountOfTopic1));
         kafkaInstanceApi.createTopic(payloadTopic1);
         // wait to make sure changes were propagated
+        log.info("Wait 15 seconds before making sure changes in partition count were propagated");
         Thread.sleep(ofSeconds(15).toMillis());
-        // second topic, which should overflow number of allowed partitions. 3 is just to make sure it really overflow given number (1 would fail in case of odd number of partitions)
+
+        // creation of the second topic
+        log.info("Expecting to fail while creating topic '{}' with {} partitions", topicName2, partitionCountOfTopic2);
         var payloadTopic2 = new NewTopicInput()
-                .name(topicNameSecond)
-                .settings(new TopicSettings().numPartitions(partitionCountOfNewTopic + 3));
+                .name(topicName2)
+                .settings(new TopicSettings().numPartitions(partitionCountOfTopic2));
         assertThrows(ApiGenericException.class, () -> kafkaInstanceApi.createTopic(payloadTopic2));
 
         // cleanup
+        log.info("Cleanup");
         try {
-            kafkaInstanceApi.deleteTopic(topicNameFirst);
+            kafkaInstanceApi.deleteTopic(topicName1);
         } catch (Throwable t) {
-            log.warn("clean {} topic error: ", topicNameFirst, t);
+            log.warn("clean {} topic error: ", topicName1, t);
         }
         try {
-            kafkaInstanceApi.deleteTopic(topicNameSecond);
+            kafkaInstanceApi.deleteTopic(topicName2);
         } catch (Throwable t) {
-            log.warn("clean {} topic error: ", topicNameSecond, t);
+            log.warn("clean {} topic error: ", topicName2, t);
         }
 
         // there is a need to wait for some period of time before continue with other test as they still may need to create topics (i.e. extra partitions)
@@ -328,6 +346,7 @@ public class KafkaMgmtAPITest extends TestBase {
         assertThrows(ApiGenericException.class, () -> KafkaInstanceApiUtils.updateTopicPartition(kafkaInstanceApi, topicName, 3));
 
         // cleanup
+        log.info("Cleanup");
         try {
             kafkaInstanceApi.deleteTopic(topicName);
         } catch (Throwable t) {
