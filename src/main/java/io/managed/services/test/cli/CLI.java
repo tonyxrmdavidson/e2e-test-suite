@@ -112,7 +112,7 @@ public class CLI {
     }
 
     public KafkaRequest createKafka(String name) throws CliGenericException {
-        return retry(() -> exec("kafka", "create", "--bypass-terms-check", "--name", name))
+        return retry(() -> exec("kafka", "create", "--bypass-checks", "--name", name))
             .asJson(KafkaRequest.class);
     }
 
