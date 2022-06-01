@@ -182,7 +182,8 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
         consumer.fetch(expectedMessages);
 
         consumer.exceptionHandler(e -> {
-            LOGGER.error("error while consuming {} messages", expectedMessages);
+            // this handler only means that we are still waiting for the correct data.
+            LOGGER.debug("error while consuming {} messages", expectedMessages);
             promise.fail(e);
         });
 

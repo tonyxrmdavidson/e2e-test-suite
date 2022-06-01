@@ -36,6 +36,7 @@ import org.javatuples.Pair;
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -500,6 +501,8 @@ public class KafkaMgmtAPITest extends TestBase {
         assertThrows(ApiConflictException.class, () -> kafkaMgmtApi.createKafka(true, payload));
     }
 
+    // TODO change implementation so that there is no endless trying to reauth, (8 times/sec for rest of rests)
+    @Ignore
     @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"}, priority = 1)
     @SneakyThrows
     public void testReauthentication() {
@@ -626,7 +629,7 @@ public class KafkaMgmtAPITest extends TestBase {
 
         // Produce Kafka messages
         log.info("send message to topic '{}'", TOPIC_NAME);
-        waitFor(Vertx.vertx(), "sent message to fail", ofSeconds(1), ofSeconds(30), last ->
+        waitFor(Vertx.vertx(), "sent message to fail", ofSeconds(3), ofSeconds(30), last ->
             producer.send(KafkaProducerRecord.create(TOPIC_NAME, "hello world"))
                 .compose(
                     __ -> Future.succeededFuture(Pair.with(false, null)),
