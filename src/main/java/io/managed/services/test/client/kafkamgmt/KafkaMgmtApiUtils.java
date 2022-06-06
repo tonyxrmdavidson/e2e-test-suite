@@ -62,7 +62,6 @@ public class KafkaMgmtApiUtils {
     public static KafkaRequestPayload defaultKafkaInstance(String name) {
         return new KafkaRequestPayload()
             .name(name)
-            .multiAz(true)
             .cloudProvider("aws")
             .region(Environment.DEFAULT_KAFKA_REGION);
     }
