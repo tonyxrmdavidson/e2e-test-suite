@@ -187,7 +187,9 @@ public class KafkaMgmtAPITest extends TestBase {
 
         // Create Service Account
         log.info("create service account '{}'", SERVICE_ACCOUNT_NAME);
-        serviceAccount = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME));
+        serviceAccount = securityMgmtApi.createServiceAccount(new ServiceAccountRequest()
+                .name(SERVICE_ACCOUNT_NAME)
+                .description("E2E test service account"));
     }
 
     @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"})
@@ -542,7 +544,9 @@ public class KafkaMgmtAPITest extends TestBase {
 
         // create SA specifically for purpose of demonstration that it works, afterwards deleting it and fail to use it anymore
         log.info("create service account '{}'", SERVICE_ACCOUNT_NAME_FOR_DELETION);
-        var serviceAccountForDeletion = securityMgmtApi.createServiceAccount(new ServiceAccountRequest().name(SERVICE_ACCOUNT_NAME_FOR_DELETION));
+        var serviceAccountForDeletion = securityMgmtApi.createServiceAccount(new ServiceAccountRequest()
+                .name(SERVICE_ACCOUNT_NAME_FOR_DELETION)
+                .description("E2E test service account"));
 
         // ACLs
         var principal = KafkaInstanceApiAccessUtils.toPrincipal(serviceAccountForDeletion.getClientId());
