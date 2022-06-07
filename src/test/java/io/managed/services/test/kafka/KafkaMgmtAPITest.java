@@ -171,7 +171,6 @@ public class KafkaMgmtAPITest extends TestBase {
         // Create Kafka Instance
         var payload = new KafkaRequestPayload()
             .name(KAFKA_INSTANCE_NAME)
-            .multiAz(true)
             .cloudProvider("aws")
             .region(Environment.DEFAULT_KAFKA_REGION);
 
@@ -493,7 +492,6 @@ public class KafkaMgmtAPITest extends TestBase {
         // Create Kafka Instance with existing name
         var payload = new KafkaRequestPayload()
             .name(KAFKA_INSTANCE_NAME)
-            .multiAz(true)
             .cloudProvider("aws")
             .region(Environment.DEFAULT_KAFKA_REGION);
 

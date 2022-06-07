@@ -51,7 +51,6 @@ public class KafkaRegressionTest {
         // Create Kafka Instance
         var payload = new KafkaRequestPayload()
             .name(KAFKA_INSTANCE_NAME)
-            .multiAz(true)
             .cloudProvider("aws")
             .region(Environment.DEFAULT_KAFKA_REGION);
 

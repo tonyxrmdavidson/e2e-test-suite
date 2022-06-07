@@ -77,7 +77,7 @@ public class SecurityMgmtAPIUtils {
             LOGGER.debug(serviceAccount);
         } else {
             LOGGER.info("create service account '{}'", name);
-            serviceAccount = api.createServiceAccount(new ServiceAccountRequest().name(name));
+            serviceAccount = api.createServiceAccount(new ServiceAccountRequest().name(name).description("E2E test service account"));
         }
         return serviceAccount;
     }
