@@ -255,7 +255,9 @@ public class KafkaScriptsSteps {
     @After(order = 10201)
     public void cleanTopic() {
 
-        if (this.kafkaInstanceContext == null) return;
+        if (this.kafkaInstanceContext == null || topicName == null) {
+            return;
+        }
 
         assumeTeardown();
 
