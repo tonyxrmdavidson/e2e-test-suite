@@ -106,18 +106,23 @@ public class Environment {
     public static final String OPENSHIFT_API_URI = getOrDefault(OPENSHIFT_API_URI_ENV, "https://api.stage.openshift.com");
 
     // sso.redhat.com OAuth ENVs
-    public static final String REDHAT_SSO_URI = getOrDefault(REDHAT_SSO_URI_ENV, "https://sso.redhat.com");
+    public static final String REDHAT_SSO_URI = getOrDefault(REDHAT_SSO_URI_ENV, "https://sso.stage.redhat.com");
     public static final String REDHAT_SSO_REALM = getOrDefault(REDHAT_SSO_REALM_ENV, "redhat-external");
     public static final String REDHAT_SSO_CLIENT_ID = getOrDefault(REDHAT_SSO_CLIENT_ID_ENV, "cloud-services");
-    public static final String REDHAT_SSO_REDIRECT_URI = getOrDefault(REDHAT_SSO_REDIRECT_URI_ENV, "https://console.redhat.com");
+    public static final String REDHAT_SSO_REDIRECT_URI = getOrDefault(REDHAT_SSO_REDIRECT_URI_ENV, "https://console.stage.redhat.com");
     public static final String REDHAT_SSO_LOGIN_FORM_ID = getOrDefault(REDHAT_SSO_LOGIN_FORM_ID_ENV, "#rh-password-verification-form");
 
     // identity.api.openshift.com OAuth ENVs
-    public static final String OPENSHIFT_IDENTITY_URI = getOrDefault(OPENSHIFT_IDENTITY_URI_ENV, "https://identity.api.stage.openshift.com");
-    public static final String OPENSHIFT_IDENTITY_REALM = getOrDefault(OPENSHIFT_IDENTITY_REALM_ENV, "rhoas");
-    public static final String OPENSHIFT_IDENTITY_CLIENT_ID = getOrDefault(OPENSHIFT_IDENTITY_CLIENT_ID_ENV, "strimzi-ui");
-    public static final String OPENSHIFT_IDENTITY_REDIRECT_URI = getOrDefault(OPENSHIFT_IDENTITY_REDIRECT_URI_ENV, "https://console.redhat.com/beta/application-services");
-    public static final String OPENSHIFT_IDENTITY_LOGIN_FORM_ID = getOrDefault(OPENSHIFT_IDENTITY_LOGIN_FORM_ID_ENV, "#rh-password-verification-form");
+    // getOrDefault(OPENSHIFT_IDENTITY_URI_ENV, "https://identity.api.stage.openshift.com") -> REDHAT_SSO_URI
+    public static final String OPENSHIFT_IDENTITY_URI = getOrDefault(OPENSHIFT_IDENTITY_URI_ENV, REDHAT_SSO_URI);
+    // "rhoas" -> REDHAT_SSO_REALM
+    public static final String OPENSHIFT_IDENTITY_REALM = getOrDefault(OPENSHIFT_IDENTITY_REALM_ENV, REDHAT_SSO_REALM);
+    // "strimzi-ui"
+    public static final String OPENSHIFT_IDENTITY_CLIENT_ID = getOrDefault(OPENSHIFT_IDENTITY_CLIENT_ID_ENV, REDHAT_SSO_CLIENT_ID);
+    // "https://console.redhat.com/beta/application-services" -> REDHAT_SSO_REDIRECT_URI
+    public static final String OPENSHIFT_IDENTITY_REDIRECT_URI = getOrDefault(OPENSHIFT_IDENTITY_REDIRECT_URI_ENV, REDHAT_SSO_REDIRECT_URI);
+    // "#rh-password-verification-form" -> REDHAT_SSO_LOGIN_FORM_ID
+    public static final String OPENSHIFT_IDENTITY_LOGIN_FORM_ID = getOrDefault(OPENSHIFT_IDENTITY_LOGIN_FORM_ID_ENV, REDHAT_SSO_LOGIN_FORM_ID);
 
     public static final String DEV_CLUSTER_SERVER = getOrDefault(DEV_CLUSTER_SERVER_ENV, null);
     public static final String DEV_CLUSTER_NAMESPACE = getOrDefault(DEV_CLUSTER_NAMESPACE_ENV, "mk-e2e-tests");
