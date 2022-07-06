@@ -99,15 +99,10 @@ public class CLIUtils {
             .onSuccess(__ -> LOGGER.info("first oauth login completed"))
             .toCompletionStage().toCompletableFuture();
 
-        var edgeSSOFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.OPENSHIFT_IDENTITY_URI))
-            .compose(l -> session.login(l))
-            .onSuccess(__ -> LOGGER.info("second oauth login completed without username and password"))
-            .toCompletionStage().toCompletableFuture();
-
         var cliFuture = process.future(Duration.ofMinutes(3))
             .thenAccept(r -> LOGGER.info("CLI login completed"));
 
-        return CompletableFuture.allOf(oauthFuture, edgeSSOFuture, cliFuture);
+        return CompletableFuture.allOf(oauthFuture, cliFuture);
     }
 
     private static Future<String> parseUrl(Vertx vertx, BufferedReader stdout, String urlRegex) {
