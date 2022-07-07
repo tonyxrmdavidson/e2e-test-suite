@@ -83,7 +83,7 @@ public class KafkaInstanceAPITest extends TestBase {
         securityMgmtApi = apps.securityMgmt();
         LOGGER.info("kafka and security mgmt api initialized");
 
-        kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, "teri");
+        kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
 
         kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(auth, kafka));
         LOGGER.info("kafka instance api client initialized");
