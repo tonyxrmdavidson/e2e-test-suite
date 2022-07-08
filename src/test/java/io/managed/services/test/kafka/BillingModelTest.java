@@ -20,7 +20,11 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
+
 
 @Log4j2
 public class BillingModelTest {

@@ -1,5 +1,6 @@
 package io.managed.services.test.client.exception;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -28,6 +29,8 @@ public class ApiGenericException extends Exception {
 
     public Body decode() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(
+                DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return mapper.readValue(getResponseBody(), Body.class);
     }
 
@@ -54,7 +57,6 @@ public class ApiGenericException extends Exception {
         public String reason;
         public String id;
         public String code;
-        public String operation_id;
         public String kind;
         public String href;
     }
