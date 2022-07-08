@@ -36,6 +36,11 @@ public class BillingModelTest {
         assertNotNull(Environment.STRATOSPHERE_SCENARIO_3_USER, "the STRATOSPHERE_SCENARIO_3_USER env is null");
         assertNotNull(Environment.STRATOSPHERE_SCENARIO_4_USER, "the STRATOSPHERE_SCENARIO_4_USER env is null");
         assertNotNull(Environment.STRATOSPHERE_PASSWORD, "the STRATOSPHERE_PASSWORD env is null");
+        assertNotNull(Environment.STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID, "the STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID env is null");
+        assertNotNull(Environment.STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID, "the STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID env is null");
+        assertNotNull(Environment.STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID, "the STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID env is null");
+        assertNotNull(Environment.STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID, "the STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID env is null");
+        assertNotNull(Environment.STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID, "the STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID env is null");
     }
 
     @AfterClass(alwaysRun = true)
