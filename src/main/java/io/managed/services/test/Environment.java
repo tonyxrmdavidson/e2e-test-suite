@@ -92,6 +92,11 @@ public class Environment {
     private static final String STRATOSPHERE_SCENARIO_3_USER_ENV = "STRATOSPHERE_SCENARIO_3_USER";
     private static final String STRATOSPHERE_SCENARIO_4_USER_ENV = "STRATOSPHERE_SCENARIO_4_USER";
 
+    private static final String STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID";
 
     /*
      * Setup constants from env variables or set default
@@ -179,6 +184,12 @@ public class Environment {
     public static final String STRATOSPHERE_SCENARIO_2_USER = getOrDefault(STRATOSPHERE_SCENARIO_2_USER_ENV, null);
     public static final String STRATOSPHERE_SCENARIO_3_USER = getOrDefault(STRATOSPHERE_SCENARIO_3_USER_ENV, null);
     public static final String STRATOSPHERE_SCENARIO_4_USER = getOrDefault(STRATOSPHERE_SCENARIO_4_USER_ENV, null);
+
+    public static final String STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID_ENV, null);;
+    public static final String STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID_ENV, null);;
+    public static final String STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID_ENV, null);;
+    public static final String STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID_ENV, null);;
+    public static final String STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID_ENV, null);;
 
     private Environment() {
     }

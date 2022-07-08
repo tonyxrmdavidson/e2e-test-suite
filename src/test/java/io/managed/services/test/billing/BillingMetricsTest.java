@@ -17,22 +17,10 @@ public class BillingMetricsTest extends TestBase {
 
     @BeforeClass
     public void setup() throws ObservatoriumException {
-        client = new ObservatoriumClient(
-                Environment.OBSERVATORIUM_URL,
-                Environment.OBSERVATORIUM_CLIENT_ID,
-                Environment.OBSERVATORIUM_CLIENT_SECRET,
-                Environment.OBSERVATORIUM_OIDC_ISSUER_URL);
-        client.start();
+        client = new ObservatoriumClient();
     }
 
     @AfterClass
     public void teardown() {
-        client.stop();
-    }
-
-    @Test
-    public void testBillingMetrics() throws ObservatoriumException {
-        QueryResult result = client.query("kafka_id:strimzi_resource_state:max_over_time1h{_id=\"caga1rfmu7m153kcgki0\"}");
-        Assert.assertEquals(result.status, "success");
     }
 }
