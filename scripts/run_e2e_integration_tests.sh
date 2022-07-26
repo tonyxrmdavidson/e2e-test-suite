@@ -3,5 +3,5 @@
 echo "running E2E tests"
 echo "${ADMIN_USERNAME}"
 
-mvn install -DskipTests
-mvn verify -Pintegration
+# mvn install -DskipTests
+# mvn verify -Pintegration
