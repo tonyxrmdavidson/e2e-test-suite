@@ -1,11 +1,17 @@
 package io.managed.services.test.client.exception;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
 import java.net.HttpURLConnection;
 
 public class ApiGenericException extends Exception {
 
     private final int code;
     private final String responseBody;
+
+    public final static String API_ERROR_BILLING_ACCOUNT_INVALID = "43";
 
     public ApiGenericException(ApiUnknownException e) {
         super(e.getFullMessage(), e);
@@ -19,6 +25,13 @@ public class ApiGenericException extends Exception {
 
     public String getResponseBody() {
         return responseBody;
+    }
+
+    public Body decode() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(
+                DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return mapper.readValue(getResponseBody(), Body.class);
     }
 
     public static ApiGenericException apiException(ApiUnknownException e) {
@@ -38,5 +51,13 @@ public class ApiGenericException extends Exception {
             default:
                 return new ApiGenericException(e);
         }
+    }
+
+    public static class Body {
+        public String reason;
+        public String id;
+        public String code;
+        public String kind;
+        public String href;
     }
 }

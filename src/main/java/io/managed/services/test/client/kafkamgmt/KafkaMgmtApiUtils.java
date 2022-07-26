@@ -262,7 +262,7 @@ public class KafkaMgmtApiUtils {
         };
 
         try {
-            waitFor("kafka instance to be ready", ofSeconds(10), ofMinutes(10), ready);
+            waitFor("kafka instance to be ready", ofSeconds(10), ofMinutes(30), ready);
         } catch (TimeoutException e) {
             // throw a more accurate error
             throw new KafkaNotReadyException(kafkaAtom.get(), e);

@@ -81,6 +81,18 @@ public class Environment {
 
     private static final String PROMETHEUS_PUSH_GATEWAY_ENV = "PROMETHEUS_PUSH_GATEWAY";
 
+    private static final String STRATOSPHERE_PASSWORD_ENV = "STRATOSPHERE_PASSWORD";
+    private static final String STRATOSPHERE_SCENARIO_1_USER_ENV = "STRATOSPHERE_SCENARIO_1_USER";
+    private static final String STRATOSPHERE_SCENARIO_2_USER_ENV = "STRATOSPHERE_SCENARIO_2_USER";
+    private static final String STRATOSPHERE_SCENARIO_3_USER_ENV = "STRATOSPHERE_SCENARIO_3_USER";
+    private static final String STRATOSPHERE_SCENARIO_4_USER_ENV = "STRATOSPHERE_SCENARIO_4_USER";
+
+    private static final String STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID";
+    private static final String STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID";
+
     /*
      * Setup constants from env variables or set default
      */
@@ -156,6 +168,18 @@ public class Environment {
     public static final String KAFKA_INSTANCE_API_TEMPLATE = getOrDefault(KAFKA_INSTANCE_API_TEMPLATE_ENV, "https://admin-server-%s");
 
     public static final String PROMETHEUS_PUSH_GATEWAY = getOrDefault(PROMETHEUS_PUSH_GATEWAY_ENV, null);
+
+    public static final String STRATOSPHERE_PASSWORD = getOrDefault(STRATOSPHERE_PASSWORD_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_1_USER = getOrDefault(STRATOSPHERE_SCENARIO_1_USER_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_2_USER = getOrDefault(STRATOSPHERE_SCENARIO_2_USER_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_3_USER = getOrDefault(STRATOSPHERE_SCENARIO_3_USER_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_4_USER = getOrDefault(STRATOSPHERE_SCENARIO_4_USER_ENV, null);
+
+    public static final String STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID_ENV, null);
+    public static final String STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID_ENV, null);
 
     private Environment() {
     }
