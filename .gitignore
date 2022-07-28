@@ -9,4 +9,5 @@
 *.config.json
 config.json
 test-output/
-.env
+*.config.env
+
