@@ -9,6 +9,7 @@ import com.openshift.cloud.v1alpha.models.Credentials;
 import com.openshift.cloud.v1alpha.models.ServiceRegistryConnection;
 import com.openshift.cloud.v1alpha.models.ServiceRegistryConnectionSpec;
 import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -102,10 +103,12 @@ public class ServiceRegistryOperatorTest extends TestBase {
         registryMgmtApi = RegistryMgmtApiUtils.registryMgmtApi(Environment.OPENSHIFT_API_URI, user);
 
         LOGGER.info("initialize openshift client");
-        var config = new ConfigBuilder()
+        Config config = new ConfigBuilder()
                 .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
                 .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
                 .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+                // certificates for authentication over TLS (in order to prevent PKIX fails when checking signature)
+                .withTrustCerts(true)
                 .build();
         oc = new DefaultOpenShiftClient(config);
 
