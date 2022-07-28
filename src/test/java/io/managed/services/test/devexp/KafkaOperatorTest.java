@@ -107,6 +107,7 @@ public class KafkaOperatorTest extends TestBase {
             .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
             .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
             .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+            .withTrustCerts(true)
             .build();
         oc = new DefaultOpenShiftClient(config);
 
