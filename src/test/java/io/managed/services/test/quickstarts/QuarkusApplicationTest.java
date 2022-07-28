@@ -116,13 +116,13 @@ public class QuarkusApplicationTest extends TestBase {
         assertNotNull(Environment.DEV_CLUSTER_TOKEN, "the DEV_CLUSTER_TOKEN env is null");
 
         // OC
-        var config = new ConfigBuilder()
-            .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
-            .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
-            .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
-            .build();
-
         LOGGER.info("initialize openshift client");
+        var config = new ConfigBuilder()
+                .withMasterUrl(Environment.DEV_CLUSTER_SERVER)
+                .withOauthToken(Environment.DEV_CLUSTER_TOKEN)
+                .withNamespace(Environment.DEV_CLUSTER_NAMESPACE)
+                .withTrustCerts(true)
+                .build();
         oc = new DefaultOpenShiftClient(config);
 
         var auth = new KeycloakLoginSession(vertx, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
