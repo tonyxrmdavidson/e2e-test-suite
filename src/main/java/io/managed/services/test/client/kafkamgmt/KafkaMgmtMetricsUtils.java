@@ -110,7 +110,6 @@ public class KafkaMgmtMetricsUtils {
 
 
             // Compare if observedIncrease (i.e., increase in metric from beginning of observation) falls within range of expected increase.
-
             double observedIncrease = newStorageTotal - previouslyObservedValue;
             LOGGER.info("currently observed increase: {}", observedIncrease);
             // how many %from expected data, are observed far from. e.g. expect 200 bytes, observed 80, difference is - 60 (%).

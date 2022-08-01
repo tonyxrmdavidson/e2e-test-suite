@@ -46,7 +46,7 @@ public class BillingMetricsTest extends TestBase {
 
     // TODO (push ready) change name back
     //public static final String TOPIC_NAME = "billing_test";
-    public static final String TOPIC_NAME = "a2";
+    public static final String TOPIC_NAME = "a1";
 
     private List<Double> myData = new ArrayList<>();
 
@@ -61,9 +61,9 @@ public class BillingMetricsTest extends TestBase {
 
     private Map<String, Double> snapshotValues = new HashMap<>();
 
-    private static List<String> SNAPSHOT_METRICS;
+    private static final List<String> SNAPSHOT_METRICS = new ArrayList<>();
 
-    private static final String METRIC_STORAGE = "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months";
+    private static final String METRIC_STORAGE = "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes";
     private static final String METRIC_TRAFFIC_TOTAL = "kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes";
     private static final String METRIC_TRAFFIC_IN = "kafka_id:haproxy_server_bytes_in_total:rate1h_gibibytes";
     private static final String METRIC_TRAFFIC_OUT = "kafka_id:haproxy_server_bytes_out_total:rate1h_gibibytes";
@@ -71,7 +71,6 @@ public class BillingMetricsTest extends TestBase {
 
 
     static {
-        SNAPSHOT_METRICS = new ArrayList<>();
         SNAPSHOT_METRICS.add(METRIC_TRAFFIC_IN);
         SNAPSHOT_METRICS.add(METRIC_TRAFFIC_OUT);
         SNAPSHOT_METRICS.add(METRIC_TRAFFIC_TOTAL);
@@ -79,8 +78,8 @@ public class BillingMetricsTest extends TestBase {
     }
 
     // 0.5 Mibibyte
-    private final int messageSize = 1024 * 512;
-    private final int messageCount = 10;
+    private final int messageSize = 1024 * 128;
+    private final int messageCount = 20;
 
     @BeforeClass
     @SneakyThrows
@@ -127,7 +126,7 @@ public class BillingMetricsTest extends TestBase {
     }
 
 
-    @Test(priority = 2)
+    @Test()
     @SneakyThrows
     public void testCheckClusterHoursValue() {
 
@@ -143,7 +142,7 @@ public class BillingMetricsTest extends TestBase {
         Assert.assertEquals(result.data.result.get(0).value(), "1");
     }
 
-    @Test(priority = 3)
+    @Test()
     @SneakyThrows
     public void takeMetricsSnapshot() {
         for (String metric : SNAPSHOT_METRICS) {
@@ -154,7 +153,7 @@ public class BillingMetricsTest extends TestBase {
         }
     }
 
-    @Test(priority = 4)
+    @Test(priority = 1)
     @SneakyThrows
     public void generateLoad() {
         String bootstrapHost = kafka.getBootstrapServerHost();
@@ -170,7 +169,7 @@ public class BillingMetricsTest extends TestBase {
                 this.messageCount, this.messageSize, this.messageSize));
     }
 
-    @Test(priority = 5)
+    @Test(priority = 2)
     @SneakyThrows
     public void testStorageIncreased() {
 
@@ -178,8 +177,9 @@ public class BillingMetricsTest extends TestBase {
         // storage before increasing (value snapshot created even before data were produced)
         double oldStorageTotal = snapshotValues.get(METRIC_STORAGE);
 
-        // calculation of expected increased value in metric, i.e, conversion of produced bytes (messages * size) to Gibibytes (1024^3), normalized by metricShift (10^3).
-        double expectedIncrease = this.messageSize * this.messageCount * 4 / (Math.pow(1024.0, 3.0)) / 1000;
+        // calculation of expected increased value in metric, i.e, conversion of produced bytes (messages * size) to Gibibytes (1024^3).
+        double expectedIncrease = this.messageSize * this.messageCount * 3 / (Math.pow(1024.0, 3.0));
+        log.info("expected increase in size: {}", expectedIncrease);
 
         // waiting for metric to be increased within with 5 range
         KafkaMgmtMetricsUtils.waitUntilExpectedMetricRange(
