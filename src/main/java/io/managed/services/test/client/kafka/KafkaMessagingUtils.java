@@ -59,7 +59,7 @@ public class KafkaMessagingUtils {
             clientID,
             clientSecret,
             topicName,
-            Duration.ofMinutes(1),
+            Duration.ofMinutes(3),
             messageCount,
             minMessageSize,
             maxMessageSize,

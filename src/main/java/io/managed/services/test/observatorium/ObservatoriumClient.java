@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import org.apache.kafka.common.protocol.types.Field;
+
 
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
@@ -12,9 +12,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashMap;
+
 import java.util.List;
-import java.util.Map;
+
 
 @Log4j2
 public class ObservatoriumClient {

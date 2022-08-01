@@ -5,22 +5,19 @@ import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
-import io.cucumber.java.hu.Ha;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
-import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiGenericException;
-import io.managed.services.test.client.kafka.KafkaMessagingUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApi;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
+import io.managed.services.test.client.kafkamgmt.KafkaMgmtMetricsUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.managed.services.test.observatorium.ObservatoriumClient;
-import io.managed.services.test.observatorium.ObservatoriumException;
 import io.managed.services.test.observatorium.QueryResult;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
@@ -30,20 +27,28 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.TestUtils.inRange;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
 import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertTrue;
 
 @Log4j2
 public class BillingMetricsTest extends TestBase {
-    public static final String KAFKA_INSTANCE_NAME = "mk-billing-" + Environment.LAUNCH_KEY;
+
+    // TODO (push ready) change name back
+    //public static final String KAFKA_INSTANCE_NAME = "mk-billing-" + Environment.LAUNCH_KEY;
+    public static final String KAFKA_INSTANCE_NAME = "e";
     public static final String SERVICE_ACCOUNT_NAME = "mk-billing-sa-" + Environment.LAUNCH_KEY;
 
-    public static final String TOPIC_NAME = "billing_test";
+    // TODO (push ready) change name back
+    //public static final String TOPIC_NAME = "billing_test";
+    public static final String TOPIC_NAME = "a2";
+
+    private List<Double> myData = new ArrayList<>();
 
     private ObservatoriumClient observatoriumClient;
 
@@ -58,11 +63,11 @@ public class BillingMetricsTest extends TestBase {
 
     private static List<String> SNAPSHOT_METRICS;
 
-    private static String METRIC_STORAGE = "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months";
-    private static String METRIC_TRAFFIC_TOTAL = "kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes";
-    private static String METRIC_TRAFFIC_IN = "kafka_id:haproxy_server_bytes_in_total:rate1h_gibibytes";
-    private static String METRIC_TRAFFIC_OUT = "kafka_id:haproxy_server_bytes_out_total:rate1h_gibibytes";
-    private static String METRIC_CLUSTER_HOURS = "kafka_id:strimzi_resource_state:max_over_time1h";
+    private static final String METRIC_STORAGE = "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months";
+    private static final String METRIC_TRAFFIC_TOTAL = "kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes";
+    private static final String METRIC_TRAFFIC_IN = "kafka_id:haproxy_server_bytes_in_total:rate1h_gibibytes";
+    private static final String METRIC_TRAFFIC_OUT = "kafka_id:haproxy_server_bytes_out_total:rate1h_gibibytes";
+    private static final String METRIC_CLUSTER_HOURS = "kafka_id:strimzi_resource_state:max_over_time1h";
 
 
     static {
@@ -72,6 +77,10 @@ public class BillingMetricsTest extends TestBase {
         SNAPSHOT_METRICS.add(METRIC_TRAFFIC_TOTAL);
         SNAPSHOT_METRICS.add(METRIC_STORAGE);
     }
+
+    // 0.5 Mibibyte
+    private final int messageSize = 1024 * 512;
+    private final int messageCount = 10;
 
     @BeforeClass
     @SneakyThrows
@@ -121,6 +130,8 @@ public class BillingMetricsTest extends TestBase {
     @Test(priority = 2)
     @SneakyThrows
     public void testCheckClusterHoursValue() {
+
+
         ObservatoriumClient.Query query = new ObservatoriumClient.Query();
         query
                 .metric(METRIC_CLUSTER_HOURS)
@@ -150,34 +161,34 @@ public class BillingMetricsTest extends TestBase {
         String clientID = serviceAccount.getClientId();
         String clientSecret = serviceAccount.getClientSecret();
 
-        int messageSize = 1024 * 512;
-
         log.info("test topic '{}'", TOPIC_NAME);
         bwait(testTopic(Vertx.vertx(),
                 bootstrapHost,
                 clientID,
                 clientSecret,
                 TOPIC_NAME,
-                10,
-                messageSize,
-                messageSize));
+                this.messageCount, this.messageSize, this.messageSize));
     }
 
     @Test(priority = 5)
     @SneakyThrows
     public void testStorageIncreased() {
-        ObservatoriumClient.Query query = new ObservatoriumClient.Query();
-        query.metric(METRIC_STORAGE).label("_id", kafka.getId());
-        var result = observatoriumClient.query(query);
-        Double storage = result.data.result.get(0).doubleValue();
 
-        int messageSize = 1024 * 512;
-        double expectedIncrease = snapshotValues.get(METRIC_STORAGE) + messageSize;
-        double increasePercentage = TestUtils.increasePercentage(snapshotValues.get(METRIC_STORAGE), storage);
-        log.info(String.format("storage use before load %.0f", snapshotValues.get(METRIC_STORAGE)));
-        log.info(String.format("storage use after load %.0f", storage));
-        log.info(String.format("storage increased by %.2f", increasePercentage));
-        assertTrue(inRange(expectedIncrease, storage, 5.0));
+        log.info("test correct storage increase metric when data are produced");
+        // storage before increasing (value snapshot created even before data were produced)
+        double oldStorageTotal = snapshotValues.get(METRIC_STORAGE);
+
+        // calculation of expected increased value in metric, i.e, conversion of produced bytes (messages * size) to Gibibytes (1024^3), normalized by metricShift (10^3).
+        double expectedIncrease = this.messageSize * this.messageCount * 4 / (Math.pow(1024.0, 3.0)) / 1000;
+
+        // waiting for metric to be increased within with 5 range
+        KafkaMgmtMetricsUtils.waitUntilExpectedMetricRange(
+                observatoriumClient,
+                kafka.getId(),
+                METRIC_STORAGE,
+                oldStorageTotal,
+                expectedIncrease,
+                5.0);
     }
 
     @SneakyThrows
@@ -189,6 +200,7 @@ public class BillingMetricsTest extends TestBase {
             }
         }
 
+        // create topic with 3 replicas (the only possible way to create topic currently)
         kafkaInstanceApi.createTopic(
                 new NewTopicInput()
                         .name(TOPIC_NAME)

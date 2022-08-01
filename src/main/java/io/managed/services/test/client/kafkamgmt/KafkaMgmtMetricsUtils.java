@@ -5,18 +5,24 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.exception.ApiGenericException;
+import io.managed.services.test.observatorium.ObservatoriumClient;
+import io.managed.services.test.observatorium.ObservatoriumException;
+import io.managed.services.test.observatorium.QueryResult;
 import io.vertx.core.Vertx;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
 public class KafkaMgmtMetricsUtils {
@@ -86,6 +92,47 @@ public class KafkaMgmtMetricsUtils {
 
         LOGGER.info("final in message count for topic '{}' is: {}", topicName, finalInMessagesAtom.get());
     }
+
+
+    @SneakyThrows
+    public static <T extends Throwable> void waitUntilExpectedMetricRange(ObservatoriumClient observatoriumClient, String kafkaId, String metricName, double previouslyObservedValue, double expectedIncrease, double errorRangePercentage) {
+
+        ThrowingFunction<Boolean, Boolean, T> ready = last -> {
+            ObservatoriumClient.Query query = new ObservatoriumClient.Query();
+            query.metric(metricName).label("_id", kafkaId);
+            QueryResult result = null;
+            try {
+                result = observatoriumClient.query(query);
+            } catch (ObservatoriumException e) {
+                e.printStackTrace();
+            }
+            Double newStorageTotal = result.data.result.get(0).doubleValue();
+
+
+            // Compare if observedIncrease (i.e., increase in metric from beginning of observation) falls within range of expected increase.
+
+            double observedIncrease = newStorageTotal - previouslyObservedValue;
+            LOGGER.info("currently observed increase: {}", observedIncrease);
+            // how many %from expected data, are observed far from. e.g. expect 200 bytes, observed 80, difference is - 60 (%).
+            var differencePercentage = (observedIncrease - expectedIncrease) / (expectedIncrease / 100);
+            LOGGER.info("currently observed difference %: {}", differencePercentage);
+            // information about if there was too little/ many data produced is important as well, so check from both side is made
+            var isReady = differencePercentage > -errorRangePercentage && differencePercentage < errorRangePercentage;
+
+            LOGGER.info("is metric data within expected range: {}", isReady);
+            return isReady;
+        };
+
+        try {
+            waitFor("metric to be ready", ofSeconds(6), ofMinutes(2), ready);
+        } catch (TimeoutException e) {
+            // throw a more accurate error
+            throw new ObservatoriumException("metric not ready within expected time");
+        }
+
+        LOGGER.info("Metric is ready");
+    }
+
 }
 
 

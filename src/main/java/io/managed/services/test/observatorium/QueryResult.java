@@ -2,7 +2,6 @@ package io.managed.services.test.observatorium;
 
 import org.joda.time.DateTime;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
