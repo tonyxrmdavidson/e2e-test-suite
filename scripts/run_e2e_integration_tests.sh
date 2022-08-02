@@ -7,6 +7,7 @@ export OPENSHIFT_IDENTITY_URI="https://sso.stage.redhat.com"
 echo $OPENSHIFT_IDENTITY_URI
 export LAUNCH_KEY="e2e-tony"
 echo $LAUNCH_KEY
+export REDHAT_SSO_URI="https://sso.redhat.com"
 echo $REDHAT_SSO_URI
 echo $PRIMARY_USERNAME
 mvn install -DskipTests
