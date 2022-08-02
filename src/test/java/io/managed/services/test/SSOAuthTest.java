@@ -27,6 +27,7 @@ public class SSOAuthTest extends TestBase {
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+        assertNotNull(Environment.REDHAT_SSO_URI, "the REDHAT_SSO_URI env is null");
     }
 
     @Test
