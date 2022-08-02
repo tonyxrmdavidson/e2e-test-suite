@@ -10,4 +10,4 @@ echo $LAUNCH_KEY
 echo $REDHAT_SSO_URI
 echo $PRIMARY_USERNAME
 mvn install -DskipTests
-mvn verify -Pintegration
+./hack/testruner.sh -p integration
