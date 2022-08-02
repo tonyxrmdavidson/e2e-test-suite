@@ -5,5 +5,7 @@ export OPENSHIFT_API_URI="https://$(oc get routes --all-namespaces 2>&1 | grep -
 echo $OPENSHIFT_API_URI
 export OPENSHIFT_IDENTITY_URI="https://sso.stage.redhat.com"
 echo $OPENSHIFT_IDENTITY_URI
+export LAUNCH_KEY="e2e-tony"
+echo $LAUNCH_KEY
 mvn install -DskipTests
 mvn verify -Pintegration
