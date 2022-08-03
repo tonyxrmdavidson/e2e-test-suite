@@ -9,6 +9,8 @@ export LAUNCH_KEY="e2e-tony"
 echo $LAUNCH_KEY
 export REDHAT_SSO_URI="https://sso.redhat.com"
 echo $REDHAT_SSO_URI
+export SKIP_TEARDOWN="true"
+echo $SKIP_TEARDOWN
 echo $PRIMARY_USERNAME
 mvn install -DskipTests
 ./hack/testrunner.sh -p integration
