@@ -59,8 +59,8 @@ while [[ $# -gt 0 ]]; do
     usage
     exit 0
     ;;
-  -p | --profile)
-    PROFILE="$2"
+  -p | --test-profile)
+    TEST_PROFILE="$2"
     shift
     shift
     ;;
@@ -97,8 +97,8 @@ if [[ -n "${REPORTPORTAL_ACCESS_TOKEN}" ]]; then
 fi
 
 OPTIONS=()
-if [[ -n "${PROFILE}" ]]; then
-  OPTIONS+=("-P${PROFILE}")
+if [[ -n "${TEST_PROFILE}" ]]; then
+  OPTIONS+=("-P${TEST_PROFILE}")
 fi
 
 if [[ -n "${TESTCASE}" ]]; then
