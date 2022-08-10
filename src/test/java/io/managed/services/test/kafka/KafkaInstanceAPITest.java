@@ -216,7 +216,7 @@ public class KafkaInstanceAPITest extends TestBase {
                 {true, newCE().key("max.message.bytes").value(Integer.toString(messageSizeLimit))},
                 {true, newCE().key("max.message.bytes").value("1")},
                 {true, newCE().key("max.message.bytes").value(Integer.toString(messageSizeLimit - 1))},
-                {false, newCE().key("max.message.bytes").value(Integer.toString(messageSizeLimit) + 1)},
+                {false, newCE().key("max.message.bytes").value(Integer.toString(messageSizeLimit + 1))},
 
                 {false, newCE().key("message.format.version").value("3.0")},
                 {false, newCE().key("message.format.version").value("2.8")},
@@ -226,7 +226,7 @@ public class KafkaInstanceAPITest extends TestBase {
                 {false, newCE().key("min.cleanable.dirty.ratio").value("0")},
                 {false, newCE().key("min.cleanable.dirty.ratio").value("1")},
 
-                {true, newCE().key("min.insync.replicas").value(desiredBrokerCount > 2 ? "2" : "1")},
+                {desiredBrokerCount > 2, newCE().key("min.insync.replicas").value(desiredBrokerCount > 2 ? "2" : "1")},
                 {desiredBrokerCount < 3, newCE().key("min.insync.replicas").value("1")},
 
                 {true, newCE().key("segment.bytes").value(Integer.toString(fiftyMi))},
@@ -240,7 +240,7 @@ public class KafkaInstanceAPITest extends TestBase {
                 {false, newCE().key("segment.jitter.ms").value("0")},
                 {false, newCE().key("segment.jitter.ms").value("1")},
 
-                {true, newCE().key("segment.ms").value(Long.toString(Duration.ofDays(7).toMillis()))}, // default permitted
+                {true, newCE().key("segment.ms").value(Long.toString(Duration.ofDays(7).toMillis()))},
                 {true, newCE().key("segment.ms").value(Long.toString(Duration.ofMinutes(10).toMillis()))},
                 {false, newCE().key("segment.ms").value(Long.toString(Duration.ofMinutes(10).toMillis() - 1))},
 

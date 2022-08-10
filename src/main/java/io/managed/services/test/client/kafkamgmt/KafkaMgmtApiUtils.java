@@ -430,7 +430,8 @@ public class KafkaMgmtApiUtils {
     /**
      * Get total partition limit of given kafka instance.
      *
-     * @param api  KafkaMgmtApi
+     * @param api      KafkaMgmtApi
+     * @param kafka    Kafka instance to query
      */
     public static int getPartitionLimitMax(KafkaMgmtApi api, KafkaRequest kafka) throws Exception {
         return getMetric(api, kafka, "^kafka_instance_partition_limit.*\\s(\\d+)$");
@@ -439,16 +440,18 @@ public class KafkaMgmtApiUtils {
     /**
      * Get message size limit of given kafka instance.
      *
-     * @param api  KafkaMgmtApi
+     * @param api      KafkaMgmtApi
+     * @param kafka    Kafka instance to query
      */
     public static int getMessageSizeLimit(KafkaMgmtApi api, KafkaRequest kafka) throws Exception {
         return getMetric(api, kafka, "^kafka_instance_max_message_size_limit.*\\s(\\d+)$");
     }
 
     /**
-     * Get message size limit of given kafka instance.
+     * Get desired broker count of given kafka instance.
      *
-     * @param api  KafkaMgmtApi
+     * @param api      KafkaMgmtApi
+     * @param kafka    Kafka instance to query
      */
     public static int getDesiredBrokerCount(KafkaMgmtApi api, KafkaRequest kafka) throws Exception {
         return getMetric(api, kafka, "^kafka_instance_spec_brokers_desired_count.*\\s(\\d+)$");
@@ -457,8 +460,9 @@ public class KafkaMgmtApiUtils {
     /**
      * Get total partition limit of per given kafka instance.
      *
-     * @param regex
-     * @param api  KafkaMgmtApi
+     * @param api      KafkaMgmtApi
+     * @param kafka    Kafka instance to query
+     * @param regex    metric pattern
      */
     private static int getMetric(KafkaMgmtApi api, KafkaRequest kafka, String regex) throws Exception {
         var metrics = api.federateMetrics(kafka.getId());
