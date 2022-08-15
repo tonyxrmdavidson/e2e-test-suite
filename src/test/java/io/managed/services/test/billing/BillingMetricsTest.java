@@ -9,6 +9,9 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiGenericException;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
+import io.managed.services.test.client.kafka.KafkaMessagingUtils;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
@@ -22,33 +25,29 @@ import io.managed.services.test.observatorium.QueryResult;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.managed.services.test.TestUtils.bwait;
-import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithNConsumers;
 import static org.testng.Assert.assertNotNull;
 
 @Log4j2
 public class BillingMetricsTest extends TestBase {
 
-    // TODO (push ready) change name back
-    //public static final String KAFKA_INSTANCE_NAME = "mk-billing-" + Environment.LAUNCH_KEY;
-    public static final String KAFKA_INSTANCE_NAME = "e";
+    // class uses long live kafka instance, as waiting for metrics to be available and stable in newly created instance can take too long.
+    public static final String KAFKA_INSTANCE_NAME = "mk-e2e-ll-" + Environment.LAUNCH_KEY;
     public static final String SERVICE_ACCOUNT_NAME = "mk-billing-sa-" + Environment.LAUNCH_KEY;
 
-    // TODO (push ready) change name back
-    //public static final String TOPIC_NAME = "billing_test";
-    public static final String TOPIC_NAME = "a1";
-
-    private List<Double> myData = new ArrayList<>();
+    public static final String TOPIC_NAME = "billing_test";
 
     private ObservatoriumClient observatoriumClient;
 
@@ -76,10 +75,11 @@ public class BillingMetricsTest extends TestBase {
         SNAPSHOT_METRICS.add(METRIC_TRAFFIC_TOTAL);
         SNAPSHOT_METRICS.add(METRIC_STORAGE);
     }
-
-    // 0.5 Mibibyte
+    // size and count of messages to be produced/ consumed
     private final int messageSize = 1024 * 128;
-    private final int messageCount = 20;
+    private final int messageCount = 50;
+    // number of consumers consuming data
+    private final int consumerCount = 5;
 
     @BeforeClass
     @SneakyThrows
@@ -97,7 +97,6 @@ public class BillingMetricsTest extends TestBase {
 
         // Create Kafka Instance
         var optionalKafkaRequest = KafkaMgmtApiUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
-
         if (optionalKafkaRequest.isPresent()) {
             kafka = optionalKafkaRequest.get();
         } else {
@@ -119,18 +118,9 @@ public class BillingMetricsTest extends TestBase {
         createTopics();
     }
 
-    @AfterClass
-    @SneakyThrows
-    public void teardown() {
-        // KafkaMgmtApiUtils.deleteKafkaByNameIfExists(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
-    }
-
-
-    @Test()
+    @Test(enabled = false)
     @SneakyThrows
     public void testCheckClusterHoursValue() {
-
-
         ObservatoriumClient.Query query = new ObservatoriumClient.Query();
         query
                 .metric(METRIC_CLUSTER_HOURS)
@@ -142,7 +132,7 @@ public class BillingMetricsTest extends TestBase {
         Assert.assertEquals(result.data.result.get(0).value(), "1");
     }
 
-    @Test()
+    @Test(enabled = true)
     @SneakyThrows
     public void takeMetricsSnapshot() {
         for (String metric : SNAPSHOT_METRICS) {
@@ -153,31 +143,57 @@ public class BillingMetricsTest extends TestBase {
         }
     }
 
-    @Test(priority = 1)
+    @Test(priority = 1, enabled = true)
     @SneakyThrows
-    public void generateLoad() {
+    public void invokeDataProduction() {
         String bootstrapHost = kafka.getBootstrapServerHost();
         String clientID = serviceAccount.getClientId();
         String clientSecret = serviceAccount.getClientSecret();
 
-        log.info("test topic '{}'", TOPIC_NAME);
-        bwait(testTopic(Vertx.vertx(),
+        KafkaProducerClient producer = new KafkaProducerClient(
+                Vertx.vertx(),
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                KafkaAuthMethod.OAUTH,
+                StringSerializer.class,
+                StringSerializer.class);
+
+        List<String> producedMessages = KafkaMessagingUtils.generateRandomMessages(this.messageCount, this.messageSize, this.messageSize);
+        bwait(producer.sendAsync(TOPIC_NAME, producedMessages));
+
+        producer.close();
+    }
+
+    @Test(priority = 2, enabled = true)
+    @SneakyThrows
+    public void invokeDataConsumption() {
+        String bootstrapHost = kafka.getBootstrapServerHost();
+        String clientID = serviceAccount.getClientId();
+        String clientSecret = serviceAccount.getClientSecret();
+
+        bwait(testTopicWithNConsumers(
+                Vertx.vertx(),
                 bootstrapHost,
                 clientID,
                 clientSecret,
                 TOPIC_NAME,
-                this.messageCount, this.messageSize, this.messageSize));
+                Duration.ofMinutes(3),
+                this.messageCount,
+                this.messageSize,
+                this.consumerCount,
+                    KafkaAuthMethod.OAUTH));
     }
 
-    @Test(priority = 2)
+    @Test(priority = 1, dependsOnMethods = {"invokeDataProduction"}, enabled = true)
     @SneakyThrows
-    public void testStorageIncreased() {
+    public void testMetricStorageIncreased() {
 
         log.info("test correct storage increase metric when data are produced");
         // storage before increasing (value snapshot created even before data were produced)
         double oldStorageTotal = snapshotValues.get(METRIC_STORAGE);
 
-        // calculation of expected increased value in metric, i.e, conversion of produced bytes (messages * size) to Gibibytes (1024^3).
+        // expected increased value in used space across kafka brokers, i.e, produced bytes (messageSize * messageCount) * number of replicas (3) converted to Gibibytes (1/1024^3).
         double expectedIncrease = this.messageSize * this.messageCount * 3 / (Math.pow(1024.0, 3.0));
         log.info("expected increase in size: {}", expectedIncrease);
 
@@ -188,7 +204,51 @@ public class BillingMetricsTest extends TestBase {
                 METRIC_STORAGE,
                 oldStorageTotal,
                 expectedIncrease,
-                5.0);
+                5.00);
+    }
+
+    @Test(priority = 1, dependsOnMethods = {"invokeDataProduction"}, enabled = true)
+    @SneakyThrows
+    public void testMetricIncomingTrafficIncreased() {
+
+        log.info("test correct incoming traffic metric increase when data are produced");
+        // storage before increasing (value snapshot created even before data were produced)
+        double oldTrafficInTotal = snapshotValues.get(METRIC_TRAFFIC_IN);
+
+        // calculation of expected increased value in metric, i.e, conversion of produced bytes (messages * size) to Gibibytes (1024^3).
+        double expectedIncrease = this.messageSize * this.messageCount / (Math.pow(1024.0, 3.0));
+        log.info("expected increase in size: {}", expectedIncrease);
+
+        // waiting for metric to be increased within with 5 range
+        KafkaMgmtMetricsUtils.waitUntilExpectedMetricRange(
+                observatoriumClient,
+                kafka.getId(),
+                METRIC_TRAFFIC_IN,
+                oldTrafficInTotal,
+                expectedIncrease,
+                10);
+    }
+
+    @Test(priority = 2, enabled = true)
+    @SneakyThrows
+    public void testTrafficMetricOutIncreased() {
+
+        log.info("test correct outcoming traffic metric increase when data are consumed");
+        // storage before increasing (value snapshot created even before data were produced)
+        double oldTrafficInTotal = snapshotValues.get(METRIC_TRAFFIC_OUT);
+
+        // expected increased value in metric, i.e, conversion of produced bytes (messages * size) * number of consumers to Gibibytes (1024^3). + 20% for handshakes and metatada.
+        double expectedIncrease = this.messageSize * this.messageCount * this.consumerCount * 1.20 / Math.pow(1024.0, 3.0);
+        log.info("expected increase in size: {}", expectedIncrease);
+
+        // waiting for metric to be increased within with 5 range
+        KafkaMgmtMetricsUtils.waitUntilExpectedMetricRange(
+                observatoriumClient,
+                kafka.getId(),
+                METRIC_TRAFFIC_OUT,
+                oldTrafficInTotal,
+                expectedIncrease,
+                10.0);
     }
 
     @SneakyThrows

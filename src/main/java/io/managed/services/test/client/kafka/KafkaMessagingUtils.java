@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -125,6 +126,58 @@ public class KafkaMessagingUtils {
     }
 
 
+    public static Future<CompositeFuture> testTopicWithNConsumers(
+            Vertx vertx,
+            String bootstrapHost,
+            String clientID,
+            String clientSecret,
+            String topicName,
+            Duration timeout,
+            int messageCount,
+            int messageSize,
+            int totalIndependentConsumerCount,
+            KafkaAuthMethod authMethod) {
+
+        // generate random strings to send as messages
+        var messages = generateRandomMessages(messageCount, messageSize, messageSize);
+
+        // initialize the consumer and the producer
+        List<KafkaConsumerClient<String, String>> consumersList = new ArrayList<>();
+        for (int i = 0; i < totalIndependentConsumerCount; i++) {
+            var consumer = new KafkaConsumerClient<>(vertx,
+                    bootstrapHost,
+                    clientID,
+                    clientSecret,
+                    authMethod,
+                    "g-".concat(Integer.toString(i)),
+                    "latest",
+                    StringDeserializer.class,
+                    StringDeserializer.class);
+            consumersList.add(consumer);
+        }
+
+        var producer = new KafkaProducerClient<>(
+                vertx,
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                authMethod,
+                StringSerializer.class,
+                StringSerializer.class);
+
+        //return produceAndConsumeMessagesWithNConsumers(vertx, producer, consumersList, topicName, timeout, messages)
+        return produceAndConsumeMessagesWithNConsumers(vertx, producer, consumersList, topicName, timeout, messages)
+
+                .eventually(__ -> {
+                    // close the producer and consumer in any case
+                    LOGGER.info("close the consumer and the producer for topic {}", topicName);
+                    List<Future> x = consumersList.stream().map(KafkaAsyncConsumer::asyncClose).collect(Collectors.toList());
+                    CompositeFuture f = CompositeFuture.all(x);
+                    return CompositeFuture.join(producer.asyncClose(), f);
+                });
+    }
+
+
     /**
      * Create a producer and multiple consumers for the kafka instance and send n random messages from
      * the producer to the consumers and validate that each message reach the destination
@@ -188,12 +241,10 @@ public class KafkaMessagingUtils {
                     // close the producer and consumer in any case
                     LOGGER.info("close the consumer and the producer for topic {}", topicName);
                     return CompositeFuture.join(producer.asyncClose(), consumer.asyncClose());
-                })
-
-                .compose(__ -> assertUnusedConsumers(consumer, records)));
+                }));
     }
 
-    private static Future<List<ConsumerRecord<String, String>>> produceAndConsumeMessages(
+    public static Future<List<ConsumerRecord<String, String>>> produceAndConsumeMessages(
         Vertx vertx,
         KafkaProducerClient<String, String> producer,
         KafkaAsyncConsumer<String, String> consumer,
@@ -231,6 +282,57 @@ public class KafkaMessagingUtils {
                     return records;
                 });
             });
+    }
+
+    public static Future<CompositeFuture> produceAndConsumeMessagesWithNConsumers(
+        Vertx vertx,
+        KafkaProducerClient<String, String> producer,
+        List<KafkaConsumerClient<String, String>> consumersList,
+        String topicName,
+        Duration timeout,
+        List<String> messages) {
+
+        List<Future> fn = consumersList
+                .stream()
+                .map(consumer -> consumer.resetToEnd(topicName))
+                .collect(Collectors.toList());
+
+        var subscribeFuture = CompositeFuture.all(fn);
+
+        var result = subscribeFuture
+                .compose(f -> {
+                    LOGGER.info("subscribing all");
+                    List<Future> l = consumersList.stream().map(consumer -> consumer.subscribe(topicName)).collect(Collectors.toList());
+                    return CompositeFuture.all(l); })
+                .compose(f -> {
+                    LOGGER.info("creating producer");
+                    var produceFuture = producer.sendAsync(topicName, messages);
+                    var timeoutPromise = Promise.promise();
+                    var timeoutTimer = vertx.setTimer(timeout.toMillis(), __ -> {
+                        LOGGER.error("timeout after {} waiting for {} messages on topic {}", timeout, messages.size(), topicName);
+                        timeoutPromise.fail(message("timeout after {} waiting for {} messages on topic: {}", timeout, messages.size(), topicName));
+                    });
+                    var completeFuture = produceFuture
+                            .compose(q -> {
+                                List<Future> l = consumersList.stream().map(consumer -> consumer.consumeMessages(messages.size())).collect(Collectors.toList());
+                                var cmp = CompositeFuture.all(l);
+
+                                return cmp;
+                            })
+                            .onComplete(__ -> {
+                                vertx.cancelTimer(timeoutTimer);
+                                timeoutPromise.tryComplete();
+                            });
+
+                    var completeOrTimeoutFuture = CompositeFuture.all(completeFuture, timeoutPromise.future());
+
+                    return completeOrTimeoutFuture.map(__ -> {
+                        LOGGER.info("producer and consumer has complete for topic {}", topicName);
+                        return completeOrTimeoutFuture;
+                    });
+                });
+        return result;
+
     }
 
     public static List<String> generateRandomMessages(int messageCount, int minMessageSize, int maxMessageSize) {

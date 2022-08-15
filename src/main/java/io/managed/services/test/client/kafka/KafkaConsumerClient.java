@@ -113,7 +113,10 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
                 return consumeMessages(expectedMessages)
 
                     // unsubscribe from the topic after consume all expected messages
-                    .compose(messages -> consumer.unsubscribe().map(___ -> messages));
+                    .compose(messages -> {
+                        LOGGER.info(messages.size());
+                        return consumer.unsubscribe().map(___ -> messages); }
+                    );
             });
     }
 
@@ -189,6 +192,7 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
 
         consumer.handler(record -> {
             messages.add(new ConsumerRecord<>(consumer.hashCode(), record));
+            LOGGER.debug("msg consumed");
             if (messages.size() == expectedMessages) {
                 LOGGER.info("successfully received {} messages", expectedMessages);
                 consumer.commit()
@@ -200,8 +204,10 @@ public class KafkaConsumerClient<K, V> extends KafkaAsyncConsumer<K, V> {
     }
 
     public Future<Void> subscribe(String topic) {
+        LOGGER.info("subscribing consumer to topic '{}'", topic);
         return consumer.subscribe(topic);
     }
+
 
     public Future<Void> unsubscribe() {
         return consumer.unsubscribe();

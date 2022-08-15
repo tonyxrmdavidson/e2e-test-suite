@@ -95,7 +95,11 @@ public class KafkaMgmtMetricsUtils {
 
 
     @SneakyThrows
-    public static <T extends Throwable> void waitUntilExpectedMetricRange(ObservatoriumClient observatoriumClient, String kafkaId, String metricName, double previouslyObservedValue, double expectedIncrease, double errorRangePercentage) {
+    public static <T extends Throwable> void waitUntilExpectedMetricRange(ObservatoriumClient observatoriumClient, String kafkaId, String metricName, double snapshotOfPreviouslyObservedValue, double expectedIncrease, double errorRangePercentage) {
+
+        // some of metrics may actually decrease between time we obtain snapshot, and time generated data/actions take place
+        // therefore if obtained metric is lower than originally read data,we replace previouslyObservedValue.
+        var previouslyObservedValueAtom = new AtomicReference<Double>(snapshotOfPreviouslyObservedValue);
 
         ThrowingFunction<Boolean, Boolean, T> ready = last -> {
             ObservatoriumClient.Query query = new ObservatoriumClient.Query();
@@ -106,24 +110,31 @@ public class KafkaMgmtMetricsUtils {
             } catch (ObservatoriumException e) {
                 e.printStackTrace();
             }
-            Double newStorageTotal = result.data.result.get(0).doubleValue();
+            Double newObservedValue = result.data.result.get(0).doubleValue();
 
+            var previouslyObservedValue = previouslyObservedValueAtom.get();
 
             // Compare if observedIncrease (i.e., increase in metric from beginning of observation) falls within range of expected increase.
-            double observedIncrease = newStorageTotal - previouslyObservedValue;
-            LOGGER.info("currently observed increase: {}", observedIncrease);
+            double observedIncrease = newObservedValue - previouslyObservedValue;
+            //LOGGER.info("currently observed increase: {}", observedIncrease);
             // how many %from expected data, are observed far from. e.g. expect 200 bytes, observed 80, difference is - 60 (%).
             var differencePercentage = (observedIncrease - expectedIncrease) / (expectedIncrease / 100);
             LOGGER.info("currently observed difference %: {}", differencePercentage);
+
+            if (differencePercentage < -100.0) {
+                LOGGER.debug("newly observed value is smaller than previously observed value, correcting expected value");
+                previouslyObservedValueAtom.set(newObservedValue);
+            }
+
             // information about if there was too little/ many data produced is important as well, so check from both side is made
             var isReady = differencePercentage > -errorRangePercentage && differencePercentage < errorRangePercentage;
 
-            LOGGER.info("is metric data within expected range: {}", isReady);
+            //LOGGER.info("is metric data within expected range: {}", isReady);
             return isReady;
         };
 
         try {
-            waitFor("metric to be ready", ofSeconds(6), ofMinutes(2), ready);
+            waitFor("metric to be ready", ofSeconds(6), ofMinutes(10), ready);
         } catch (TimeoutException e) {
             // throw a more accurate error
             throw new ObservatoriumException("metric not ready within expected time");
