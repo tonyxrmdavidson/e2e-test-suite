@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.openapitools.jackson.nullable.JsonNullableModule;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -159,6 +160,7 @@ public class AsyncProcess {
             return new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .registerModule(new JavaTimeModule())
+                .registerModule(new JsonNullableModule())
                 .readValue(stdoutAsString(), c);
         } catch (JsonProcessingException e) {
             throw sneakyThrow(e);
