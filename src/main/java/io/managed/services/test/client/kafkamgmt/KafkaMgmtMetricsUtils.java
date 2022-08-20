@@ -5,9 +5,10 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.exception.ApiGenericException;
-import io.managed.services.test.observatorium.ObservatoriumClient;
-import io.managed.services.test.observatorium.ObservatoriumException;
-import io.managed.services.test.observatorium.QueryResult;
+
+import io.managed.services.test.prometheuswebclient.PrometheusWebClient;
+import io.managed.services.test.prometheuswebclient.PrometheusException;
+import io.managed.services.test.prometheuswebclient.QueryResult;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
@@ -95,19 +96,19 @@ public class KafkaMgmtMetricsUtils {
 
 
     @SneakyThrows
-    public static <T extends Throwable> void waitUntilExpectedMetricRange(ObservatoriumClient observatoriumClient, String kafkaId, String metricName, double snapshotOfPreviouslyObservedValue, double expectedIncrease, double errorRangePercentage) {
+    public static <T extends Throwable> void waitUntilExpectedMetricRange(PrometheusWebClient promWebBasedClient, String kafkaId, PrometheusWebClient.Query query, double snapshotOfPreviouslyObservedValue, double expectedIncrease, double errorRangePercentage) {
 
         // some of metrics may actually decrease between time we obtain snapshot, and time generated data/actions take place
         // therefore if obtained metric is lower than originally read data,we replace previouslyObservedValue.
         var previouslyObservedValueAtom = new AtomicReference<Double>(snapshotOfPreviouslyObservedValue);
 
         ThrowingFunction<Boolean, Boolean, T> ready = last -> {
-            ObservatoriumClient.Query query = new ObservatoriumClient.Query();
-            query.metric(metricName).label("_id", kafkaId);
+            //PrometheusBasedWebClient.Query query = new PrometheusBasedWebClient.Query();
+            //query.metric(metricName).label("_id", kafkaId);
             QueryResult result = null;
             try {
-                result = observatoriumClient.query(query);
-            } catch (ObservatoriumException e) {
+                result = promWebBasedClient.query(query);
+            } catch (PrometheusException e) {
                 e.printStackTrace();
             }
             Double newObservedValue = result.data.result.get(0).doubleValue();
@@ -137,7 +138,7 @@ public class KafkaMgmtMetricsUtils {
             waitFor("metric to be ready", ofSeconds(6), ofMinutes(10), ready);
         } catch (TimeoutException e) {
             // throw a more accurate error
-            throw new ObservatoriumException("metric not ready within expected time");
+            throw new PrometheusException("metric not ready within expected time");
         }
 
         LOGGER.info("Metric is ready");

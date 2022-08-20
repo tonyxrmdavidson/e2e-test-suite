@@ -11,42 +11,28 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
 @Log4j2
-public class PrometheusBasedWebClient {
+public class PrometheusWebClient {
 
-    // TODO token needs to be obtained from service account associated with necessary rules
-    private String token = "sha256~b4oOXM7viN-pO_Mc-BvQmwHqNwtFC7injMVq5yLRyI4";
-    // TODO nase url of prometheus (can be obtained with oc client as route smt.)
-    private String baseUrl = "https://kafka-prometheus-managed-application-services-observability.apps.mk-stage-0622.bd59.p1.openshiftapps.com";
+    // TODO url of prometheus (can be obtained with oc client as route and passed as env) - another env, + more dynamic code if desired.
+    private String baseUrl;
+    private String urlResourcePath;
+    // map of key:value header records
+    private Map<String, String> headersMap;
+    private OkHttpClient httpClient;
 
-    // TODO query prefix
-    //private String resourceAndQuery = "/api/v1/query?query=";
-    private String resourceAndQuery = "/api/v1/query";
-    // TODO specific query
-    private String specificQuery = "kafka_id:haproxy_server_bytes_in_total:rate1h_gibibytes{_id='cbt4ead730qd5itpjrmg'}";
-
-    private Map<String,String> headersMap = new HashMap<>();
-
-    private OkHttpClient httpClient = new OkHttpClient();
-
-
-
-    public PrometheusBasedWebClient PrometheusBasedWebClient() {
+    // constructor for builder
+    public PrometheusWebClient(String baseUrl, String urlResourcePath, Map<String, String> headersMap, OkHttpClient httpClient) {
+        this.baseUrl = baseUrl;
+        this.urlResourcePath = urlResourcePath;
+        this.headersMap = headersMap;
+        this.httpClient = httpClient;
     }
-
-    public PrometheusBasedWebClient addHeader(String key, String value){
-        this.headersMap.put(key, value);
-        return this;
-    }
-
-
 
     public QueryResult query(Query query) throws PrometheusException {
         return query(query.toString());
@@ -55,7 +41,7 @@ public class PrometheusBasedWebClient {
     public QueryResult query(String query) throws PrometheusException {
 
         var builder = UriBuilder.fromPath(baseUrl);
-        builder.path(resourceAndQuery);
+        builder.path(urlResourcePath);
 
         try {
             builder.queryParam("query", URLEncoder.encode(query, "ISO-8859-1"));
@@ -66,11 +52,15 @@ public class PrometheusBasedWebClient {
         var uri = builder.build();
         Request request;
         try {
-            request = new Request
+            var requestBuilder = new Request
                     .Builder()
-                    .url(uri.toURL())
-                    .addHeader("Authorization", "Bearer " + token)
-                    .build();
+                    .url(uri.toURL());
+            // add all provided headers
+            for (Map.Entry<String, String> entry : headersMap.entrySet()) {
+                requestBuilder.addHeader(entry.getKey(), entry.getValue());
+            }
+            request = requestBuilder.build();
+
         } catch (MalformedURLException ex) {
             throw new PrometheusException(ex);
         }
@@ -88,6 +78,28 @@ public class PrometheusBasedWebClient {
             throw new PrometheusException(ex);
         }
     }
+
+    public static class Snapshot {
+        Double observedValue;
+        Query query;
+
+        public Snapshot(Query query) {
+            this.query = query;
+        }
+
+        public void setObservedValue(Double observedValue) {
+            this.observedValue = observedValue;
+        }
+
+        public Double getObservedValue() {
+            return observedValue;
+        }
+
+        public Query getQuery() {
+            return query;
+        }
+    }
+
 
     public static class Query {
         private String metric;
@@ -116,7 +128,7 @@ public class PrometheusBasedWebClient {
             StringBuilder sb = new StringBuilder();
             // call all aggregation functions in order they were called in
             for (String elem : aggregateFunctions) {
-                sb.append(String.format("%s(",elem));
+                sb.append(String.format("%s(", elem));
             }
             sb.append(metric);
             sb.append("{");
@@ -125,7 +137,6 @@ public class PrometheusBasedWebClient {
             // append ")" to mark end of function in promql
             sb.append(")".repeat(aggregateFunctions.size()));
 
-            log.debug( "promql query: {}:",sb.toString());
             return sb.toString();
         }
     }

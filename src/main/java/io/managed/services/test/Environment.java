@@ -93,6 +93,8 @@ public class Environment {
     private static final String STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID";
     private static final String STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID_ENV = "STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID";
 
+    private static final String PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN_ENV = "PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN";
+
     /*
      * Setup constants from env variables or set default
      */
@@ -180,6 +182,8 @@ public class Environment {
     public static final String STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID_ENV, null);
     public static final String STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID_ENV, null);
     public static final String STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID = getOrDefault(STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID_ENV, null);
+
+    public static final String PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN = getOrDefault(PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN_ENV, null);
 
     private Environment() {
     }
