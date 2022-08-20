@@ -37,9 +37,24 @@ import java.util.List;
 import java.util.Map;
 
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.TestUtils.message;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopicWithNConsumers;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.fail;
 
+
+/**
+ * Test depends on Long Live Kafka Instance, if instance isn't existing at time of test start test create new one but fails.
+ * Test also needs Observatorium container/ process to be running (hack/run-token-refresher.sh),
+ * and also access to prometheus (hack/obtain-prom-query-token.sh) which will provide expected PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN
+ * <p>
+ * <b>Requires:</b>
+ * <ul>
+ *     <li> PRIMARY_USERNAME
+ *     <li> PRIMARY_PASSWORD
+ *     <li> PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN
+ * </ul>
+ */
 @Log4j2
 public class BillingMetricsTest extends TestBase {
 
@@ -77,6 +92,7 @@ public class BillingMetricsTest extends TestBase {
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
+        assertNotNull(Environment.PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN, "the PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN env is null");
 
         var apps = ApplicationServicesApi.applicationServicesApi(
                 Environment.PRIMARY_USERNAME,
@@ -100,10 +116,11 @@ public class BillingMetricsTest extends TestBase {
 
         // Create Kafka Instance
         var optionalKafkaRequest = KafkaMgmtApiUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
-        if (optionalKafkaRequest.isPresent()) {
+        if (optionalKafkaRequest.isPresent() && optionalKafkaRequest.get().getStatus().equals("ready")) {
             kafka = optionalKafkaRequest.get();
         } else {
-            kafka = KafkaMgmtApiUtils.applyKafkaInstance(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
+            KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, KafkaMgmtApiUtils.defaultKafkaInstance(KAFKA_INSTANCE_NAME));
+            fail(message("the billing metric can be applied only on existing kafka instance, '{}' did not exist", KAFKA_INSTANCE_NAME));
         }
 
         this.kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
@@ -120,7 +137,7 @@ public class BillingMetricsTest extends TestBase {
         createACLs(serviceAccount);
         createTopics();
 
-        // take snapshots
+        // initialize map of snapshots for specific queries (metrics)
         PrometheusWebClient.Query queryTrafficIn = new PrometheusWebClient.Query()
                 .metric(METRIC_TRAFFIC_IN)
                 .label("exported_namespace", String.format("kafka-%s", kafka.getId()))
