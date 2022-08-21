@@ -11,6 +11,7 @@ import com.openshift.cloud.api.kas.models.ServiceAccount;
 import com.openshift.cloud.api.kas.models.ServiceAccountList;
 import com.openshift.cloud.api.srs.models.Registry;
 import com.openshift.cloud.api.srs.models.RegistryList;
+import io.managed.services.test.Environment;
 import io.managed.services.test.RetryUtils;
 import io.managed.services.test.ThrowingSupplier;
 import lombok.SneakyThrows;
@@ -112,7 +113,7 @@ public class CLI {
     }
 
     public KafkaRequest createKafka(String name) throws CliGenericException {
-        return retry(() -> exec("kafka", "create", "--bypass-checks", "--name", name))
+        return retry(() -> exec("kafka", "create", "--bypass-checks", "--name", name, "--region", Environment.DEFAULT_KAFKA_REGION))
             .asJson(KafkaRequest.class);
     }
 
