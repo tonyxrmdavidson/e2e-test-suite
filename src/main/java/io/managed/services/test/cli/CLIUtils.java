@@ -85,13 +85,17 @@ public class CLIUtils {
     }
 
     public static CompletableFuture<Void> login(Vertx vertx, CLI cli, KeycloakLoginSession session) {
+        boolean insecure = Environment.KAFKA_INSECURE_TLS;
+        return login(vertx, cli, session, insecure);
+    }
+
+    public static CompletableFuture<Void> login(Vertx vertx, CLI cli, KeycloakLoginSession session, boolean insecureLogin) {
 
         var authURL = String.format("%s/auth/realms/%s", Environment.REDHAT_SSO_URI, Environment.REDHAT_SSO_REALM);
         var masAuthURL = String.format("%s/auth/realms/%s", Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
-        boolean insecure = Environment.KAFKA_INSECURE_TLS;
 
         LOGGER.info("start CLI login with username: {}", session.getUsername());
-        var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL, insecure);
+        var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL, insecureLogin);
 
         LOGGER.info("start oauth login against CLI");
         var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI))
@@ -198,7 +202,7 @@ public class CLIUtils {
     public static Config kubeConfig(String server, String token, String namespace) {
         var cluster = new Cluster();
         cluster.setServer(server);
-
+        cluster.setInsecureSkipTlsVerify(true);
         var namedCluster = new NamedCluster();
         namedCluster.setCluster(cluster);
         namedCluster.setName("default");
