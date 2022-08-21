@@ -71,5 +71,3 @@ spec:
     name: rhoas-kafka-quickstart-example
   port:
     targetPort: http
-  tls:
-    termination: edge

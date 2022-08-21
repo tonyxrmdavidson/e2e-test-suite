@@ -135,7 +135,8 @@ public class QuarkusApplicationTest extends TestBase {
 
         LOGGER.info("login the cli");
         cli = new CLI(cliBinary);
-        CLIUtils.login(vertx, cli, auth).get();
+        // insecure login
+        CLIUtils.login(vertx, cli, auth, false).get();
 
         // User
         LOGGER.info("authenticate user '{}' against RH SSO", auth.getUsername());
@@ -481,7 +482,7 @@ public class QuarkusApplicationTest extends TestBase {
     @Test(dependsOnMethods = "testCreateServiceBinding")
     public void testQuarkusApplication() throws Throwable {
 
-        var endpoint = String.format("https://%s", route.getSpec().getHost());
+        var endpoint = String.format("http://%s", route.getSpec().getHost());
         var client = new QuarkusSample(vertx, endpoint);
 
         LOGGER.info("start streaming prices from: {}", endpoint);
