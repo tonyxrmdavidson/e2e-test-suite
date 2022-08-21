@@ -255,26 +255,38 @@ public class KafkaMgmtAPITest extends TestBase {
     @SneakyThrows
     public void testTotalPartitionLimitByTopicCreation() {
 
+        log.info("2 topics are to be created, creation of second one is supposed to exceed max limit of partitions");
         var topicNameFirst = "topic-part-total-exceed-create";
         var topicNameSecond = "topic-part-total-exceed-2-create";
         final int maxPartitionLimit = KafkaMgmtApiUtils.getPartitionLimitMax(kafkaMgmtApi, kafka);
         final int currentPartitionCount = KafkaInstanceApiUtils.getPartitionCountTotal(kafkaInstanceApi);
 
         // Assuming we are not already overflowing given partition limit
+        log.info("Asserting no excessive number of partitions is created");
         if (currentPartitionCount > maxPartitionLimit) {
-            throw new SkipException("Skip kafka delete");
+            throw new SkipException("Already overflowing partition limit");
         }
 
         // create 2 topic, first can be created but spend half of free partitions, Second fails as it will breach the max limit
         final int partitionCountOfNewTopic = (maxPartitionLimit - currentPartitionCount) / 2;
+        log.info("Creating first topic '{}'", topicNameFirst);
         // first topic
         var payloadTopic1 = new NewTopicInput()
                 .name(topicNameFirst)
                 .settings(new TopicSettings().numPartitions(partitionCountOfNewTopic));
-        kafkaInstanceApi.createTopic(payloadTopic1);
+        // creation of topic with big number of partition may take long time, which result in repetition of API call due to timeout, but topic will be created
+        try {
+            kafkaInstanceApi.createTopic(payloadTopic1);
+        } catch (ApiConflictException e) {
+            log.warn("creation of topic {} takes long time to respond", payloadTopic1.getName());
+            log.info("Sleeping for additional 20 seconds due to slow response");
+            Thread.sleep(ofSeconds(20).toMillis());
+        }
         // wait to make sure changes were propagated
-        Thread.sleep(ofSeconds(15).toMillis());
+        log.info("Sleeping 20 seconds before creating second topic '{}'", topicNameSecond);
+        Thread.sleep(ofSeconds(20).toMillis());
         // second topic, which should overflow number of allowed partitions. 3 is just to make sure it really overflow given number (1 would fail in case of odd number of partitions)
+        log.info("Creating second topic '{}'", topicNameSecond);
         var payloadTopic2 = new NewTopicInput()
                 .name(topicNameSecond)
                 .settings(new TopicSettings().numPartitions(partitionCountOfNewTopic + 3));
@@ -294,7 +306,7 @@ public class KafkaMgmtAPITest extends TestBase {
 
         // there is a need to wait for some period of time before continue with other test as they still may need to create topics (i.e. extra partitions)
         log.info("wait 15 seconds before making sure changes in partition count were propagated");
-        Thread.sleep(ofSeconds(15).toMillis());
+        Thread.sleep(ofSeconds(20).toMillis());
     }
 
     @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"})
@@ -313,7 +325,15 @@ public class KafkaMgmtAPITest extends TestBase {
         var payloadTopicPartitionFiller = new NewTopicInput()
                 .name(topicFillPartitionCountName)
                 .settings(new TopicSettings().numPartitions(maxPartitionLimit - currentPartitionCount - 1));
-        kafkaInstanceApi.createTopic(payloadTopicPartitionFiller);
+
+        // creation of topic with big number of partition may take long time, which result in repetition of API call due to timeout, but topic will be created
+        try {
+            kafkaInstanceApi.createTopic(payloadTopicPartitionFiller);
+        } catch (ApiConflictException e) {
+            log.warn("creation of topic {} takes long time to respond", payloadTopicPartitionFiller.getName());
+            log.info("Sleeping for additional 20 seconds due to slow response");
+            Thread.sleep(ofSeconds(20).toMillis());
+        }
 
         // there is a need to wait for some period of time before actually,
         log.info("wait 15 seconds before making sure changes in partition count were propagated");
