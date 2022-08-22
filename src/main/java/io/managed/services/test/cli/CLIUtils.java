@@ -92,10 +92,9 @@ public class CLIUtils {
     public static CompletableFuture<Void> login(Vertx vertx, CLI cli, KeycloakLoginSession session, boolean insecureLogin) {
 
         var authURL = String.format("%s/auth/realms/%s", Environment.REDHAT_SSO_URI, Environment.REDHAT_SSO_REALM);
-        var masAuthURL = String.format("%s/auth/realms/%s", Environment.OPENSHIFT_IDENTITY_URI, Environment.OPENSHIFT_IDENTITY_REALM);
 
         LOGGER.info("start CLI login with username: {}", session.getUsername());
-        var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, masAuthURL, insecureLogin);
+        var process = cli.login(Environment.OPENSHIFT_API_URI, authURL, insecureLogin);
 
         LOGGER.info("start oauth login against CLI");
         var oauthFuture = parseUrl(vertx, process.stdout(), String.format("%s/auth/.*", Environment.REDHAT_SSO_URI))
