@@ -262,11 +262,11 @@
                 <configuration>
                     <argLine>-Dsun.net.inetaddr.ttl=0 -Dvertx.disableDnsResolver=true</argLine>
                     <suiteXmlFiles>
+                        <suiteXmlFile>suites/billing.xml</suiteXmlFile>
                         <suiteXmlFile>suites/kafka.xml</suiteXmlFile>
                         <suiteXmlFile>suites/registry.xml</suiteXmlFile>
                         <suiteXmlFile>suites/devexp.xml</suiteXmlFile>
                         <suiteXmlFile>suites/quickstarts.xml</suiteXmlFile>
-                        <suiteXmlFile>suites/billing.xml</suiteXmlFile>
                     </suiteXmlFiles>
                     <properties>
                         <property>

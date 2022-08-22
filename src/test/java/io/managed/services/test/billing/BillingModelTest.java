@@ -1,4 +1,4 @@
-package io.managed.services.test.kafka;
+package io.managed.services.test.billing;
 
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestPayload;

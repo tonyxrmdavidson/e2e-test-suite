@@ -1,7 +1,12 @@
 <suite name="Billing">
-    <test name="BillingModelTest">
+    <test name="BillingMetricTest">
         <classes>
             <class name="io.managed.services.test.billing.BillingMetricsTest"/>
+        </classes>
+    </test>
+    <test name="BillingModelTest">
+        <classes>
+            <class name="io.managed.services.test.billing.BillingModelTest"/>
         </classes>
     </test>
 </suite>
