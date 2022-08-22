@@ -5,18 +5,25 @@ import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccount;
 import io.managed.services.test.ThrowingFunction;
 import io.managed.services.test.client.exception.ApiGenericException;
+
+import io.managed.services.test.prometheuswebclient.PrometheusWebClient;
+import io.managed.services.test.prometheuswebclient.PrometheusException;
+import io.managed.services.test.prometheuswebclient.QueryResult;
 import io.vertx.core.Vertx;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.managed.services.test.TestUtils.bwait;
 import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 
 public class KafkaMgmtMetricsUtils {
@@ -86,6 +93,57 @@ public class KafkaMgmtMetricsUtils {
 
         LOGGER.info("final in message count for topic '{}' is: {}", topicName, finalInMessagesAtom.get());
     }
+
+
+    @SneakyThrows
+    public static <T extends Throwable> void waitUntilExpectedMetricRange(PrometheusWebClient promWebBasedClient, String kafkaId, PrometheusWebClient.Query query, double snapshotOfPreviouslyObservedValue, double expectedIncrease, double errorRangePercentage) {
+
+        // some of metrics may actually decrease between time we obtain snapshot, and time generated data/actions take place
+        // therefore if obtained metric is lower than originally read data,we replace previouslyObservedValue.
+        var previouslyObservedValueAtom = new AtomicReference<Double>(snapshotOfPreviouslyObservedValue);
+
+        ThrowingFunction<Boolean, Boolean, T> ready = last -> {
+            //PrometheusBasedWebClient.Query query = new PrometheusBasedWebClient.Query();
+            //query.metric(metricName).label("_id", kafkaId);
+            QueryResult result = null;
+            try {
+                result = promWebBasedClient.query(query);
+            } catch (PrometheusException e) {
+                e.printStackTrace();
+            }
+            Double newObservedValue = result.data.result.get(0).doubleValue();
+
+            var previouslyObservedValue = previouslyObservedValueAtom.get();
+
+            // Compare if observedIncrease (i.e., increase in metric from beginning of observation) falls within range of expected increase.
+            double observedIncrease = newObservedValue - previouslyObservedValue;
+            //LOGGER.info("currently observed increase: {}", observedIncrease);
+            // how many %from expected data, are observed far from. e.g. expect 200 bytes, observed 80, difference is - 60 (%).
+            var differencePercentage = (observedIncrease - expectedIncrease) / (expectedIncrease / 100);
+            LOGGER.info("currently observed difference %: {}", differencePercentage);
+
+            if (differencePercentage < -100.0) {
+                LOGGER.debug("newly observed value is smaller than previously observed value, correcting expected value");
+                previouslyObservedValueAtom.set(newObservedValue);
+            }
+
+            // information about if there was too little/ many data produced is important as well, so check from both side is made
+            var isReady = differencePercentage > -errorRangePercentage && differencePercentage < errorRangePercentage;
+
+            //LOGGER.info("is metric data within expected range: {}", isReady);
+            return isReady;
+        };
+
+        try {
+            waitFor("metric to be ready", ofSeconds(6), ofMinutes(10), ready);
+        } catch (TimeoutException e) {
+            // throw a more accurate error
+            throw new PrometheusException("metric not ready within expected time");
+        }
+
+        LOGGER.info("Metric is ready");
+    }
+
 }
 
 
