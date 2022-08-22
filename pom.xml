@@ -266,6 +266,7 @@
                         <suiteXmlFile>suites/registry.xml</suiteXmlFile>
                         <suiteXmlFile>suites/devexp.xml</suiteXmlFile>
                         <suiteXmlFile>suites/quickstarts.xml</suiteXmlFile>
+                        <suiteXmlFile>suites/billing.xml</suiteXmlFile>
                     </suiteXmlFiles>
                     <properties>
                         <property>
