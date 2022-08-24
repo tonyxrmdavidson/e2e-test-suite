@@ -11,9 +11,9 @@
             <class name="io.managed.services.test.SSOAuthTest"/>
         </classes>
     </test>
-    <test name="KafkaInstanceAPITest">
+    <!-- <test name="KafkaInstanceAPITest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaInstanceAPITest"/>
         </classes>
-    </test>    
+    </test>     -->
 </suite>
