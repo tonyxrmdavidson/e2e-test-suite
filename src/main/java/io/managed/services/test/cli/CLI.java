@@ -260,10 +260,12 @@ public class CLI {
         retry(() -> exec("service-registry", "delete", "--id", name, "-y"));
     }
 
-    public List<Record> consumeRecords(String topicName, String instanceId) throws CliGenericException, JsonProcessingException {
+    public List<Record> consumeRecords(String topicName, String instanceId, int partition, int offset) throws CliGenericException, JsonProcessingException {
         List<String> cmd = List.of("kafka", "topic", "consume",
                 "--instance-id", instanceId,
                 "--name", topicName,
+                "--offset", Integer.toString(offset),
+                "--partition", Integer.toString(partition),
                 "--format", "json"
         );
 
@@ -329,7 +331,7 @@ public class CLI {
         // specific separated JSON objects \n}\n which is separator of multiple inline jsons
         String[] lines = output.split("\n\\}\n");
         // append back '}' (i.e. curly bracket) so JSON objects will not miss this end symbol
-        List<String> x =  Arrays.stream(lines).map(in -> in + "}").collect(Collectors.toList());
+        List<String> messagesWithFixedFormat =  Arrays.stream(lines).map(in -> in + "}").collect(Collectors.toList());
 
         var objectMapper =  new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -338,7 +340,7 @@ public class CLI {
         List<Record> records = new ArrayList<>();
 
         // each object is read as separated Record
-        for (String line: x) {
+        for (String line: messagesWithFixedFormat) {
             Record record = objectMapper.readValue(line, Record.class);
             records.add(record);
         }

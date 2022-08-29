@@ -76,7 +76,7 @@ public class KafkaCLITest extends TestBase {
     private ServiceAccountListItem serviceAccount;
     private Topic topic;
 
-    private final List records = List.of("First message", "Second message", "Third message");
+    private final List<String> records = List.of("First message", "Second message", "Third message");
     private final String customRecordKey = "my-key";
 
     @BeforeClass
@@ -212,7 +212,7 @@ public class KafkaCLITest extends TestBase {
         LOGGER.debug(acl);
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testCreateServiceAccount"}, enabled = true)
+    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testGrantProducerAndConsumerAccess"}, enabled = true)
     @SneakyThrows
     public void testProducePlainMessages() {
         LOGGER.info("create topic '{}' with 2 partitions and other default configuration", TOPIC_NAME_PRODUCE_CONSUME);
@@ -235,7 +235,7 @@ public class KafkaCLITest extends TestBase {
         }
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testCreateServiceAccount"}, enabled = true)
+    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testGrantProducerAndConsumerAccess"}, enabled = true)
     @SneakyThrows
     public void testProduceCustomMessage() {
         LOGGER.info("create topic '{}' with 2 partitions and other default configuration", TOPIC_NAME_PRODUCE_CONSUME);
@@ -248,32 +248,46 @@ public class KafkaCLITest extends TestBase {
         assertEquals(record.getKey(), customRecordKey);
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testCreateServiceAccount", "testProducePlainMessages"}, enabled = true)
+    @Test(dependsOnMethods = {"testProducePlainMessages"}, enabled = true)
     @SneakyThrows
     public void testConsumeMessages() {
         LOGGER.info("consuming all messages from partition '0' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
-        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId());
+        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0);
 
         int i = 0;
         for (Record consumedRecord: consumedRecords) {
             LOGGER.debug(consumedRecord);
-            assertEquals(consumedRecord.getPartition(), 0);
-            assertEquals(consumedRecord.getOffset(), i);
-            assertEquals(consumedRecord.getValue(), this.records.get(i));
+            assertEquals(consumedRecord.getPartition(), 0, "failed to read partition 0");
+            assertEquals(consumedRecord.getOffset(), i, "failed to obtain expected offset");
+            assertEquals(consumedRecord.getValue(), this.records.get(i), "failed to obtain expected message");
             i++;
         }
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testCreateServiceAccount", "testProduceCustomMessage"}, enabled = true)
+    @Test(dependsOnMethods = {"testProducePlainMessages"}, enabled = true)
+    @SneakyThrows
+    public void testConsumeSpecificOffset() {
+        LOGGER.info("consuming all messages from partition '0' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
+        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0, 2);
+
+        // get the only obtained record
+        Record consumedRecord = consumedRecords.get(0);
+        LOGGER.debug(consumedRecord);
+        assertEquals(consumedRecord.getPartition(), 0, "failed to read partition 0");
+        assertEquals(consumedRecord.getOffset(), 2, "failed to obtain expected offset");
+        assertEquals(consumedRecord.getValue(), records.get(2), "failed to obtain expected message");
+    }
+
+    @Test(dependsOnMethods = {"testProduceCustomMessage"}, enabled = true)
     @SneakyThrows
     public void testConsumeCustomMessage() {
-        LOGGER.info("consuming all messages from partition '0' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
+        LOGGER.info("consuming all messages from partition '1' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
         List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 1);
 
         Record consumedRecord = consumedRecords.get(0);
         LOGGER.debug(consumedRecord);
-        assertEquals(consumedRecord.getPartition(), 1);
-        assertEquals(consumedRecord.getKey(), customRecordKey);
+        assertEquals(consumedRecord.getPartition(), 1, "failed to read partition 1");
+        assertEquals(consumedRecord.getKey(), customRecordKey, "failed to obtain expected key");
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", enabled = true)
