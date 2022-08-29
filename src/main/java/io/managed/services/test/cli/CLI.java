@@ -1,5 +1,9 @@
 package io.managed.services.test.cli;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.openshift.cloud.api.kas.auth.models.AclBindingListPage;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroupList;
@@ -15,17 +19,25 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.RetryUtils;
 import io.managed.services.test.ThrowingSupplier;
 import lombok.SneakyThrows;
+import com.openshift.cloud.api.kas.auth.models.Record;
+import lombok.extern.log4j.Log4j2;
+import org.openapitools.jackson.nullable.JsonNullableModule;
+import org.testng.Assert;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static java.time.Duration.ofMinutes;
 import static lombok.Lombok.sneakyThrow;
 
+@Log4j2
 public class CLI {
 
     private static final Duration DEFAULT_TIMEOUT = ofMinutes(3);
@@ -62,6 +74,10 @@ public class CLI {
         } catch (ProcessException e) {
             throw CliGenericException.exception(e);
         }
+    }
+
+    private AsyncProcess execAsync(String... command) {
+        return execAsync(List.of(command));
     }
 
     private AsyncProcess execAsync(List<String> command) {
@@ -162,6 +178,11 @@ public class CLI {
             .asJson(Topic.class);
     }
 
+    public Topic createTopic(String topicName, int partitions) throws CliGenericException {
+        return retry(() -> exec("kafka", "topic", "create", "--name", topicName, "--partitions", String.valueOf(partitions), "-o", "json"))
+                .asJson(Topic.class);
+    }
+
     public void deleteTopic(String topicName) throws CliGenericException {
         retry(() -> exec("kafka", "topic", "delete", "--name", topicName, "-y"));
     }
@@ -236,6 +257,48 @@ public class CLI {
 
     public void deleteServiceRegistry(String name) throws CliGenericException {
         retry(() -> exec("service-registry", "delete", "--id", name, "-y"));
+    }
+    public Record startCustomMessageProduction(String topicName, String key, int partition) throws CliGenericException{
+        return retry(() -> exec("kafka", "topic", "produce", "--name", topicName, "--partition", Integer.toString(partition), "--key", key))
+                .asJson(Record.class);
+    }
+
+    public Record writeRecord(String topicName, String instanceId, String message, int partition, String recordKey) throws InterruptedException, ExecutionException, IOException {
+        List<String> cmd = List.of("kafka", "topic", "produce",
+                "--instance-id", instanceId,
+                "--name", topicName,
+                "--partition", Integer.toString(partition),
+                "--key", recordKey
+        );
+        return writeRecord(message, cmd);
+    }
+
+    public Record writeRecord(String topicName, String instanceId, String message) throws IOException, ExecutionException, InterruptedException {
+        List<String> cmd = List.of("kafka", "topic", "produce",
+                "--instance-id", instanceId,
+                "--name", topicName
+        );
+        return writeRecord(message, cmd);
+    }
+
+    private Record writeRecord(String message, List<String> commands) throws IOException, ExecutionException, InterruptedException {
+        var produceMessageProcess = execAsync(commands);
+        var stdin = produceMessageProcess.stdin();
+
+        // write message
+        stdin.write(message);
+        stdin.close();
+
+        // return code
+        var returnedCode = produceMessageProcess.future(Duration.ofSeconds(5)).get().waitFor();
+
+        // Read Record object
+        Record producedRecord = produceMessageProcess.asJson(Record.class);
+
+        // Assert correctness
+        Assert.assertEquals(returnedCode, 0);
+
+        return producedRecord;
     }
 
     private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {
