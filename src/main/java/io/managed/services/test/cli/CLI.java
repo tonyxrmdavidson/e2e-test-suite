@@ -24,15 +24,16 @@ import lombok.extern.log4j.Log4j2;
 import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.testng.Assert;
 
-import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static java.time.Duration.ofMinutes;
 import static lombok.Lombok.sneakyThrow;
@@ -258,30 +259,49 @@ public class CLI {
     public void deleteServiceRegistry(String name) throws CliGenericException {
         retry(() -> exec("service-registry", "delete", "--id", name, "-y"));
     }
-    public Record startCustomMessageProduction(String topicName, String key, int partition) throws CliGenericException{
-        return retry(() -> exec("kafka", "topic", "produce", "--name", topicName, "--partition", Integer.toString(partition), "--key", key))
-                .asJson(Record.class);
+
+    public List<Record> consumeRecords(String topicName, String instanceId) throws CliGenericException, JsonProcessingException {
+        List<String> cmd = List.of("kafka", "topic", "consume",
+                "--instance-id", instanceId,
+                "--name", topicName,
+                "--format", "json"
+        );
+
+        return consumeRecords(cmd);
     }
 
-    public Record writeRecord(String topicName, String instanceId, String message, int partition, String recordKey) throws InterruptedException, ExecutionException, IOException {
+    public List<Record> consumeRecords(String topicName, String instanceId, int partition) throws CliGenericException, JsonProcessingException {
+        List<String> cmd = List.of("kafka", "topic", "consume",
+                "--instance-id", instanceId,
+                "--name", topicName,
+                "--partition", Integer.toString(partition),
+                "--format", "json"
+        );
+
+        return consumeRecords(cmd);
+    }
+
+    public Record produceRecords(String topicName, String instanceId, String message, int partition, String recordKey)
+            throws InterruptedException, ExecutionException, IOException {
         List<String> cmd = List.of("kafka", "topic", "produce",
                 "--instance-id", instanceId,
                 "--name", topicName,
                 "--partition", Integer.toString(partition),
                 "--key", recordKey
         );
-        return writeRecord(message, cmd);
+        return produceRecords(message, cmd);
     }
 
-    public Record writeRecord(String topicName, String instanceId, String message) throws IOException, ExecutionException, InterruptedException {
+    public Record produceRecords(String topicName, String instanceId, String message)
+            throws IOException, ExecutionException, InterruptedException {
         List<String> cmd = List.of("kafka", "topic", "produce",
                 "--instance-id", instanceId,
                 "--name", topicName
         );
-        return writeRecord(message, cmd);
+        return produceRecords(message, cmd);
     }
 
-    private Record writeRecord(String message, List<String> commands) throws IOException, ExecutionException, InterruptedException {
+    private Record produceRecords(String message, List<String> commands) throws IOException, ExecutionException, InterruptedException {
         var produceMessageProcess = execAsync(commands);
         var stdin = produceMessageProcess.stdin();
 
@@ -290,7 +310,7 @@ public class CLI {
         stdin.close();
 
         // return code
-        var returnedCode = produceMessageProcess.future(Duration.ofSeconds(5)).get().waitFor();
+        var returnedCode = produceMessageProcess.future(Duration.ofSeconds(10)).get().waitFor();
 
         // Read Record object
         Record producedRecord = produceMessageProcess.asJson(Record.class);
@@ -299,6 +319,30 @@ public class CLI {
         Assert.assertEquals(returnedCode, 0);
 
         return producedRecord;
+    }
+
+    private List<Record> consumeRecords(List<String> cmd) throws CliGenericException, JsonProcessingException {
+
+        // consume returns inline Jsons separated by newline, therefore string must be firstly split than read as multiple jsons
+        var output = retry(() -> exec(cmd)).stdoutAsString();
+
+        // specific separated JSON objects \n}\n which is separator of multiple inline jsons
+        String[] lines = output.split("\n\\}\n");
+        // append back '}' (i.e. curly bracket) so JSON objects will not miss this end symbol
+        List<String> x =  Arrays.stream(lines).map(in -> in + "}").collect(Collectors.toList());
+
+        var objectMapper =  new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .registerModule(new JavaTimeModule())
+                .registerModule(new JsonNullableModule());
+        List<Record> records = new ArrayList<>();
+
+        // each object is read as separated Record
+        for (String line: x) {
+            Record record = objectMapper.readValue(line, Record.class);
+            records.add(record);
+        }
+        return records;
     }
 
     private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {

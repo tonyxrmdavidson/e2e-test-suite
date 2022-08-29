@@ -46,8 +46,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static org.testng.Assert.assertTrue;
-
 public class CLIUtils {
     private static final Logger LOGGER = LogManager.getLogger(CLIUtils.class);
 
@@ -212,7 +210,7 @@ public class CLIUtils {
                 .findAny();
 
         //  if topic does not exist create new one
-        if (exists.isEmpty()){
+        if (exists.isEmpty()) {
             return cli.createTopic(topicName, partitions);
         }
 
