@@ -1,5 +1,6 @@
 package io.managed.services.test.devexp;
 
+import com.openshift.cloud.api.kas.auth.models.Record;
 import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
@@ -25,6 +26,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.util.List;
 import java.util.Objects;
 
 import static io.managed.services.test.TestUtils.bwait;
@@ -60,6 +62,8 @@ public class KafkaCLITest extends TestBase {
     private static final String KAFKA_INSTANCE_NAME = "cli-e2e-test-instance-" + Environment.LAUNCH_KEY;
     private static final String SERVICE_ACCOUNT_NAME = "cli-e2e-service-account-" + Environment.LAUNCH_KEY;
     private static final String TOPIC_NAME = "cli-e2e-test-topic";
+    // used for testing quickstart for data production and consumption
+    private static final String TOPIC_NAME_PRODUCE_CONSUME = "produce-consume-test-topic";
     private static final int DEFAULT_PARTITIONS = 1;
     private static final String CONSUMER_GROUP_NAME = "consumer-group-1";
 
@@ -71,6 +75,9 @@ public class KafkaCLITest extends TestBase {
     private ServiceAccountSecret serviceAccountSecret;
     private ServiceAccountListItem serviceAccount;
     private Topic topic;
+
+    private final List<String> records = List.of("First message", "Second message", "Third message");
+    private final String customRecordKey = "my-key";
 
     @BeforeClass
     public void bootstrap() {
@@ -98,6 +105,13 @@ public class KafkaCLITest extends TestBase {
             SecurityMgmtAPIUtils.cleanServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
         } catch (Throwable t) {
             LOGGER.error("delete service account error: ", t);
+        }
+
+        // delete topic used in quickstart
+        try {
+            cli.deleteTopic(TOPIC_NAME_PRODUCE_CONSUME);
+        } catch (Throwable t) {
+            LOGGER.error("delete topic error: ", t);
         }
 
         try {
@@ -133,7 +147,7 @@ public class KafkaCLITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = "testDownloadCLI")
+    @Test(dependsOnMethods = "testDownloadCLI", enabled = true)
     @SneakyThrows
     public void testLogin() {
 
@@ -147,7 +161,7 @@ public class KafkaCLITest extends TestBase {
         cli.listKafka();
     }
 
-    @Test(dependsOnMethods = "testLogin")
+    @Test(dependsOnMethods = "testLogin", enabled = true)
     @SneakyThrows
     public void testCreateServiceAccount() {
 
@@ -165,7 +179,7 @@ public class KafkaCLITest extends TestBase {
         serviceAccount = sa.get();
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount")
+    @Test(dependsOnMethods = "testCreateServiceAccount", enabled = false)
     @SneakyThrows
     public void testDescribeServiceAccount() {
 
@@ -175,7 +189,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(sa.getName(), SERVICE_ACCOUNT_NAME);
     }
 
-    @Test(dependsOnMethods = "testLogin")
+    @Test(dependsOnMethods = "testLogin", enabled = true)
     @SneakyThrows
     public void testCreateKafkaInstance() {
 
@@ -188,7 +202,7 @@ public class KafkaCLITest extends TestBase {
         LOGGER.debug(kafka);
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testCreateServiceAccount"})
+    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testCreateServiceAccount"}, enabled = true)
     @SneakyThrows
     public void testGrantProducerAndConsumerAccess() {
         LOGGER.info("grant producer and consumer access to the account: {}", serviceAccount.getClientId());
@@ -198,7 +212,85 @@ public class KafkaCLITest extends TestBase {
         LOGGER.debug(acl);
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance")
+    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testGrantProducerAndConsumerAccess"}, enabled = true)
+    @SneakyThrows
+    public void testProducePlainMessages() {
+        LOGGER.info("create topic '{}' with 2 partitions and other default configuration", TOPIC_NAME_PRODUCE_CONSUME);
+        CLIUtils.applyTopic(cli, TOPIC_NAME_PRODUCE_CONSUME, 2);
+
+        var messages = List.of("First message", "Second message", "Third message");
+
+        LOGGER.info("produce messages");
+        int i = 0;
+        for (String message: messages) {
+            // produce single message
+            LOGGER.info("Produce message '{}'", message);
+            Record record =  cli.produceRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), message);
+            LOGGER.debug(record);
+
+            assertEquals(record.getValue(), message);
+            assertEquals(record.getOffset(), i++);
+            // if no partition is provided expected value is 0
+            assertEquals(record.getPartition(), 0);
+        }
+    }
+
+    @Test(dependsOnMethods = {"testCreateKafkaInstance", "testGrantProducerAndConsumerAccess"}, enabled = true)
+    @SneakyThrows
+    public void testProduceCustomMessage() {
+        LOGGER.info("create topic '{}' with 2 partitions and other default configuration", TOPIC_NAME_PRODUCE_CONSUME);
+        CLIUtils.applyTopic(cli, TOPIC_NAME_PRODUCE_CONSUME, 2);
+
+        Record record =  cli.produceRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), "someValue", 1, customRecordKey);
+        LOGGER.debug(record);
+
+        assertEquals(record.getPartition(), 1);
+        assertEquals(record.getKey(), customRecordKey);
+    }
+
+    @Test(dependsOnMethods = {"testProducePlainMessages"}, enabled = true)
+    @SneakyThrows
+    public void testConsumeMessages() {
+        LOGGER.info("consuming all messages from partition '0' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
+        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0);
+
+        int i = 0;
+        for (Record consumedRecord: consumedRecords) {
+            LOGGER.debug(consumedRecord);
+            assertEquals(consumedRecord.getPartition(), 0, "failed to read partition 0");
+            assertEquals(consumedRecord.getOffset(), i, "failed to obtain expected offset");
+            assertEquals(consumedRecord.getValue(), this.records.get(i), "failed to obtain expected message");
+            i++;
+        }
+    }
+
+    @Test(dependsOnMethods = {"testProducePlainMessages"}, enabled = true)
+    @SneakyThrows
+    public void testConsumeSpecificOffset() {
+        LOGGER.info("consuming all messages from partition '0' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
+        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0, 2);
+
+        // get the only obtained record
+        Record consumedRecord = consumedRecords.get(0);
+        LOGGER.debug(consumedRecord);
+        assertEquals(consumedRecord.getPartition(), 0, "failed to read partition 0");
+        assertEquals(consumedRecord.getOffset(), 2, "failed to obtain expected offset");
+        assertEquals(consumedRecord.getValue(), records.get(2), "failed to obtain expected message");
+    }
+
+    @Test(dependsOnMethods = {"testProduceCustomMessage"}, enabled = true)
+    @SneakyThrows
+    public void testConsumeCustomMessage() {
+        LOGGER.info("consuming all messages from partition '1' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
+        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 1);
+
+        Record consumedRecord = consumedRecords.get(0);
+        LOGGER.debug(consumedRecord);
+        assertEquals(consumedRecord.getPartition(), 1, "failed to read partition 1");
+        assertEquals(consumedRecord.getKey(), customRecordKey, "failed to obtain expected key");
+    }
+
+    @Test(dependsOnMethods = "testCreateKafkaInstance", enabled = true)
     @SneakyThrows
     public void testDescribeKafkaInstance() {
 
@@ -209,7 +301,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals("ready", k.getStatus());
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance")
+    @Test(dependsOnMethods = "testCreateKafkaInstance", enabled = true)
     @SneakyThrows
     public void testListKafkaInstances() {
 
@@ -222,7 +314,7 @@ public class KafkaCLITest extends TestBase {
         assertTrue(exists.isPresent());
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance")
+    @Test(dependsOnMethods = "testCreateKafkaInstance", enabled = true)
     @SneakyThrows
     public void testSearchKafkaByName() {
 
@@ -234,7 +326,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(exists.get().getName(), KAFKA_INSTANCE_NAME);
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance")
+    @Test(dependsOnMethods = "testCreateKafkaInstance", enabled = true)
     @SneakyThrows
     public void testCreateTopic() {
 
@@ -246,7 +338,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(Objects.requireNonNull(topic.getPartitions()).size(), DEFAULT_PARTITIONS);
     }
 
-    @Test(dependsOnMethods = "testCreateTopic")
+    @Test(dependsOnMethods = "testCreateTopic", enabled = true)
     @SneakyThrows
     public void testListTopics() {
 
@@ -260,7 +352,7 @@ public class KafkaCLITest extends TestBase {
     }
 
 
-    @Test(dependsOnMethods = {"testCreateTopic", "testGrantProducerAndConsumerAccess"})
+    @Test(dependsOnMethods = {"testCreateTopic", "testGrantProducerAndConsumerAccess"}, enabled = true)
     @SneakyThrows
     public void testKafkaInstanceTopic() {
 
@@ -279,7 +371,7 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic")
+    @Test(dependsOnMethods = "testCreateTopic", enabled = true)
     @SneakyThrows
     public void testUpdateTopic() {
 
@@ -302,7 +394,7 @@ public class KafkaCLITest extends TestBase {
         topic = t;
     }
 
-    @Test(dependsOnMethods = "testUpdateTopic")
+    @Test(dependsOnMethods = "testUpdateTopic", enabled = true)
     @SneakyThrows
     public void testDescribeUpdatedTopic() {
 
@@ -327,7 +419,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(retentionValue.get().getValue(), retentionTime);
     }
 
-    @Test(dependsOnMethods = {"testUpdateTopic", "testGrantProducerAndConsumerAccess"})
+    @Test(dependsOnMethods = {"testUpdateTopic", "testGrantProducerAndConsumerAccess"}, enabled = true)
     @SneakyThrows
     public void testKafkaInstanceUpdatedTopic() {
 
@@ -346,7 +438,7 @@ public class KafkaCLITest extends TestBase {
             100));
     }
 
-    @Test(dependsOnMethods = {"testGrantProducerAndConsumerAccess"})
+    @Test(dependsOnMethods = {"testGrantProducerAndConsumerAccess"}, enabled = true)
     @SneakyThrows
     public void testDescribeConsumerGroup() {
 
@@ -364,7 +456,7 @@ public class KafkaCLITest extends TestBase {
         assertEquals(group.getGroupId(), CONSUMER_GROUP_NAME);
     }
 
-    @Test(dependsOnMethods = "testDescribeConsumerGroup")
+    @Test(dependsOnMethods = "testDescribeConsumerGroup", enabled = true)
     @SneakyThrows
     public void testListConsumerGroups() {
         var groups = cli.listConsumerGroups();
@@ -378,7 +470,7 @@ public class KafkaCLITest extends TestBase {
         assertTrue(filteredGroup.isPresent());
     }
 
-    @Test(dependsOnMethods = "testDescribeConsumerGroup", priority = 1)
+    @Test(dependsOnMethods = "testDescribeConsumerGroup", priority = 1, enabled = true)
     @SneakyThrows
     public void testDeleteConsumerGroup() {
 
@@ -389,7 +481,7 @@ public class KafkaCLITest extends TestBase {
             () -> cli.describeConsumerGroup(CONSUMER_GROUP_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateTopic", priority = 2)
+    @Test(dependsOnMethods = "testCreateTopic", priority = 2, enabled = true)
     @SneakyThrows
     public void testDeleteTopic() {
 
@@ -400,7 +492,7 @@ public class KafkaCLITest extends TestBase {
             () -> cli.describeTopic(TOPIC_NAME));
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 2)
+    @Test(dependsOnMethods = "testCreateServiceAccount", priority = 2, enabled = true)
     @SneakyThrows
     public void testDeleteServiceAccount() {
 
@@ -411,7 +503,7 @@ public class KafkaCLITest extends TestBase {
             () -> cli.describeServiceAccount(serviceAccount.getId()));
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3)
+    @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3, enabled = true)
     @SneakyThrows
     public void testDeleteKafkaInstance() {
 
@@ -421,7 +513,7 @@ public class KafkaCLITest extends TestBase {
         CLIUtils.waitUntilKafkaIsDeleted(cli, kafka.getId());
     }
 
-    @Test(dependsOnMethods = "testLogin", priority = 3)
+    @Test(dependsOnMethods = "testLogin", priority = 3, enabled = true)
     @SneakyThrows
     public void testLogout() {
 

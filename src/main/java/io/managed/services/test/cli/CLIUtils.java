@@ -1,6 +1,7 @@
 package io.managed.services.test.cli;
 
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
+import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
 import com.openshift.cloud.api.srs.models.Registry;
@@ -41,6 +42,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -196,6 +198,23 @@ public class CLIUtils {
             throws InterruptedException, CliGenericException, RegistryNotReadyException {
 
         return RegistryMgmtApiUtils.waitUntilRegistryIsReady(() -> cli.describeServiceRegistry(id));
+    }
+
+    public static Topic applyTopic(CLI cli, String topicName, int partitions) throws CliGenericException {
+
+        // get topic, if exist
+        var list = cli.listTopics();
+        LOGGER.debug(list);
+        var exists = Objects.requireNonNull(list.getItems()).stream()
+                .filter(t -> topicName.equals(t.getName()))
+                .findAny();
+
+        //  if topic does not exist create new one
+        if (exists.isEmpty()) {
+            return cli.createTopic(topicName, partitions);
+        }
+
+        return exists.get();
     }
 
     public static Config kubeConfig(String server, String token, String namespace) {
