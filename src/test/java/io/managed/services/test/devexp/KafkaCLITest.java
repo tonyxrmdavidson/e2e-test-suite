@@ -179,7 +179,7 @@ public class KafkaCLITest extends TestBase {
         serviceAccount = sa.get();
     }
 
-    @Test(dependsOnMethods = "testCreateServiceAccount", enabled = false)
+    @Test(dependsOnMethods = "testCreateServiceAccount", enabled = true)
     @SneakyThrows
     public void testDescribeServiceAccount() {
 
