@@ -4,13 +4,11 @@ import com.openshift.cloud.api.kas.auth.models.ConfigEntry;
 import com.openshift.cloud.api.kas.auth.models.NewTopicInput;
 import com.openshift.cloud.api.kas.auth.models.TopicSettings;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
-import io.fabric8.kubernetes.api.model.Quantity;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.TestUtils;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiConflictException;
-import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiLockedException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
@@ -30,13 +28,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.time.Duration;
 import java.util.Objects;
-import java.util.UUID;
-
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
