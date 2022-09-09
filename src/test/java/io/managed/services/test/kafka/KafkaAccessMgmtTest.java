@@ -344,13 +344,6 @@ public class KafkaAccessMgmtTest extends TestBase {
     }
 
     @Test
-    public void testAlwaysForbiddenToDescribeLogDirs() {
-
-        LOGGER.info("kafka-log-dirs.sh --describe <forbidden>, script representation test");
-        assertThrows(ClusterAuthorizationException.class, () -> primaryApacheKafkaAdmin.logDirs());
-    }
-
-    @Test
     public void testAlwaysForbiddenToAlterPreferredReplicaElection() {
 
         LOGGER.info("kafka-preferred-replica-election.sh <forbidden>, script representation test");
@@ -554,10 +547,10 @@ public class KafkaAccessMgmtTest extends TestBase {
     public void testServiceAccountCanCreateTopicWithAndWithoutPrefix() {
 
         LOGGER.info("Test that the service account can create the topic '{}'", TEST_TOPIC_WITHOUT_PREFIX_NAME);
-        primaryApacheKafkaAdmin.createTopic(TEST_TOPIC_WITHOUT_PREFIX_NAME, 1, (short) 3);
+        primaryApacheKafkaAdmin.createTopic(TEST_TOPIC_WITHOUT_PREFIX_NAME, 1, (short) 1);
 
         LOGGER.info("Test that the service account can create the topic '{}'", TEST_TOPIC_WITH_PREFIX_NAME);
-        primaryApacheKafkaAdmin.createTopic(TEST_TOPIC_WITH_PREFIX_NAME, 1, (short) 3);
+        primaryApacheKafkaAdmin.createTopic(TEST_TOPIC_WITH_PREFIX_NAME, 1, (short) 1);
     }
 
     @Test(priority = 4, dependsOnMethods = "testServiceAccountCanCreateTopicWithAndWithoutPrefix")
@@ -790,12 +783,6 @@ public class KafkaAccessMgmtTest extends TestBase {
             .permission(AclPermissionType.DENY)
             .operation(AclOperation.DELETE);
         assertThrows(ApiForbiddenException.class, () -> primaryKafkaInstanceAPI.createAcl(acl));
-    }
-
-    @Test(priority = 11, dependsOnMethods = "testAdminUserCanChangeTheKafkaInstanceOwner")
-    public void testPrimaryUserCanNotDeleteTheKafkaInstance() {
-        LOGGER.info("Test that the primary user (old owner) can not delete the Kafka instance");
-        assertThrows(ApiNotFoundException.class, () -> primaryAPI.kafkaMgmt().deleteKafkaById(kafka.getId(), true));
     }
 
     @Test(priority = 11, dependsOnMethods = "testAdminUserCanChangeTheKafkaInstanceOwner")
