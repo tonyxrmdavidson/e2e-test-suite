@@ -252,7 +252,7 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void testConsumeMessages() {
         LOGGER.info("consuming all messages from partition '0' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
-        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0);
+        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0, 0);
 
         int i = 0;
         for (Record consumedRecord: consumedRecords) {
