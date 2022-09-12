@@ -259,5 +259,6 @@ tests.
 
 ## Maintainers
 
-* David Kornel <dkornel@redhat.com>
-* Davide Bizzarri <dbizzarr@redhat.com>
+* David Kornel <kornys@outlook.com>
+* Henrich Zrncik <hzrncik@redhat.com>
+* Tony Davidson <tdavidso@redhat.com>
