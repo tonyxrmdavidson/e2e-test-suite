@@ -1,7 +1,7 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
 
 <suite name="Integration">
-        <test name="SmokeTest">
+    <test name="SmokeTest">
         <classes>
             <class name="io.managed.services.test.SmokeTest"/>
         </classes>
@@ -11,10 +11,11 @@
             <class name="io.managed.services.test.SSOAuthTest"/>
         </classes>
     </test>
-        <test name="KafkaMgmtAPITest">
+    <test name="KafkaMgmtAPITest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaMgmtAPITest"/>
         </classes>
+    </test>    
     <test name="KafkaInstanceAPITest">
         <classes>
             <class name="io.managed.services.test.kafka.KafkaInstanceAPITest"/>
