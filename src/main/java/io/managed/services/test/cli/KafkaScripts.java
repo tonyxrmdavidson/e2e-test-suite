@@ -34,7 +34,7 @@ public class KafkaScripts {
     private String binariesWorkdir;
     private Path rootWorkDir;
 
-    private final String kafkaVersion = "3.1.0";
+    private final String kafkaVersion = "3.2.3";
     private final String scalaVersion = "2.13";
     private final String kafkaResource = "kafka_" + scalaVersion + "-" + kafkaVersion;
 
