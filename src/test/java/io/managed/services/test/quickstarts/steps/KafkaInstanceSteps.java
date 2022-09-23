@@ -20,8 +20,7 @@ import static org.testng.Assert.assertTrue;
 @Log4j2
 public class KafkaInstanceSteps {
 
-    //private static final String KAFKA_INSTANCE_UNIQUE_NAME = "cucumber-qs-" + Environment.LAUNCH_KEY;
-    private static final String KAFKA_INSTANCE_UNIQUE_NAME = "mk-e2e-ll-e2e-stage";
+    private static final String KAFKA_INSTANCE_UNIQUE_NAME = "cucumber-qs-" + Environment.LAUNCH_KEY;
 
     private final OpenShiftAPIContext openShiftAPIContext;
     private final KafkaInstanceContext kafkaInstanceContext;

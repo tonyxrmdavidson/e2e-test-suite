@@ -124,7 +124,8 @@ public class QuarkusSteps {
         KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
     }
 
-    // TODO container version works only with packaging and running .jar instead of recommended ./mvnw quarkus:dev
+    // TODO container version works only with packaging uber-jar and later running .jar instead of recommended ./mvnw
+    //  quarkus:dev
     @When("you run Quarkus example applications")
     public void you_run_quarkus_example_applications() throws IOException, ProcessException, InterruptedException, CliGenericException {
 
