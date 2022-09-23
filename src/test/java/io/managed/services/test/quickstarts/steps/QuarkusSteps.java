@@ -37,6 +37,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -56,6 +57,8 @@ public class QuarkusSteps {
 
     private final Vertx vertx = Vertx.vertx();
 
+    private static final String TMPDIR = "quickstart-repo";
+
     private Map<String, String> envsMap = new HashMap<>();
     private File repository;
     private AsyncProcess quarkusApplicationProcess;
@@ -66,11 +69,17 @@ public class QuarkusSteps {
     }
 
     @When("you clone the {word} repository from GitHub")
-    public void you_clone_the_app_services_guides_repository_from_git_hub(String repository) {
+    public void you_clone_the_app_services_guides_repository_from_git_hub(String repository) throws IOException {
         log.info("download git repository");
+
+        var appRepositoryTempWorkDir = Files.createTempDirectory(TMPDIR);
+        log.info("created tmp application directory: {}", appRepositoryTempWorkDir.toString());
+        appRepositoryTempWorkDir.toFile().deleteOnExit();
+
         try {
             String repositoryLink = "https://github.com/redhat-developer/app-services-guides";
-            this.repository = new File(repository);
+            //this.repository = new File(AppRepositoryTempWorkDir.toFile());
+            this.repository = new File(appRepositoryTempWorkDir.toString() + "/" + repository);
             Git.cloneRepository().setURI(repositoryLink).setDirectory(this.repository).call();
             log.info("Successfully downloaded the repository!");
         } catch (GitAPIException | JGitInternalException e) {
@@ -119,7 +128,7 @@ public class QuarkusSteps {
     @When("you run Quarkus example applications")
     public void you_run_quarkus_example_applications() throws IOException, ProcessException, InterruptedException, CliGenericException {
 
-        log.info("run quarkus example application");
+        log.info("package run quarkus example application");
 
         // set path to root of quickstart
         String quickstartRoot = this.repository.getAbsolutePath() +
