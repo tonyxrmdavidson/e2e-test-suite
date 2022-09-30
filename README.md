@@ -166,21 +166,21 @@ tests.
 
 1. Go to https://cloud.redhat.com/ and click on **Create an account**
 2. You can choose _Personal_ or _Corporate_
-3. Fill all the required data and create the account
+3. Fill all the required and optional data fields and create the account
 
 > This will automatically create a new Organization where the user is the organization owner.
 
 #### Primary user
 
 1. Go to https://www.redhat.com/wapps/ugc/protected/usermgt/userList.html and login with the organization owner.
-2. Click on **Add New User** and fill all the required data for the primary user
+2. Click on **Add New User** and fill all the required and optional data fields for the primary user
 
 > By default, the account will be able to create evaluation instances which will be enough to run single tests
 
 #### Secondary user
 
 2. Go to https://www.redhat.com/wapps/ugc/protected/usermgt/userList.html and login with the organization owner.
-3. Click on **Add New User** and fill all the required data for the secondary user
+3. Click on **Add New User** and fill all the required and optional data fields for the secondary user
 
 > The secondary user is exactly like the primary user, but by default it wouldn't have access to instances created by
 > the primary user
@@ -189,7 +189,7 @@ tests.
 
 1. Go to https://cloud.redhat.com/ and click on **Create an account**
 2. You can choose _Personal_ or _Corporate_
-3. Fill all the required data for the alien user and create the account
+3. Fill all the required and optional data fields for the alien user and create the account
 
 > This will create the Alien user in a new organization
 
