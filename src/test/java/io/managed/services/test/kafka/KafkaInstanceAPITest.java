@@ -14,7 +14,10 @@ import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiLockedException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.exception.ApiUnauthorizedException;
+import io.managed.services.test.client.kafka.KafkaAuthMethod;
 import io.managed.services.test.client.kafka.KafkaConsumerClient;
+import io.managed.services.test.client.kafka.KafkaMessagingUtils;
+import io.managed.services.test.client.kafka.KafkaProducerClient;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApi;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiAccessUtils;
 import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
@@ -26,6 +29,9 @@ import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtApi;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
+import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.serialization.StringSerializer;
+import static org.testng.Assert.assertThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -41,7 +47,6 @@ import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
 /**
@@ -159,6 +164,62 @@ public class KafkaInstanceAPITest extends TestBase {
             .settings(new TopicSettings().numPartitions(1));
         var topic = kafkaInstanceApi.createTopic(payload);
         LOGGER.debug(topic);
+    }
+
+    @Test
+    @SneakyThrows
+    public void testMaxMessageSizeLimit() {
+
+        // 1 MB
+        final int maxMessageSize = 1_000_000;
+
+        LOGGER.info("create or retrieve service account '{}'", SERVICE_ACCOUNT_NAME);
+        var serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
+
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
+
+        KafkaProducerClient<String, String> kafkaProducerClient = new KafkaProducerClient(
+                Vertx.vertx(),
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                KafkaAuthMethod.OAUTH,
+                StringSerializer.class,
+                StringSerializer.class
+        );
+        LOGGER.info("send message");
+        bwait(KafkaMessagingUtils.sendSingleMessage(kafkaProducerClient, TEST_TOPIC_NAME, maxMessageSize));
+
+    }
+
+    @Test
+    @SneakyThrows
+    public void testFailToProduceMessageAboveSizeLimit() {
+
+        // 1.5 MB, which is above the max limit of message size
+        final int messageSize = 1_500_000;
+
+        LOGGER.info("create or retrieve service account '{}'", SERVICE_ACCOUNT_NAME);
+        var serviceAccount = SecurityMgmtAPIUtils.applyServiceAccount(securityMgmtApi, SERVICE_ACCOUNT_NAME);
+
+        var bootstrapHost = kafka.getBootstrapServerHost();
+        var clientID = serviceAccount.getClientId();
+        var clientSecret = serviceAccount.getClientSecret();
+
+        KafkaProducerClient<String, String> kafkaProducerClient = new KafkaProducerClient(
+                Vertx.vertx(),
+                bootstrapHost,
+                clientID,
+                clientSecret,
+                KafkaAuthMethod.OAUTH,
+                StringSerializer.class,
+                StringSerializer.class
+        );
+        LOGGER.info("try to send too big message");
+        assertThrows(RecordTooLargeException.class, () -> bwait(KafkaMessagingUtils.sendSingleMessage(kafkaProducerClient, TEST_TOPIC_NAME, messageSize)));
+
     }
 
     @Test(dependsOnMethods = "testCreateTopic")
