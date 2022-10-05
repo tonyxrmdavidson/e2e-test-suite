@@ -152,7 +152,7 @@ public class KafkaCLITest extends TestBase {
     public void testLogin() {
 
         LOGGER.info("verify that we aren't logged-in");
-        //assertThrows(CliGenericException.class, () -> cli.listKafka());
+        assertThrows(CliGenericException.class, () -> cli.listKafka());
 
         LOGGER.info("login the CLI");
         CLIUtils.login(vertx, cli, Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD).get();
@@ -183,7 +183,8 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void testDescribeServiceAccount() {
 
-        var sa = cli.describeServiceAccount(serviceAccount.getClientId());
+        LOGGER.info("describe service account by id field");
+        var sa = cli.describeServiceAccount(serviceAccount.getId());
         LOGGER.debug(sa);
 
         assertEquals(sa.getName(), SERVICE_ACCOUNT_NAME);
@@ -195,7 +196,6 @@ public class KafkaCLITest extends TestBase {
 
         LOGGER.info("create kafka instance with name {}", KAFKA_INSTANCE_NAME);
         var k = cli.createKafka(KAFKA_INSTANCE_NAME);
-        //var k = cli.describeKafka("ccu45rmjgec8hfhj1h3g");
         LOGGER.debug(k);
 
         LOGGER.info("wait for kafka instance: {}", k.getId());
