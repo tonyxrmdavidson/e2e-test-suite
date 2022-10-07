@@ -1,6 +1,7 @@
 package io.managed.services.test.kafka;
 
 import com.openshift.cloud.api.kas.auth.models.AclBinding;
+import com.openshift.cloud.api.kas.auth.models.AclBindingListPage;
 import com.openshift.cloud.api.kas.auth.models.AclOperation;
 import com.openshift.cloud.api.kas.auth.models.AclOperationFilter;
 import com.openshift.cloud.api.kas.auth.models.AclPatternType;
@@ -17,6 +18,7 @@ import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.client.ApplicationServicesApi;
 import io.managed.services.test.client.exception.ApiForbiddenException;
+import io.managed.services.test.client.exception.ApiGenericException;
 import io.managed.services.test.client.exception.ApiNotFoundException;
 import io.managed.services.test.client.kafka.KafkaAdmin;
 import io.managed.services.test.client.kafka.KafkaAuthMethod;
@@ -28,6 +30,7 @@ import io.managed.services.test.client.kafkainstance.KafkaInstanceApiUtils;
 import io.managed.services.test.client.kafkamgmt.KafkaMgmtApiUtils;
 import io.managed.services.test.client.oauth.KeycloakLoginSession;
 import io.managed.services.test.client.securitymgmt.SecurityMgmtAPIUtils;
+import io.managed.services.test.wait.ReadyFunction;
 import io.vertx.core.Vertx;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.ElectionType;
@@ -44,11 +47,16 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 import static io.managed.services.test.TestUtils.assumeTeardown;
 import static io.managed.services.test.TestUtils.bwait;
+import static io.managed.services.test.TestUtils.waitFor;
 import static io.managed.services.test.client.kafka.KafkaMessagingUtils.testTopic;
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
@@ -729,12 +737,57 @@ public class KafkaAccessMgmtTest extends TestBase {
     @SneakyThrows
     @Test(priority = 10)
     public void testAdminUserCanChangeTheKafkaInstanceOwner() {
-
+        String topicA = UUID.randomUUID().toString();
+        String otherUser = UUID.randomUUID().toString();
+        String topicB = UUID.randomUUID().toString();
+        LOGGER.info("Primary user creates an arbitrary ACL binding for secondary user");
+        givenPrimaryUserCreatesDenyTopicAclBindingForUser(Environment.SECONDARY_USERNAME, topicA);
+        givenPrimaryUserCreatesDenyTopicAclBindingForUser(otherUser, topicB);
         LOGGER.info("Switch the owner of kafka instance from the primary user to secondary user");
         kafka = KafkaMgmtApiUtils.changeKafkaInstanceOwner(adminAPI.kafkaMgmt(), kafka, Environment.SECONDARY_USERNAME);
-
-        // wait until owner is changed (waiting for Rollout on Brokers)
+        LOGGER.info("wait until owner is changed (waiting for Rollout on Brokers)");
         KafkaMgmtApiUtils.waitUntilOwnerIsChanged(secondaryKafkaInstanceAPI);
+        LOGGER.info("Wait for broker to clean new owners Acl Bindings from kafka control plane");
+        assertBrokerRemovesNewOwnersAclBindingsFromKafkaControlPlane(topicA);
+        LOGGER.info("Check that other users Acl Bindings are not removed from kafka control plane by ACL orphan deletion");
+        assertUserHasDenyTopicAclBinding(otherUser, topicB);
+    }
+
+    private void assertUserHasDenyTopicAclBinding(String userName, String topicName) throws ApiGenericException {
+        String userPrincipal = KafkaInstanceApiAccessUtils.toPrincipal(userName);
+        AclBindingListPage acls = secondaryKafkaInstanceAPI.getAcls(AclResourceTypeFilter.TOPIC, topicName, AclPatternTypeFilter.LITERAL, userPrincipal, null, null, null, null, null, null);
+        assertEquals(acls.getItems().size(), 1);
+        AclBinding aclBinding = acls.getItems().get(0);
+        assertEquals(aclBinding.getPrincipal(), userPrincipal);
+        assertEquals(aclBinding.getPatternType(), AclPatternType.LITERAL);
+        assertEquals(aclBinding.getResourceName(), topicName);
+        assertEquals(aclBinding.getPermission(), AclPermissionType.DENY);
+    }
+
+    private void assertBrokerRemovesNewOwnersAclBindingsFromKafkaControlPlane(String topicName) throws TimeoutException, InterruptedException {
+        //polling because orphan-deletion is a fire-and-forget async task that is initiated during broker start
+        waitFor("new owners ACLs should be cleaned from the dataplane", Duration.ofSeconds(1), Duration.ofSeconds(30), (ReadyFunction<Boolean>) (lastAttempt, reference) -> {
+            try {
+                String principal = KafkaInstanceApiAccessUtils.toPrincipal(Environment.SECONDARY_USERNAME);
+                AclBindingListPage acls = secondaryKafkaInstanceAPI.getAcls(AclResourceTypeFilter.TOPIC, topicName, AclPatternTypeFilter.LITERAL, principal, null, null, null, null, null, null);
+                boolean empty = acls.getItems().isEmpty();
+                reference.set(empty);
+                return empty;
+            } catch (ApiGenericException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    private void givenPrimaryUserCreatesDenyTopicAclBindingForUser(String userName, String topicName) throws ApiGenericException {
+        var acl = new AclBinding()
+                .principal(KafkaInstanceApiAccessUtils.toPrincipal(userName))
+                .resourceType(AclResourceType.TOPIC)
+                .patternType(AclPatternType.LITERAL)
+                .resourceName(topicName)
+                .permission(AclPermissionType.DENY)
+                .operation(AclOperation.ALL);
+        primaryKafkaInstanceAPI.createAcl(acl);
     }
 
     @SneakyThrows
