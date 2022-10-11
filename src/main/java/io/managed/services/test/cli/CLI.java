@@ -156,12 +156,12 @@ public class CLI {
     }
 
     public ServiceAccountData describeServiceAccount(String id) throws CliGenericException {
-        return retry(() -> exec("service-account", "describe", "--id", id, "--enable-auth-v2"))
+        return retry(() -> exec("service-account", "describe", "--id", id))
             .asJson(ServiceAccountData.class);
     }
 
     public ServiceAccountData[] listServiceAccount() throws CliGenericException {
-        return retry(() -> exec("service-account", "list", "-o", "json", "--enable-auth-v2"))
+        return retry(() -> exec("service-account", "list", "-o", "json"))
             .asJson(ServiceAccountData[].class);
     }
 
