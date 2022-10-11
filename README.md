@@ -133,18 +133,6 @@ The default targeted environment is the application services stage env.
 | sandbox     | run the sandbox test suite to test the openshift sandbox cluster |
 | quickstarts | run the cucumber quickstarts test suite                          |
 
-## Report to ReportPortal
-
-When executing the tests is possible to send the results and logs in real time to ReportPortal using
-the `./hack/testrunner.sh` script and the following ENVs:
-
-| Name                        | Description                            | Default value         |
-|-----------------------------|----------------------------------------|-----------------------|
-| `REPORTPORTAL_ENDPOINT`     | ReportPortal URL                       | `https://example.com` |
-| `REPORTPORTAL_ACCESS_TOKEN` | The Access Token                       |                       |
-| `REPORTPORTAL_LAUNCH`       | The launch name to user                | `mk-e2e-test-suite`   |
-| `REPORTPORTAL_PROJECT`      | The project where to report the result | `rhosak`              |
-
 ## Report to Prometheus
 
 Tests can report metrics to Prometheus to analyze or monitor behaviours, like the number and frequency of failed API

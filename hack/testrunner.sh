@@ -12,7 +12,6 @@ SCRIPT=$0
 # ---
 
 PROFILE_DEFAULT="default"
-REPORTPORTAL_ENABLE=false
 
 # Variables
 # ---
@@ -20,10 +19,6 @@ REPORTPORTAL_ENABLE=false
 ENABLE_TEST=${ENABLE_TEST:-"true"}
 PROFILE=${PROFILE:-${PROFILE_DEFAULT}}
 TESTCASE=${TESTCASE:-}
-REPORTPORTAL_ENDPOINT=${REPORTPORTAL_ENDPOINT:-}
-REPORTPORTAL_ACCESS_TOKEN=${REPORTPORTAL_ACCESS_TOKEN:-}
-REPORTPORTAL_LAUNCH=${REPORTPORTAL_LAUNCH:-}
-REPORTPORTAL_PROJECT=${REPORTPORTAL_PROJECT:-"rhosak"}
 BUILD_URL=${BUILD_URL:-"null"}
 
 # Help
@@ -92,10 +87,6 @@ if [[ ${ENABLE_TEST} == "false" ]]; then
   exit 0
 fi
 
-if [[ -n "${REPORTPORTAL_ACCESS_TOKEN}" ]]; then
-  REPORTPORTAL_ENABLE=true
-fi
-
 OPTIONS=()
 if [[ -n "${PROFILE}" ]]; then
   OPTIONS+=("-P${PROFILE}")
@@ -109,10 +100,4 @@ set -x
 # shellcheck disable=SC2086
 exec mvn verify \
   --no-transfer-progress \
-  ${OPTIONS[*]} \
-  "-Drp.enable=${REPORTPORTAL_ENABLE}" \
-  "-Drp.endpoint=${REPORTPORTAL_ENDPOINT}" \
-  "-Drp.api.key=${REPORTPORTAL_ACCESS_TOKEN}" \
-  "-Drp.launch=${REPORTPORTAL_LAUNCH}" \
-  "-Drp.project=${REPORTPORTAL_PROJECT}" \
-  "-Drp.description=Build: ${BUILD_URL}"
+  ${OPTIONS[*]}
