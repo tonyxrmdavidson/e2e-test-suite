@@ -76,6 +76,8 @@ public class Environment {
 
     private static final String SKIP_KAFKA_TEARDOWN_ENV = "SKIP_KAFKA_TEARDOWN";
     private static final String DEFAULT_KAFKA_REGION_ENV = "DEFAULT_KAFKA_REGION";
+    private static final String CLOUD_PROVIDER_ENV = "CLOUD_PROVIDER";
+
     private static final String KAFKA_INSECURE_TLS_ENV = "KAFKA_INSECURE_TLS";
     private static final String KAFKA_INSTANCE_API_TEMPLATE_ENV = "KAFKA_INSTANCE_API_TEMPLATE";
 
@@ -165,7 +167,8 @@ public class Environment {
 
     // Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise
     public static final String DEFAULT_KAFKA_REGION = getOrDefault(DEFAULT_KAFKA_REGION_ENV, "us-east-1");
-
+    public static final String CLOUD_PROVIDER = getOrDefault(CLOUD_PROVIDER_ENV, "aws");
+    
     public static final boolean KAFKA_INSECURE_TLS = getOrDefault(KAFKA_INSECURE_TLS_ENV, Boolean::parseBoolean, false);
     public static final String KAFKA_INSTANCE_API_TEMPLATE = getOrDefault(KAFKA_INSTANCE_API_TEMPLATE_ENV, "https://admin-server-%s");
 
