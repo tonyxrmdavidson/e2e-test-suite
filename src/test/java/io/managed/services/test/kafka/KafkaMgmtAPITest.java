@@ -165,7 +165,7 @@ public class KafkaMgmtAPITest extends TestBase {
         // Create Kafka Instance
         var payload = new KafkaRequestPayload()
             .name(KAFKA_INSTANCE_NAME)
-            .cloudProvider(Environment.CloudProvider)
+            .cloudProvider(Environment.E2E_CLOUD_PROVIDER)
             .region(Environment.DEFAULT_KAFKA_REGION);
 
         log.info("create kafka instance '{}'", payload.getName());
@@ -327,7 +327,7 @@ public class KafkaMgmtAPITest extends TestBase {
         // Create Kafka Instance with existing name
         var payload = new KafkaRequestPayload()
             .name(KAFKA_INSTANCE_NAME)
-            .cloudProvider(Environment.CloudProvider)
+            .cloudProvider(Environment.E2E_CLOUD_PROVIDER)
             .region(Environment.DEFAULT_KAFKA_REGION);
 
         log.info("create kafka instance '{}' with existing name", payload.getName());
