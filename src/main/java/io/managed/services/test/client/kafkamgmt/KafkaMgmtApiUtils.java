@@ -62,7 +62,7 @@ public class KafkaMgmtApiUtils {
     public static KafkaRequestPayload defaultKafkaInstance(String name) {
         return new KafkaRequestPayload()
             .name(name)
-            .cloudProvider("${Environment.E2E_CLOUD_PROVIDER}")
+            .cloudProvider("gcp")
             .region(Environment.DEFAULT_KAFKA_REGION);
     }
 
