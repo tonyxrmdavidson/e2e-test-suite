@@ -3,7 +3,7 @@ package io.managed.services.test.cli;
 import com.openshift.cloud.api.kas.auth.models.ConsumerGroup;
 import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
-import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
+import com.openshift.cloud.api.serviceaccounts.models.ServiceAccountData;
 import com.openshift.cloud.api.srs.models.Registry;
 import io.fabric8.kubernetes.api.model.AuthInfo;
 import io.fabric8.kubernetes.api.model.Cluster;
@@ -41,6 +41,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -174,8 +175,8 @@ public class CLIUtils {
         });
     }
 
-    public static Optional<ServiceAccountListItem> getServiceAccountByName(CLI cli, String name) throws CliGenericException {
-        return cli.listServiceAccount().getItems().stream().filter(sa -> name.equals(sa.getName())).findAny();
+    public static Optional<ServiceAccountData> getServiceAccountByName(CLI cli, String name) throws CliGenericException {
+        return Arrays.stream(cli.listServiceAccount()).filter(sa -> name.equals(sa.getName())).findAny();
     }
 
     public static ServiceAccountSecret createServiceAccount(CLI cli, String name) throws CliGenericException {

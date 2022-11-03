@@ -17,6 +17,7 @@ public class QuarkusSample extends BaseVertxClient {
     }
 
     public Future<HttpResponse<Void>> streamPrices(WriteStream<Buffer> stream) {
+
         return client.get("/prices/stream")
                 .as(BodyCodec.pipe(stream))
                 .send()

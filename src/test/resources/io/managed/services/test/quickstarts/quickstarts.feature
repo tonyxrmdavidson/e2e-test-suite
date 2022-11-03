@@ -29,33 +29,30 @@ Feature: Quick starts for OpenShift Streams for Apache Kafka
     Given you have a Red Hat account
     * you are logged in to the OpenShift Streams for Apache Kafka web console
     * you have a running Kafka instance in OpenShift Streams for Apache Kafka
-    * Git is installed
-    * You have an IDE such as IntelliJ IDEA, Eclipse, or VSCode
-    * JDK 11 or later is installed
-    * Apache Maven 3.6.2 or later is installed
-    * for Windows the latest version of Oracle JDK is installed
 
     # 1. Importing the Quarkus sample code
-    When you clone the `app-services-guides` repository from GitHub
-    Then the `app-services-guides` repository is available locally
+    When you clone the app-services-guides repository from GitHub
+    Then the app-services-guides repository is available locally
 
     # 2. Configuring the Quarkus example application to connect to a Kafka instance
-    Given you have the bootstrap server endpoint, the service account credentials, and the SASL/OAUTHBEARER token endpoint for the Kafka instance
-    When you set the Kafka instance bootstrap server endpoint, service account credentials, and SASL/OAUTHBEARER token endpoint as environment variables
-    Then the `src/main/resources/application.properties` file of the Quarkus example application contains all required configurations to authenticate the Kafka instance
+    Given you have the bootstrap server endpoint for your Kafka instance
+    * you have the generated credentials for your service account
+    * you have the OAUTHBEARER token endpoint for the Kafka instance
+    When you set the Kafka instance bootstrap server endpoint, service account credentials, and OAUTHBEARER token endpoint as environment variables
+#    Then the `application.properties` file of the Quarkus example application contains all required configurations to authenticate the Kafka instance
 
     # 3. Creating the prices Kafka topic in OpenShift Streams for Apache Kafka
-    Given you’ve created a Kafka instance in OpenShift Streams for Apache Kafka
+    Given you have a running Kafka instance in OpenShift Streams for Apache Kafka
     * the Kafka instance is in Ready state
-    When you create a Kafka topic called `prices`
-    Then the `prices` Kafka topic is listed in the topics table
+    When you have created the Kafka topic prices
+    Then the Kafka topic prices is listed in the topics table
 
     # 4. Running the Quarkus example application
-    Given you've configured the Quarkus example application to connect to the Kafka instance
-    * You’ve created a Kafka instance in OpenShift Streams for Apache Kafka
-    * the Kafka instance is in Ready state
-    When you navigate to the `code-examples/quarkus-kafka-quickstart` of the Quarkus example application and run the applications
-    Then the application is running and the `Last price` is updated at http://localhost:8080/prices.html
+    Given the Kafka instance is in Ready state
+    Given you have set the permissions for your service account to produce and consume from topic prices
+    When you run Quarkus example applications
+    Then the application is running and the `Last price` is updated at http localhost port 8080 resource prices.html
+
 
   Scenario: Using Node.js applications with Kafka instances in Red Hat OpenShift Streams for Apache Kafka
     Given you have a Red Hat account

@@ -3,7 +3,7 @@ package io.managed.services.test.devexp;
 import com.openshift.cloud.api.kas.auth.models.Record;
 import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
-import com.openshift.cloud.api.kas.models.ServiceAccountListItem;
+import com.openshift.cloud.api.serviceaccounts.models.ServiceAccountData;
 import io.managed.services.test.Environment;
 import io.managed.services.test.TestBase;
 import io.managed.services.test.cli.CLI;
@@ -73,7 +73,7 @@ public class KafkaCLITest extends TestBase {
 
     private KafkaRequest kafka;
     private ServiceAccountSecret serviceAccountSecret;
-    private ServiceAccountListItem serviceAccount;
+    private ServiceAccountData serviceAccount;
     private Topic topic;
 
     private final List<String> records = List.of("First message", "Second message", "Third message");
@@ -183,6 +183,7 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void testDescribeServiceAccount() {
 
+        LOGGER.info("describe service account by id field");
         var sa = cli.describeServiceAccount(serviceAccount.getId());
         LOGGER.debug(sa);
 
@@ -252,7 +253,7 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void testConsumeMessages() {
         LOGGER.info("consuming all messages from partition '0' topic '{}'", TOPIC_NAME_PRODUCE_CONSUME);
-        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0);
+        List<Record> consumedRecords = cli.consumeRecords(TOPIC_NAME_PRODUCE_CONSUME, kafka.getId(), 0, 0);
 
         int i = 0;
         for (Record consumedRecord: consumedRecords) {
@@ -496,11 +497,11 @@ public class KafkaCLITest extends TestBase {
     @SneakyThrows
     public void testDeleteServiceAccount() {
 
-        LOGGER.info("delete service account '{}'", serviceAccount.getId());
-        cli.deleteServiceAccount(serviceAccount.getId());
+        LOGGER.info("delete service account '{}'", serviceAccount.getClientId());
+        cli.deleteServiceAccount(serviceAccount.getClientId());
 
         assertThrows(CliNotFoundException.class,
-            () -> cli.describeServiceAccount(serviceAccount.getId()));
+            () -> cli.describeServiceAccount(serviceAccount.getClientId()));
     }
 
     @Test(dependsOnMethods = "testCreateKafkaInstance", priority = 3, enabled = true)

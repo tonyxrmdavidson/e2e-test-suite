@@ -11,8 +11,7 @@ import com.openshift.cloud.api.kas.auth.models.Topic;
 import com.openshift.cloud.api.kas.auth.models.TopicsList;
 import com.openshift.cloud.api.kas.models.KafkaRequest;
 import com.openshift.cloud.api.kas.models.KafkaRequestList;
-import com.openshift.cloud.api.kas.models.ServiceAccount;
-import com.openshift.cloud.api.kas.models.ServiceAccountList;
+import com.openshift.cloud.api.serviceaccounts.models.ServiceAccountData;
 import com.openshift.cloud.api.srs.models.Registry;
 import com.openshift.cloud.api.srs.models.RegistryList;
 import io.managed.services.test.Environment;
@@ -156,14 +155,14 @@ public class CLI {
         return p.asJson(KafkaRequestList.class);
     }
 
-    public ServiceAccount describeServiceAccount(String id) throws CliGenericException {
-        return retry(() -> exec("service-account", "describe", "--id", id))
-            .asJson(ServiceAccount.class);
+    public ServiceAccountData describeServiceAccount(String id) throws CliGenericException {
+        return retry(() -> exec("service-account", "describe", "--id", id, "--enable-auth-v2"))
+            .asJson(ServiceAccountData.class);
     }
 
-    public ServiceAccountList listServiceAccount() throws CliGenericException {
-        return retry(() -> exec("service-account", "list", "-o", "json"))
-            .asJson(ServiceAccountList.class);
+    public ServiceAccountData[] listServiceAccount() throws CliGenericException {
+        return retry(() -> exec("service-account", "list", "-o", "json", "--enable-auth-v2"))
+            .asJson(ServiceAccountData[].class);
     }
 
     public void deleteServiceAccount(String id) throws CliGenericException {

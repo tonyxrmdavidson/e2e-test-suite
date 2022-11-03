@@ -4,6 +4,8 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.kafka.client.producer.KafkaProducerRecord;
+import io.vertx.kafka.client.producer.RecordMetadata;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -242,6 +244,17 @@ public class KafkaMessagingUtils {
                     LOGGER.info("close the consumer and the producer for topic {}", topicName);
                     return CompositeFuture.join(producer.asyncClose(), consumer.asyncClose());
                 }));
+    }
+
+    public static Future<RecordMetadata> sendSingleMessage(
+        KafkaProducerClient<String, String> producer,
+        String topicName,
+        int messageSize) {
+        // generate 1 random message of given size
+        String message = generateRandomMessages(1, messageSize, messageSize).get(0);
+        KafkaProducerRecord<String, String> record = KafkaProducerRecord.create(topicName, message);
+        // send message
+        return producer.send(record);
     }
 
     public static Future<List<ConsumerRecord<String, String>>> produceAndConsumeMessages(

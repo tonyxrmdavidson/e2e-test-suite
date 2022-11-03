@@ -133,18 +133,6 @@ The default targeted environment is the application services stage env.
 | sandbox     | run the sandbox test suite to test the openshift sandbox cluster |
 | quickstarts | run the cucumber quickstarts test suite                          |
 
-## Report to ReportPortal
-
-When executing the tests is possible to send the results and logs in real time to ReportPortal using
-the `./hack/testrunner.sh` script and the following ENVs:
-
-| Name                        | Description                            | Default value         |
-|-----------------------------|----------------------------------------|-----------------------|
-| `REPORTPORTAL_ENDPOINT`     | ReportPortal URL                       | `https://example.com` |
-| `REPORTPORTAL_ACCESS_TOKEN` | The Access Token                       |                       |
-| `REPORTPORTAL_LAUNCH`       | The launch name to user                | `mk-e2e-test-suite`   |
-| `REPORTPORTAL_PROJECT`      | The project where to report the result | `rhosak`              |
-
 ## Report to Prometheus
 
 Tests can report metrics to Prometheus to analyze or monitor behaviours, like the number and frequency of failed API
@@ -166,21 +154,21 @@ tests.
 
 1. Go to https://cloud.redhat.com/ and click on **Create an account**
 2. You can choose _Personal_ or _Corporate_
-3. Fill all the required data and create the account
+3. Fill all the required and optional data fields and create the account
 
 > This will automatically create a new Organization where the user is the organization owner.
 
 #### Primary user
 
 1. Go to https://www.redhat.com/wapps/ugc/protected/usermgt/userList.html and login with the organization owner.
-2. Click on **Add New User** and fill all the required data for the primary user
+2. Click on **Add New User** and fill all the required and optional data fields for the primary user
 
 > By default, the account will be able to create evaluation instances which will be enough to run single tests
 
 #### Secondary user
 
 2. Go to https://www.redhat.com/wapps/ugc/protected/usermgt/userList.html and login with the organization owner.
-3. Click on **Add New User** and fill all the required data for the secondary user
+3. Click on **Add New User** and fill all the required and optional data fields for the secondary user
 
 > The secondary user is exactly like the primary user, but by default it wouldn't have access to instances created by
 > the primary user
@@ -189,7 +177,7 @@ tests.
 
 1. Go to https://cloud.redhat.com/ and click on **Create an account**
 2. You can choose _Personal_ or _Corporate_
-3. Fill all the required data for the alien user and create the account
+3. Fill all the required and optional data fields for the alien user and create the account
 
 > This will create the Alien user in a new organization
 
@@ -259,5 +247,6 @@ tests.
 
 ## Maintainers
 
-* David Kornel <dkornel@redhat.com>
-* Davide Bizzarri <dbizzarr@redhat.com>
+* David Kornel <kornys@outlook.com>
+* Henrich Zrncik <hzrncik@redhat.com>
+* Tony Davidson <tdavidso@redhat.com>
