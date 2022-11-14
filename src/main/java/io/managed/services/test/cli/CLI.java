@@ -42,6 +42,8 @@ public class CLI {
 
     private static final Duration DEFAULT_TIMEOUT = ofMinutes(3);
 
+    private static final String CLUSTER_CAPACITY_EXHAUSTED_CODE = "KAFKAS-MGMT-24";
+
     private final String workdir;
     private final String cmd;
 
@@ -125,7 +127,7 @@ public class CLI {
     }
 
     public KafkaRequest createKafka(String name) throws CliGenericException {
-        return retry(() -> exec("kafka", "create", "--bypass-checks", "--name", name, "--region", Environment.DEFAULT_KAFKA_REGION))
+        return retryKafkaCreation(() -> exec("kafka", "create", "--bypass-checks", "--name", name, "--region", Environment.DEFAULT_KAFKA_REGION))
             .asJson(KafkaRequest.class);
     }
 
@@ -348,6 +350,23 @@ public class CLI {
 
     private <T, E extends Throwable> T retry(ThrowingSupplier<T, E> call) throws E {
         return RetryUtils.retry(1, call, CLI::retryCondition);
+    }
+
+    private <T, E extends Throwable> T retryKafkaCreation(ThrowingSupplier<T, E> call) throws E {
+        return RetryUtils.retry(
+                1, null, call, CLI::retryConditionKafkaCreation, 12, Duration.ofSeconds(10));
+    }
+
+    private static boolean retryConditionKafkaCreation(Throwable t) {
+        if (t instanceof CliGenericException) {
+            // quota problem,
+            if (((CliGenericException) t).getCode() == 403 && ((CliGenericException) t).getMessage().contains(CLUSTER_CAPACITY_EXHAUSTED_CODE)) {
+                return true;
+            }
+            // server side problem
+            return ((CliGenericException) t).getCode() >= 500 && ((CliGenericException) t).getCode() < 600;
+        }
+        return false;
     }
 
     private static boolean retryCondition(Throwable t) {
