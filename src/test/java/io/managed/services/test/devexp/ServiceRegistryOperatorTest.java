@@ -1,13 +1,13 @@
 package io.managed.services.test.devexp;
 
 
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequest;
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequestSpec;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequest;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequestSpec;
-import com.openshift.cloud.v1alpha.models.Credentials;
-import com.openshift.cloud.v1alpha.models.ServiceRegistryConnection;
-import com.openshift.cloud.v1alpha.models.ServiceRegistryConnectionSpec;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequest;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequestSpec;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequest;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequestSpec;
+import com.redhat.rhoas.v1alpha1.ServiceRegistryConnection;
+import com.redhat.rhoas.v1alpha1.ServiceRegistryConnectionSpec;
+import com.redhat.rhoas.v1alpha1.serviceregistryconnectionspec.Credentials;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -295,7 +295,9 @@ public class ServiceRegistryOperatorTest extends TestBase {
         c.setSpec(new ServiceRegistryConnectionSpec());
         c.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
         c.getSpec().setServiceRegistryId(serviceRegistry.orElseThrow().getId());
-        c.getSpec().setCredentials(new Credentials(SERVICE_ACCOUNT_SECRET_NAME));
+        var credentials = new Credentials();
+        credentials.setServiceAccountSecretName(SERVICE_ACCOUNT_SECRET_NAME);
+        c.getSpec().setCredentials(credentials);
 
         LOGGER.info("create ManagedServiceRegistryConnection with name: {}", SERVICE_REGISTRY_CONNECTION_NAME);
         c = OperatorUtils.serviceRegistryConnection(oc).create(c);

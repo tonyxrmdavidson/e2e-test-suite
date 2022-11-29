@@ -1,13 +1,13 @@
 package io.managed.services.test.devexp;
 
 
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequest;
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequestSpec;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequest;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequestSpec;
-import com.openshift.cloud.v1alpha.models.Credentials;
-import com.openshift.cloud.v1alpha.models.KafkaConnection;
-import com.openshift.cloud.v1alpha.models.KafkaConnectionSpec;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequest;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequestSpec;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequest;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequestSpec;
+import com.redhat.rhoas.v1alpha1.KafkaConnection;
+import com.redhat.rhoas.v1alpha1.KafkaConnectionSpec;
+import com.redhat.rhoas.v1alpha1.kafkaconnectionspec.Credentials;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
@@ -292,7 +292,9 @@ public class KafkaOperatorTest extends TestBase {
         c.setSpec(new KafkaConnectionSpec());
         c.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
         c.getSpec().setKafkaId(userKafka.orElseThrow().getId());
-        c.getSpec().setCredentials(new Credentials(SERVICE_ACCOUNT_SECRET_NAME));
+        var credentials = new Credentials();
+        credentials.setServiceAccountSecretName(SERVICE_ACCOUNT_SECRET_NAME);
+        c.getSpec().setCredentials(credentials);
 
         LOGGER.info("create ManagedKafkaConnection with name: {}", KAFKA_CONNECTION_NAME);
         c = OperatorUtils.kafkaConnection(oc).create(c);

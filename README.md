@@ -211,39 +211,10 @@ tests.
 
 ### Update the rhoas-model dependency
 
-1. Clone the operator the bf2/operator from here:https://github.com/bf2fc6cc711aee1a0c2a/operator
-    ```
-   git clone https://github.com/redhat-developer/app-services-operator.git
-   cd app-services-operator
-   ```
+Pick the latest available version folder from:
+https://github.com/redhat-developer/app-services-operator/tree/main/olm/olm-catalog/rhoas-operator
 
-2. Checkout the right version you want to update to
-
-   **Example:**
-   ```
-   git checkout 0.5.0
-   ```
-
-3. Build the all the JARs (See operator README.md for the required maven and java versions)
-   ```
-   mvn package
-   ```
-
-4. Copy the built **rhoas-model.VERSION.jar** to the e2e-test-suite **lib/** directory
-
-   **Example:**
-   ```
-   cp source/model/target/rhoas-model-1.0.0-SNAPSHOT.jar path/to/e2e-test-suite/lib
-   ```
-
-6. If the rhoas-model version has changed you need to update the pom.xml in the e2e-test-suite repository
-
-5. Switch then to the e2e-test-suite repo and verify the build
-   ```
-   mvn verify -Psmoke
-   ```
-
-6. If the build pass, commit the changes and open a PR, otherwise fix the issues and then open a PR
+and update the property `rhoas-model.version` in `pom.xml`.
 
 ## Maintainers
 
