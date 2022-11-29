@@ -106,7 +106,7 @@ public class KafkaMgmtAPITest extends TestBase {
     private KafkaInstanceApi kafkaInstanceApi;
 
 
-    @BeforeClass
+    @BeforeClass(alwaysRun = true)
     public void bootstrap() {
         assertNotNull(Environment.PRIMARY_USERNAME, "the PRIMARY_USERNAME env is null");
         assertNotNull(Environment.PRIMARY_PASSWORD, "the PRIMARY_PASSWORD env is null");
@@ -164,7 +164,7 @@ public class KafkaMgmtAPITest extends TestBase {
         }
     }
 
-    @Test
+    @Test(groups = "production")
     @SneakyThrows
     public void testCreateKafkaInstance() {
 
@@ -181,7 +181,7 @@ public class KafkaMgmtAPITest extends TestBase {
             Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
     }
 
-    @Test
+    @Test(groups = "production")
     @SneakyThrows
     public void testCreateServiceAccount() {
 
@@ -192,7 +192,7 @@ public class KafkaMgmtAPITest extends TestBase {
                 .description("E2E test service account"));
     }
 
-    @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"})
+    @Test(dependsOnMethods = {"testCreateServiceAccount", "testCreateKafkaInstance"}, groups = "production")
     @SneakyThrows
     public void testCreateProducerAndConsumerACLs() {
 
@@ -203,7 +203,7 @@ public class KafkaMgmtAPITest extends TestBase {
         KafkaInstanceApiAccessUtils.createProducerAndConsumerACLs(kafkaInstanceApi, principal);
     }
 
-    @Test(dependsOnMethods = "testCreateKafkaInstance")
+    @Test(dependsOnMethods = "testCreateKafkaInstance", groups = "production")
     @SneakyThrows
     public void testCreateTopics() {
 
@@ -374,7 +374,7 @@ public class KafkaMgmtAPITest extends TestBase {
         KafkaMgmtMetricsUtils.testMessageInTotalMetric(kafkaMgmtApi, kafka, serviceAccount, TOPIC_NAME);
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"})
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"}, groups = "production")
     @SneakyThrows
     public void testMessagingKafkaInstanceUsingOAuth() {
 
@@ -413,7 +413,7 @@ public class KafkaMgmtAPITest extends TestBase {
             KafkaAuthMethod.OAUTH)));
     }
 
-    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"})
+    @Test(dependsOnMethods = {"testCreateTopics", "testCreateProducerAndConsumerACLs"}, groups = "production")
     @SneakyThrows
     public void testMessagingKafkaInstanceUsingPlainAuth() {
 
@@ -479,7 +479,7 @@ public class KafkaMgmtAPITest extends TestBase {
         }
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance"})
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, groups = "production")
     @SneakyThrows
     public void testListAndSearchKafkaInstance() {
 
@@ -558,7 +558,7 @@ public class KafkaMgmtAPITest extends TestBase {
         waitFor("kafka reauthentication to be disabled", ofSeconds(10), ofMinutes(5), isReauthenticationDisabled);
     }
 
-    @Test(dependsOnMethods = "testCreateTopics")
+    @Test(dependsOnMethods = "testCreateTopics", groups = "production")
     @SneakyThrows
     public void testDeleteServiceAccount() {
 
@@ -621,7 +621,7 @@ public class KafkaMgmtAPITest extends TestBase {
         });
     }
 
-    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, priority = 2)
+    @Test(dependsOnMethods = {"testCreateKafkaInstance"}, groups = "production", priority = 2)
     @SneakyThrows
     public void testDeleteKafkaInstance() {
         if (Environment.SKIP_KAFKA_TEARDOWN) {

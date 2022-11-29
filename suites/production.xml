@@ -1,0 +1,27 @@
+<!-- Suite -->
+<suite name="Production">
+
+    <!--  groups to be executed  -->
+    <groups>
+        <run>
+            <include name="production"  />
+        </run>
+    </groups>
+
+    <!--  test classes to watch for  -->
+    <test name="SSOAuthTest">
+        <classes>
+            <class name="io.managed.services.test.SSOAuthTest"/>
+        </classes>
+    </test>
+    <test name="KafkaMgmtAPITest">
+        <classes>
+            <class name="io.managed.services.test.kafka.KafkaMgmtAPITest"/>
+        </classes>
+    </test>
+    <test name="RegistryMgmtAPITest">
+        <classes>
+            <class name="io.managed.services.test.registry.RegistryMgmtAPITest"/>
+        </classes>
+    </test>
+</suite>

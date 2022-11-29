@@ -43,7 +43,7 @@ public class SSOAuthTest extends TestBase {
         LOGGER.info("user authenticated against: {}", Environment.OPENSHIFT_IDENTITY_URI);
     }
 
-    @Test
+    @Test(groups = "production")
     public void testJoinedLogin() throws Throwable {
         var auth = new KeycloakLoginSession(Vertx.vertx(), Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD);
 
