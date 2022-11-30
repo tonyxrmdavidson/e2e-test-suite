@@ -348,16 +348,16 @@
                 <artifactId>java-generator-maven-plugin</artifactId>
                 <version>${fabric8.version}</version>
                 <executions>
-                  <execution>
-                    <phase>generate-sources</phase>
-                    <goals>
-                      <goal>generate</goal>
-                    </goals>
-                  </execution>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
                 </executions>
                 <configuration>
-                  <source>${project.build.directory}/manifests</source>
-                  <extraAnnotations>true</extraAnnotations>
+                    <source>${project.build.directory}/manifests</source>
+                    <extraAnnotations>true</extraAnnotations>
                 </configuration>
             </plugin>
         </plugins>
