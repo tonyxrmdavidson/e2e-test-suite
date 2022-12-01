@@ -136,15 +136,6 @@ public class KafkaAccessMgmtTest extends TestBase {
         var alienAuth = new KeycloakLoginSession(Environment.ALIEN_USERNAME, Environment.ALIEN_PASSWORD);
         var adminAuth = new KeycloakLoginSession(Environment.ADMIN_USERNAME, Environment.ADMIN_PASSWORD);
 
-        String stringRegion = Environment.DEFAULT_KAFKA_REGION;
-        Boolean region = assertEquals("us-east1", Environment.DEFAULT_KAFKA_REGION);
-        System.out.println("**||**");
-        System.out.println("**||**");
-        System.out.print(stringRegion);
-        System.out.print(region);
-        System.out.println("**||**");
-        System.out.println("**||**");
-
         // initialize the mgmt APIs client for all users
         primaryAPI = ApplicationServicesApi.applicationServicesApi(primaryAuth);
         secondaryAPI = ApplicationServicesApi.applicationServicesApi(secondaryAuth);
