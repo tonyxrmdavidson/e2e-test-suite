@@ -167,7 +167,7 @@ public class Environment {
     public static final boolean SKIP_KAFKA_TEARDOWN = getOrDefault(SKIP_KAFKA_TEARDOWN_ENV, Boolean::parseBoolean, false);
 
     // Change the default region where kafka instances will be provisioned if the test suite doesn't decide otherwise
-    public static final String DEFAULT_KAFKA_REGION = getOrDefault(DEFAULT_KAFKA_REGION_ENV, "us-east-1");
+    public static final String DEFAULT_KAFKA_REGION = getOrDefault(DEFAULT_KAFKA_REGION_ENV, "us-east1");
 
     public static final boolean KAFKA_INSECURE_TLS = getOrDefault(KAFKA_INSECURE_TLS_ENV, Boolean::parseBoolean, false);
     public static final String KAFKA_INSTANCE_API_TEMPLATE = getOrDefault(KAFKA_INSTANCE_API_TEMPLATE_ENV, "https://admin-server-%s");
