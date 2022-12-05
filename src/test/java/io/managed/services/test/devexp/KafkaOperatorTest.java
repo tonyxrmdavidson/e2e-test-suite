@@ -1,13 +1,11 @@
 package io.managed.services.test.devexp;
 
 
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequest;
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequestSpec;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequest;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequestSpec;
-import com.openshift.cloud.v1alpha.models.Credentials;
-import com.openshift.cloud.v1alpha.models.KafkaConnection;
-import com.openshift.cloud.v1alpha.models.KafkaConnectionSpec;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequest;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequestSpec;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequest;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequestSpec;
+import com.redhat.rhoas.v1alpha1.KafkaConnectionBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
@@ -287,12 +285,18 @@ public class KafkaOperatorTest extends TestBase {
             throw new TestException(message("failed to find the user kafka instance {} in the CloudServicesRequest {}", KAFKA_INSTANCE_NAME, CLOUD_SERVICES_REQUEST_NAME));
         }
 
-        var c = new KafkaConnection();
-        c.getMetadata().setName(KAFKA_CONNECTION_NAME);
-        c.setSpec(new KafkaConnectionSpec());
-        c.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
-        c.getSpec().setKafkaId(userKafka.orElseThrow().getId());
-        c.getSpec().setCredentials(new Credentials(SERVICE_ACCOUNT_SECRET_NAME));
+        var c = new KafkaConnectionBuilder()
+            .withNewMetadata()
+                    .withName(KAFKA_CONNECTION_NAME)
+            .endMetadata()
+            .withNewSpec()
+                .withAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME)
+                .withKafkaId(userKafka.orElseThrow().getId())
+                .withNewCredentials()
+                    .withServiceAccountSecretName(SERVICE_ACCOUNT_SECRET_NAME)
+                .endCredentials()
+            .endSpec()
+            .build();
 
         LOGGER.info("create ManagedKafkaConnection with name: {}", KAFKA_CONNECTION_NAME);
         c = OperatorUtils.kafkaConnection(oc).create(c);

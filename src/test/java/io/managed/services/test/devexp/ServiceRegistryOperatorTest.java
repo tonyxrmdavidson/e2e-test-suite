@@ -1,13 +1,12 @@
 package io.managed.services.test.devexp;
 
 
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequest;
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequestSpec;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequest;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequestSpec;
-import com.openshift.cloud.v1alpha.models.Credentials;
-import com.openshift.cloud.v1alpha.models.ServiceRegistryConnection;
-import com.openshift.cloud.v1alpha.models.ServiceRegistryConnectionSpec;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequest;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequestSpec;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequest;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequestSpec;
+import com.redhat.rhoas.v1alpha1.ServiceRegistryConnectionBuilder;
+import com.redhat.rhoas.v1alpha1.serviceregistryconnectionspec.CredentialsBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -289,13 +288,20 @@ public class ServiceRegistryOperatorTest extends TestBase {
             throw new TestException(message("failed to find the user service registry {} in the CloudServicesRequest {}", SERVICE_REGISTRY_NAME, CLOUD_SERVICES_REQUEST_NAME));
         }
 
-        var c = new ServiceRegistryConnection();
-
-        c.getMetadata().setName(SERVICE_REGISTRY_CONNECTION_NAME);
-        c.setSpec(new ServiceRegistryConnectionSpec());
-        c.getSpec().setAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME);
-        c.getSpec().setServiceRegistryId(serviceRegistry.orElseThrow().getId());
-        c.getSpec().setCredentials(new Credentials(SERVICE_ACCOUNT_SECRET_NAME));
+        var c = new ServiceRegistryConnectionBuilder()
+            .withNewMetadata()
+                .withName(SERVICE_REGISTRY_CONNECTION_NAME)
+            .endMetadata()
+            .withNewSpec()
+                .withAccessTokenSecretName(ACCESS_TOKEN_SECRET_NAME)
+                .withServiceRegistryId(serviceRegistry.orElseThrow().getId())
+                .withCredentials(
+                    new CredentialsBuilder()
+                        .withServiceAccountSecretName(SERVICE_ACCOUNT_SECRET_NAME)
+                        .build()
+                )
+            .endSpec()
+            .build();
 
         LOGGER.info("create ManagedServiceRegistryConnection with name: {}", SERVICE_REGISTRY_CONNECTION_NAME);
         c = OperatorUtils.serviceRegistryConnection(oc).create(c);

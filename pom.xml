@@ -17,6 +17,11 @@
         <maven.compiler.target>11</maven.compiler.target>
         <maven.checkstyle.version>3.2.0</maven.checkstyle.version>
         <maven.failsafe.version>3.0.0-M7</maven.failsafe.version>
+        <download.maven.plugin.version>1.6.8</download.maven.plugin.version>
+        <fabric8.version>6.2.0</fabric8.version>
+        <sundrio.version>0.93.1</sundrio.version>
+        <!-- See 'Update the rhoas-model dependency' in the README.md on how to build and update the rhoas-model -->
+        <rhoas-model.version>0.9.7</rhoas-model.version>
     </properties>
 
     <dependencies>
@@ -33,12 +38,12 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>openshift-client</artifactId>
-            <version>6.0.0</version>
+            <version>${fabric8.version}</version>
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-model</artifactId>
-            <version>6.0.0</version>
+            <version>${fabric8.version}</version>
         </dependency>
         <dependency>
             <groupId>io.strimzi</groupId>
@@ -73,12 +78,12 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>
-            <version>4.2.7</version>
+            <version>4.3.5</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web-client</artifactId>
-            <version>4.2.7</version>
+            <version>4.3.5</version>
         </dependency>
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
@@ -103,7 +108,7 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-kafka-client</artifactId>
-            <version>4.2.7</version>
+            <version>4.3.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -121,14 +126,6 @@
             <version>4.10.0</version>
         </dependency>
         <dependency>
-            <groupId>com.openshift.cloud</groupId>
-            <artifactId>rhoas-operator-parent</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <scope>system</scope>
-            <!-- See 'Update the rhoas-model dependency' in the README.md on how to build and update the rhoas-model -->
-            <systemPath>${basedir}/lib/rhoas-model-1.0.0-SNAPSHOT.jar</systemPath>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
             <version>1.21</version>
@@ -141,7 +138,7 @@
         <dependency>
             <groupId>com.redhat.cloud</groupId>
             <artifactId>kafka-management-sdk</artifactId>
-            <version>0.24.0</version>
+            <version>0.27.1</version>
         </dependency>
         <dependency>
             <groupId>org.openapitools</groupId>
@@ -151,12 +148,12 @@
         <dependency>
             <groupId>com.redhat.cloud</groupId>
             <artifactId>registry-management-sdk</artifactId>
-            <version>0.24.0</version>
+            <version>0.27.1</version>
         </dependency>
         <dependency>
             <groupId>com.redhat.cloud</groupId>
             <artifactId>kafka-instance-sdk</artifactId>
-            <version>0.24.0</version>
+            <version>0.27.1</version>
         </dependency>
         <dependency>
             <groupId>com.redhat.cloud</groupId>
@@ -182,19 +179,19 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.2.3</version>
+            <version>7.9.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-testng</artifactId>
-            <version>7.2.3</version>
+            <version>7.9.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-picocontainer</artifactId>
-            <version>7.2.3</version>
+            <version>7.9.0</version>
         </dependency>
         <dependency>
             <groupId>commons-lang</groupId>
@@ -215,6 +212,17 @@
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
             <version>4.8.0.201706111038-r</version>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>generator-annotations</artifactId>
+            <version>${fabric8.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.sundr</groupId>
+            <artifactId>builder-annotations</artifactId>
+            <version>${sundrio.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -280,6 +288,78 @@
                     </suiteXmlFiles>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>${download.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-sources-rhoas-cloudserviceaccountrequest</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/redhat-developer/app-services-operator/main/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.cloudserviceaccountrequest.crd.yaml</url>
+                            <outputFileName>rhoas-operator.cloudserviceaccountrequest.crd.yaml</outputFileName>
+                            <outputDirectory>${project.build.directory}/manifests</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-sources-rhoas-cloudservicesrequests</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/redhat-developer/app-services-operator/main/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.cloudservicesrequests.crd.yaml</url>
+                            <outputFileName>rhoas-operator.cloudservicesrequests.crd.yaml</outputFileName>
+                            <outputDirectory>${project.build.directory}/manifests</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-sources-rhoas-kafkaconnections</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/redhat-developer/app-services-operator/main/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.kafkaconnections.crd.yaml</url>
+                            <outputFileName>rhoas-operator.kafkaconnections.crd.yaml</outputFileName>
+                            <outputDirectory>${project.build.directory}/manifests</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-sources-rhoas-serviceregistryconnections</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/redhat-developer/app-services-operator/main/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.serviceregistryconnections.crd.yaml</url>
+                            <outputFileName>rhoas-operator.serviceregistryconnections.crd.yaml</outputFileName>
+                            <outputDirectory>${project.build.directory}/manifests</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>java-generator-maven-plugin</artifactId>
+                <version>${fabric8.version}</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <source>${project.build.directory}/manifests</source>
+                    <extraAnnotations>true</extraAnnotations>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -314,6 +394,23 @@
                         <configuration>
                             <suiteXmlFiles>
                                 <suiteXmlFile>suites/smoke.xml</suiteXmlFile>
+                            </suiteXmlFiles>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>production</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <suiteXmlFiles>
+                                <suiteXmlFile>suites/production.xml</suiteXmlFile>
                             </suiteXmlFiles>
                         </configuration>
                     </plugin>

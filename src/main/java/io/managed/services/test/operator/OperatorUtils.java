@@ -1,13 +1,10 @@
 package io.managed.services.test.operator;
 
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequest;
-import com.openshift.cloud.v1alpha.models.CloudServiceAccountRequestList;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequest;
-import com.openshift.cloud.v1alpha.models.CloudServicesRequestList;
-import com.openshift.cloud.v1alpha.models.KafkaConnection;
-import com.openshift.cloud.v1alpha.models.KafkaConnectionList;
-import com.openshift.cloud.v1alpha.models.ServiceRegistryConnection;
-import com.openshift.cloud.v1alpha.models.ServiceRegistryConnectionList;
+import com.redhat.rhoas.v1alpha1.CloudServiceAccountRequest;
+import com.redhat.rhoas.v1alpha1.CloudServicesRequest;
+import com.redhat.rhoas.v1alpha1.KafkaConnection;
+import com.redhat.rhoas.v1alpha1.ServiceRegistryConnection;
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -23,20 +20,20 @@ import java.util.Map;
 public class OperatorUtils {
     private static final Logger LOGGER = LogManager.getLogger(OperatorUtils.class);
 
-    public static MixedOperation<CloudServiceAccountRequest, CloudServiceAccountRequestList, Resource<CloudServiceAccountRequest>> cloudServiceAccountRequest(KubernetesClient client) {
-        return client.resources(CloudServiceAccountRequest.class, CloudServiceAccountRequestList.class);
+    public static MixedOperation<CloudServiceAccountRequest, KubernetesResourceList<CloudServiceAccountRequest>, Resource<CloudServiceAccountRequest>> cloudServiceAccountRequest(KubernetesClient client) {
+        return client.resources(CloudServiceAccountRequest.class);
     }
 
-    public static MixedOperation<CloudServicesRequest, CloudServicesRequestList, Resource<CloudServicesRequest>> cloudServicesRequest(KubernetesClient client) {
-        return client.resources(CloudServicesRequest.class, CloudServicesRequestList.class);
+    public static MixedOperation<CloudServicesRequest, KubernetesResourceList<CloudServicesRequest>, Resource<CloudServicesRequest>> cloudServicesRequest(KubernetesClient client) {
+        return client.resources(CloudServicesRequest.class);
     }
 
-    public static MixedOperation<KafkaConnection, KafkaConnectionList, Resource<KafkaConnection>> kafkaConnection(KubernetesClient client) {
-        return client.resources(KafkaConnection.class, KafkaConnectionList.class);
+    public static MixedOperation<KafkaConnection, KubernetesResourceList<KafkaConnection>, Resource<KafkaConnection>> kafkaConnection(KubernetesClient client) {
+        return client.resources(KafkaConnection.class);
     }
 
-    public static MixedOperation<ServiceRegistryConnection, ServiceRegistryConnectionList, Resource<ServiceRegistryConnection>> serviceRegistryConnection(KubernetesClient client) {
-        return client.resources(ServiceRegistryConnection.class, ServiceRegistryConnectionList.class);
+    public static MixedOperation<ServiceRegistryConnection, KubernetesResourceList<ServiceRegistryConnection>, Resource<ServiceRegistryConnection>> serviceRegistryConnection(KubernetesClient client) {
+        return client.resources(ServiceRegistryConnection.class);
     }
 
     public static MixedOperation<ServiceBinding, ServiceBindingList, Resource<ServiceBinding>> serviceBinding(KubernetesClient client) {

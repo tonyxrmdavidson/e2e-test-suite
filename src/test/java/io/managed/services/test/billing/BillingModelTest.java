@@ -93,6 +93,7 @@ public class BillingModelTest {
         log.info("create kafka instance '{}'", payload.getName());
         try {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+            log.debug(kafka);
             assertEquals(kafka.getBillingModel(), "marketplace");
             assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
             assertEquals(kafka.getBillingCloudAccountId(), Environment.STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID);
@@ -122,6 +123,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
 
             // if we reach this line, the test has failed
+            log.debug(kafka);
             assertNull(kafka);
         } catch (ApiGenericException ex) {
             assertEquals(ex.getCode(), HttpStatus.SC_BAD_REQUEST);
@@ -156,13 +158,15 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
 
             // if we reach this line, the test has failed
+            log.debug(kafka);
             assertNull(kafka);
         } catch (ApiGenericException ex) {
             assertEquals(ex.getCode(), HttpStatus.SC_BAD_REQUEST);
             var body = ex.decode();
             assertEquals(body.id, ApiGenericException.API_ERROR_BILLING_ACCOUNT_INVALID);
             assertEquals(body.reason,
-                    String.format("Billing account id missing or invalid: No matching billing account found. Provided: dummy, Available: [{3 %s aws}]",
+                    String.format("Billing account id missing or invalid: no matching billing account found. " +
+                                    "Provided: dummy, Available: [{3 %s aws}]",
                             Environment.STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID));
         } finally {
             cleanup(user);
@@ -190,6 +194,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
 
             // if we reach this line, the test has failed
+            log.debug(kafka);
             assertNull(kafka);
         } catch (ApiGenericException ex) {
             assertEquals(ex.getCode(), HttpStatus.SC_BAD_REQUEST);
@@ -218,6 +223,7 @@ public class BillingModelTest {
         KafkaRequest kafka;
         try {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+            log.debug(kafka);
             assertNotNull(kafka);
             assertNull(kafka.getMarketplace());
             assertNull(kafka.getBillingCloudAccountId());
@@ -246,6 +252,7 @@ public class BillingModelTest {
         KafkaRequest kafka;
         try {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+            log.debug(kafka);
             assertNotNull(kafka);
             assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
@@ -273,6 +280,7 @@ public class BillingModelTest {
         KafkaRequest kafka;
         try {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+            log.debug(kafka);
 
             // if we reach this line, the test has failed
             assertNull(kafka);
@@ -305,7 +313,8 @@ public class BillingModelTest {
         try {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             assertNotNull(kafka);
-            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
+            log.debug(kafka);
+            assertEquals(kafka.getMarketplace(), "aws");
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
             assertEquals(kafka.getBillingModel(), "marketplace");
         } finally {
@@ -335,12 +344,13 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
 
             // if we reach this line, the test has failed
+            log.debug(kafka);
             assertNull(kafka);
         } catch (ApiGenericException ex) {
             assertEquals(ex.getCode(), HttpStatus.SC_BAD_REQUEST);
             var body = ex.decode();
             // TODO the error message in the fleet manager needs to be improved here to include the marketplace
-            assertTrue(body.reason.contains("Billing account id missing or invalid: No matching billing account found."));
+            assertTrue(body.reason.contains("Billing account id missing or invalid: no matching billing account found."));
             assertTrue(body.reason.contains(Environment.STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID));
             assertTrue(body.reason.contains(Environment.STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID));
             assertEquals(body.id, ApiGenericException.API_ERROR_BILLING_ACCOUNT_INVALID);
@@ -369,6 +379,7 @@ public class BillingModelTest {
         KafkaRequest kafka;
         try {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+            log.debug(kafka);
             assertNotNull(kafka);
             assertEquals(kafka.getMarketplace(), "rhm");
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
@@ -399,6 +410,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
 
             // if we reach this line, the test has failed
+            log.debug(kafka);
             assertNull(kafka);
         } catch (ApiGenericException ex) {
             assertEquals(ex.getCode(), HttpStatus.SC_BAD_REQUEST);
@@ -429,6 +441,7 @@ public class BillingModelTest {
 
         try {
             KafkaRequest kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
+            log.debug(kafka);
             assertNotNull(kafka);
             assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);

@@ -185,6 +185,7 @@ public class KafkaInstanceAPITest extends TestBase {
         );
         LOGGER.info("send message");
         bwait(KafkaMessagingUtils.sendSingleMessage(kafkaProducerClient, TEST_TOPIC_NAME, maxMessageSize));
+        kafkaProducerClient.close();
 
     }
 
@@ -202,17 +203,18 @@ public class KafkaInstanceAPITest extends TestBase {
         var clientID = serviceAccount.getClientId();
         var clientSecret = serviceAccount.getClientSecret();
 
-        KafkaProducerClient<String, String> kafkaProducerClient = new KafkaProducerClient(
+        // fail to send single message and close production
+        try (KafkaProducerClient<String, String> kafkaProducerClient = new KafkaProducerClient(
                 Vertx.vertx(),
                 bootstrapHost,
                 clientID,
                 clientSecret,
                 KafkaAuthMethod.OAUTH,
                 StringSerializer.class,
-                StringSerializer.class
-        );
-        LOGGER.info("try to send too big message");
-        assertThrows(RecordTooLargeException.class, () -> bwait(KafkaMessagingUtils.sendSingleMessage(kafkaProducerClient, TEST_TOPIC_NAME, messageSize)));
+                StringSerializer.class)) {
+            LOGGER.info("try to send too big message");
+            assertThrows(RecordTooLargeException.class, () -> bwait(KafkaMessagingUtils.sendSingleMessage(kafkaProducerClient, TEST_TOPIC_NAME, messageSize)));
+        }
 
     }
 
