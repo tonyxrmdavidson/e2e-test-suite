@@ -86,7 +86,7 @@ public class BillingModelTest {
 
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION);
 
         KafkaRequest kafka;
@@ -95,7 +95,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             log.debug(kafka);
             assertEquals(kafka.getBillingModel(), "marketplace");
-            assertEquals(kafka.getMarketplace(), "aws");
+            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
             assertEquals(kafka.getBillingCloudAccountId(), Environment.STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID);
         } finally {
             cleanup(user);
@@ -113,7 +113,7 @@ public class BillingModelTest {
 
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingModel("standard");
 
@@ -147,7 +147,7 @@ public class BillingModelTest {
 
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingModel("marketplace")
                 .billingCloudAccountId("dummy");
@@ -183,7 +183,7 @@ public class BillingModelTest {
 
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingModel("marketplace")
                 .marketplace("rhm");
@@ -216,7 +216,7 @@ public class BillingModelTest {
 
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION);
 
         log.info("create kafka instance '{}'", payload.getName());
@@ -244,7 +244,7 @@ public class BillingModelTest {
         String cloudAccountId = Environment.STRATOSPHERE_SCENARIO_2_AWS_ACCOUNT_ID;
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingCloudAccountId(cloudAccountId);
 
@@ -254,7 +254,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             log.debug(kafka);
             assertNotNull(kafka);
-            assertEquals(kafka.getMarketplace(), "aws");
+            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
             assertEquals(kafka.getBillingModel(), "marketplace");
         } finally {
@@ -272,7 +272,7 @@ public class BillingModelTest {
 
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingModel("marketplace");
 
@@ -304,7 +304,7 @@ public class BillingModelTest {
         String cloudAccountId = Environment.STRATOSPHERE_SCENARIO_3_AWS_ACCOUNT_ID;
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingCloudAccountId(cloudAccountId);
 
@@ -314,7 +314,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             assertNotNull(kafka);
             log.debug(kafka);
-            assertEquals(kafka.getMarketplace(), "aws");
+            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
             assertEquals(kafka.getBillingModel(), "marketplace");
         } finally {
@@ -333,10 +333,10 @@ public class BillingModelTest {
         String cloudAccountId = Environment.STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID;
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingCloudAccountId(cloudAccountId)
-                .marketplace("aws");
+                .marketplace(Environment.CLOUD_PROVIDER);
 
         log.info("create kafka instance '{}'", payload.getName());
         KafkaRequest kafka;
@@ -371,7 +371,7 @@ public class BillingModelTest {
         String cloudAccountId = Environment.STRATOSPHERE_SCENARIO_3_RHM_ACCOUNT_ID;
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingCloudAccountId(cloudAccountId);
 
@@ -399,9 +399,9 @@ public class BillingModelTest {
 
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
-                .marketplace("aws")
+                .marketplace(Environment.CLOUD_PROVIDER)
                 .billingModel("marketplace");
 
         log.info("create kafka instance '{}'", payload.getName());
@@ -433,7 +433,7 @@ public class BillingModelTest {
         String cloudAccountId = Environment.STRATOSPHERE_SCENARIO_4_AWS_ACCOUNT_ID;
         var payload = new KafkaRequestPayload()
                 .name(KAFKA_INSTANCE_NAME)
-                .cloudProvider("aws")
+                .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingCloudAccountId(cloudAccountId);
 
@@ -443,7 +443,7 @@ public class BillingModelTest {
             KafkaRequest kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             log.debug(kafka);
             assertNotNull(kafka);
-            assertEquals(kafka.getMarketplace(), "aws");
+            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
             assertEquals(kafka.getBillingModel(), "marketplace");
         } finally {
