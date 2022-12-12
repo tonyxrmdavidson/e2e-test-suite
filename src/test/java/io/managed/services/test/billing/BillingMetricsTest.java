@@ -70,12 +70,11 @@ public class BillingMetricsTest extends TestBase {
     private KafkaRequest kafka;
     private ServiceAccount serviceAccount;
 
-    private KafkaMgmtApi kafkaMgmtApi;
-    private SecurityMgmtApi securityMgmtApi;
     private KafkaInstanceApi kafkaInstanceApi;
 
     private Map<String, PrometheusWebClient.Snapshot> metricToSnapshotMap = new HashMap<>();
 
+    // TODO metrics will soon be renamed to match new naming convention, more at MGDSTRM-7080.
     private static final String METRIC_STORAGE = "kafka_broker_quota_totalstorageusedbytes";
     private static final String METRIC_TRAFFIC_IN = "haproxy_server_bytes_in_total";
     private static final String METRIC_TRAFFIC_OUT = "haproxy_server_bytes_out_total";
@@ -95,24 +94,24 @@ public class BillingMetricsTest extends TestBase {
         assertNotNull(Environment.PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN, "the PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN env is null");
 
         var apps = ApplicationServicesApi.applicationServicesApi(
-                Environment.PRIMARY_USERNAME,
-                Environment.PRIMARY_PASSWORD);
+            Environment.PRIMARY_USERNAME,
+            Environment.PRIMARY_PASSWORD);
 
-        this.kafkaMgmtApi = apps.kafkaMgmt();
-        this.securityMgmtApi = apps.securityMgmt();
+        KafkaMgmtApi kafkaMgmtApi = apps.kafkaMgmt();
+        SecurityMgmtApi securityMgmtApi = apps.securityMgmt();
 
         // clients
         // build observatorium client, this client points on locally running container/process
         this.observatoriumClient = new PrometheusWebClientBuilder()
-                .withBaseUrl("http://localhost:8085")
-                .withUrlResourcePath("/api/metrics/v1/managedkafka/api/v1/query")
-                .build();
+            .withBaseUrl("http://localhost:8085")
+            .withUrlResourcePath("/api/metrics/v1/managedkafka/api/v1/query")
+            .build();
         // build prometheus client with all necessary config, this clients points on server running on oc cluster
         this.prometheusWebClient = new PrometheusWebClientBuilder()
-                .withBaseUrl("https://kafka-prometheus-managed-application-services-observability.apps.mk-stage-0622.bd59.p1.openshiftapps.com")
-                .withUrlResourcePath("/api/v1/query")
-                .addHeaderEntry("Authorization", "Bearer " + Environment.PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN)
-                .build();
+            .withBaseUrl(Environment.PROMETHEUS_WEB_CLIENT_ROUTE)
+            .withUrlResourcePath("/api/v1/query")
+            .addHeaderEntry("Authorization", "Bearer " + Environment.PROMETHEUS_WEB_CLIENT_ACCESS_TOKEN)
+            .build();
 
         // Create Kafka Instance
         var optionalKafkaRequest = KafkaMgmtApiUtils.getKafkaByName(kafkaMgmtApi, KAFKA_INSTANCE_NAME);
@@ -124,10 +123,9 @@ public class BillingMetricsTest extends TestBase {
         }
 
         this.kafkaInstanceApi = bwait(KafkaInstanceApiUtils.kafkaInstanceApi(kafka,
-                Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
+            Environment.PRIMARY_USERNAME, Environment.PRIMARY_PASSWORD));
 
         var optionalServiceAccount = SecurityMgmtAPIUtils.getServiceAccountByName(securityMgmtApi, SERVICE_ACCOUNT_NAME);
-
         if (optionalServiceAccount.isPresent()) {
             serviceAccount = securityMgmtApi.resetServiceAccountCreds(optionalServiceAccount.get().getId());
         } else {
@@ -139,17 +137,17 @@ public class BillingMetricsTest extends TestBase {
 
         // initialize map of snapshots for specific queries (metrics)
         PrometheusWebClient.Query queryTrafficIn = new PrometheusWebClient.Query()
-                .metric(METRIC_TRAFFIC_IN)
-                .label("exported_namespace", String.format("kafka-%s", kafka.getId()))
-                .aggregateFunction("sum");
+            .metric(METRIC_TRAFFIC_IN)
+            .label("exported_namespace", String.format("kafka-%s", kafka.getId()))
+            .aggregateFunction("sum");
         PrometheusWebClient.Query queryTrafficOut = new PrometheusWebClient.Query()
-                .metric(METRIC_TRAFFIC_OUT)
-                .label("exported_namespace", String.format("kafka-%s", kafka.getId()))
-                .aggregateFunction("sum");
+            .metric(METRIC_TRAFFIC_OUT)
+            .label("exported_namespace", String.format("kafka-%s", kafka.getId()))
+            .aggregateFunction("sum");
         PrometheusWebClient.Query queryStorageIncrease = new PrometheusWebClient.Query()
-                .metric(METRIC_STORAGE)
-                .label("namespace", String.format("kafka-%s", kafka.getId()))
-                .aggregateFunction("sum");
+            .metric(METRIC_STORAGE)
+            .label("namespace", String.format("kafka-%s", kafka.getId()))
+            .aggregateFunction("sum");
 
         metricToSnapshotMap.put(METRIC_TRAFFIC_IN, new PrometheusWebClient.Snapshot(queryTrafficIn));
         metricToSnapshotMap.put(METRIC_TRAFFIC_OUT, new PrometheusWebClient.Snapshot(queryTrafficOut));
@@ -162,8 +160,8 @@ public class BillingMetricsTest extends TestBase {
     public void testCheckClusterHoursValue() {
         PrometheusWebClient.Query query = new PrometheusWebClient.Query();
         query
-                .metric(METRIC_CLUSTER_HOURS)
-                .label("_id", kafka.getId());
+            .metric(METRIC_CLUSTER_HOURS)
+            .label("_id", kafka.getId());
 
         QueryResult result = observatoriumClient.query(query);
         Assert.assertEquals(result.status, "success");
@@ -174,14 +172,13 @@ public class BillingMetricsTest extends TestBase {
     @Test(enabled = true)
     @SneakyThrows
     public void takeMetricsSnapshot() {
-        for (Map.Entry<String, PrometheusWebClient.Snapshot> entryMetricToSnapshot
-                : metricToSnapshotMap.entrySet()) {
+        for (Map.Entry<String, PrometheusWebClient.Snapshot> entryMetricToSnapshot : metricToSnapshotMap.entrySet()) {
 
             var snapshot = entryMetricToSnapshot.getValue();
             var queryResult = prometheusWebClient.query(snapshot.getQuery());
             log.debug("taking snapshot for metric '{}', with endpoint: '{}'",
-                    entryMetricToSnapshot.getKey(),
-                    snapshot.getQuery().toString());
+                entryMetricToSnapshot.getKey(),
+                snapshot.getQuery().toString());
             var observedReturnedValue = queryResult.data.result.get(0).doubleValue();
 
             snapshot.setObservedValue(observedReturnedValue);
@@ -199,13 +196,13 @@ public class BillingMetricsTest extends TestBase {
         String clientSecret = serviceAccount.getClientSecret();
 
         KafkaProducerClient producer = new KafkaProducerClient(
-                Vertx.vertx(),
-                bootstrapHost,
-                clientID,
-                clientSecret,
-                KafkaAuthMethod.OAUTH,
-                StringSerializer.class,
-                StringSerializer.class);
+            Vertx.vertx(),
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            KafkaAuthMethod.OAUTH,
+            StringSerializer.class,
+            StringSerializer.class);
 
         List<String> producedMessages = KafkaMessagingUtils.generateRandomMessages(this.messageCount, this.messageSize, this.messageSize);
         bwait(producer.sendAsync(TOPIC_NAME, producedMessages));
@@ -221,16 +218,16 @@ public class BillingMetricsTest extends TestBase {
         String clientSecret = serviceAccount.getClientSecret();
 
         bwait(testTopicWithNConsumers(
-                Vertx.vertx(),
-                bootstrapHost,
-                clientID,
-                clientSecret,
-                TOPIC_NAME,
-                Duration.ofMinutes(3),
-                this.messageCount,
-                this.messageSize,
-                this.consumerCount,
-                    KafkaAuthMethod.OAUTH));
+            Vertx.vertx(),
+            bootstrapHost,
+            clientID,
+            clientSecret,
+            TOPIC_NAME,
+            Duration.ofMinutes(3),
+            this.messageCount,
+            this.messageSize,
+            this.consumerCount,
+            KafkaAuthMethod.OAUTH));
     }
 
     @Test(priority = 1, dependsOnMethods = {"invokeDataProduction"}, enabled = true)
@@ -247,12 +244,12 @@ public class BillingMetricsTest extends TestBase {
 
         // waiting for metric to be increased within with 5 range
         KafkaMgmtMetricsUtils.waitUntilExpectedMetricRange(
-                prometheusWebClient,
-                kafka.getId(),
-                metricToSnapshotMap.get(METRIC_STORAGE).getQuery(),
-                oldStorageTotal,
-                expectedIncrease,
-                5.00);
+            prometheusWebClient,
+            kafka.getId(),
+            metricToSnapshotMap.get(METRIC_STORAGE).getQuery(),
+            oldStorageTotal,
+            expectedIncrease,
+            5.00);
     }
 
     @Test(priority = 1, dependsOnMethods = {"invokeDataProduction"}, enabled = true)
@@ -269,12 +266,12 @@ public class BillingMetricsTest extends TestBase {
 
         // waiting for metric to be increased within with 5 range
         KafkaMgmtMetricsUtils.waitUntilExpectedMetricRange(
-                prometheusWebClient,
-                kafka.getId(),
-                metricToSnapshotMap.get(METRIC_TRAFFIC_IN).getQuery(),
-                oldTrafficInTotal,
-                expectedIncrease,
-                10);
+            prometheusWebClient,
+            kafka.getId(),
+            metricToSnapshotMap.get(METRIC_TRAFFIC_IN).getQuery(),
+            oldTrafficInTotal,
+            expectedIncrease,
+            10);
     }
 
     @Test(priority = 2, enabled = true)
@@ -291,12 +288,12 @@ public class BillingMetricsTest extends TestBase {
 
         // waiting for metric to be increased within with 5 range
         KafkaMgmtMetricsUtils.waitUntilExpectedMetricRange(
-                prometheusWebClient,
-                kafka.getId(),
-                metricToSnapshotMap.get(METRIC_TRAFFIC_OUT).getQuery(),
-                oldTrafficOutTotal,
-                expectedIncrease,
-                10.0);
+            prometheusWebClient,
+            kafka.getId(),
+            metricToSnapshotMap.get(METRIC_TRAFFIC_OUT).getQuery(),
+            oldTrafficOutTotal,
+            expectedIncrease,
+            10.0);
     }
 
     @SneakyThrows
@@ -310,11 +307,11 @@ public class BillingMetricsTest extends TestBase {
 
         // create topic with 3 replicas (the only possible way to create topic currently)
         kafkaInstanceApi.createTopic(
-                new NewTopicInput()
-                        .name(TOPIC_NAME)
-                        .settings(
-                                new TopicSettings()
-                                        .numPartitions(1)));
+            new NewTopicInput()
+                .name(TOPIC_NAME)
+                .settings(
+                    new TopicSettings().numPartitions(1))
+        );
     }
 
     private void createACLs(ServiceAccount serviceAccount) throws ApiGenericException {
