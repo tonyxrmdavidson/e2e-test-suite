@@ -332,7 +332,8 @@
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://raw.githubusercontent.com/redhat-developer/app-services-operator/main/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.serviceregistryconnections.crd.yaml</url>
+                            <!-- The same temporary change as in case of kafkaconnections -->
+                            <url>https://raw.githubusercontent.com/henryZrncik/app-services-operator/kafka-connection-crd-status-metadata-explicit/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.serviceregistryconnections.crd.yaml</url>
                             <outputFileName>rhoas-operator.serviceregistryconnections.crd.yaml</outputFileName>
                             <outputDirectory>${project.build.directory}/manifests</outputDirectory>
                         </configuration>
