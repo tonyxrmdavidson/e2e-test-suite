@@ -46,11 +46,6 @@
             <version>${fabric8.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>api</artifactId>
-            <version>0.30.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.12.0</version>
@@ -324,7 +319,8 @@
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://raw.githubusercontent.com/redhat-developer/app-services-operator/main/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.kafkaconnections.crd.yaml</url>
+                            <!-- Temporary usage og forked repo to obtain descriptive enough version of crds to build specific enough Models -->
+                            <url>https://raw.githubusercontent.com/henryZrncik/app-services-operator/kafka-connection-crd-status-metadata-explicit/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.kafkaconnections.crd.yaml</url>
                             <outputFileName>rhoas-operator.kafkaconnections.crd.yaml</outputFileName>
                             <outputDirectory>${project.build.directory}/manifests</outputDirectory>
                         </configuration>
@@ -336,7 +332,8 @@
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://raw.githubusercontent.com/redhat-developer/app-services-operator/main/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.serviceregistryconnections.crd.yaml</url>
+                            <!-- The same temporary change as in case of kafkaconnections -->
+                            <url>https://raw.githubusercontent.com/henryZrncik/app-services-operator/kafka-connection-crd-status-metadata-explicit/olm/olm-catalog/rhoas-operator/${rhoas-model.version}/manifests/rhoas-operator.serviceregistryconnections.crd.yaml</url>
                             <outputFileName>rhoas-operator.serviceregistryconnections.crd.yaml</outputFileName>
                             <outputDirectory>${project.build.directory}/manifests</outputDirectory>
                         </configuration>
