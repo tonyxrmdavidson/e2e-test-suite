@@ -95,7 +95,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             log.debug(kafka);
             assertEquals(kafka.getBillingModel(), "marketplace");
-            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
+            assertEquals(kafka.getMarketplace(), "aws");
             assertEquals(kafka.getBillingCloudAccountId(), Environment.STRATOSPHERE_SCENARIO_1_AWS_ACCOUNT_ID);
         } finally {
             cleanup(user);
@@ -254,7 +254,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             log.debug(kafka);
             assertNotNull(kafka);
-            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
+            assertEquals(kafka.getMarketplace(), "aws");
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
             assertEquals(kafka.getBillingModel(), "marketplace");
         } finally {
@@ -314,7 +314,7 @@ public class BillingModelTest {
             kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             assertNotNull(kafka);
             log.debug(kafka);
-            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
+            assertEquals(kafka.getMarketplace(), "aws");
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
             assertEquals(kafka.getBillingModel(), "marketplace");
         } finally {
@@ -336,7 +336,7 @@ public class BillingModelTest {
                 .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
                 .billingCloudAccountId(cloudAccountId)
-                .marketplace(Environment.CLOUD_PROVIDER);
+                .marketplace("aws");
 
         log.info("create kafka instance '{}'", payload.getName());
         KafkaRequest kafka;
@@ -401,7 +401,7 @@ public class BillingModelTest {
                 .name(KAFKA_INSTANCE_NAME)
                 .cloudProvider(Environment.CLOUD_PROVIDER)
                 .region(Environment.DEFAULT_KAFKA_REGION)
-                .marketplace(Environment.CLOUD_PROVIDER)
+                .marketplace("aws")
                 .billingModel("marketplace");
 
         log.info("create kafka instance '{}'", payload.getName());
@@ -443,7 +443,7 @@ public class BillingModelTest {
             KafkaRequest kafka = KafkaMgmtApiUtils.createKafkaInstance(kafkaMgmtApi, payload);
             log.debug(kafka);
             assertNotNull(kafka);
-            assertEquals(kafka.getMarketplace(), Environment.CLOUD_PROVIDER);
+            assertEquals(kafka.getMarketplace(), "aws");
             assertEquals(kafka.getBillingCloudAccountId(), cloudAccountId);
             assertEquals(kafka.getBillingModel(), "marketplace");
         } finally {
